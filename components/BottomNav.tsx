@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 
 const NAV = [
   { href: "/", label: "홈" },
+  { href: "/characters/bomi", label: "봄이" },
   { href: "/episodes", label: "편 목록" },
-  { href: "/subscribe", label: "정기 구독" },
+  { href: "/subscribe", label: "구독" },
   { href: "/admin", label: "올리기" },
-  { href: "/rules", label: "영상규칙" },
+  { href: "/rules", label: "규칙" },
 ];
 
 function isActive(pathname: string, href: string): boolean {

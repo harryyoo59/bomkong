@@ -130,7 +130,7 @@ textarea {
   position: sticky;
   bottom: 8px;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 4px;
   padding: 8px;
   border-radius: 20px;
@@ -797,6 +797,58 @@ textarea {
 
 .rules-box li {
   margin-bottom: 6px;
+}
+
+.character-hero {
+  background:
+    linear-gradient(160deg, rgba(184, 158, 219, 0.28), rgba(255, 255, 255, 0.8)),
+    var(--card);
+}
+
+.character-name {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  color: #5a3f8a;
+}
+
+.sheet-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.sheet-card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sheet-image {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: white;
+  display: block;
+}
+
+.sheet-caption {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--muted);
+}
+
+.character-section .character-copy {
+  margin: 0 0 10px;
+  line-height: 1.55;
+}
+
+.character-section .character-copy:last-child {
+  margin-bottom: 0;
 }
 
 @keyframes rise {

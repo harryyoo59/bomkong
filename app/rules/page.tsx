@@ -10,10 +10,6 @@ export default function RulesPage() {
           어떤 AI든 영상을 만들기 <strong>전에</strong> 규칙을 읽고 따라야
           해요. 캐릭터 모습은 마음대로 바꾸면 안 돼요.
         </p>
-        <p className="muted">
-          외형·옷·기준 사진 세부는 아직 빈칸이에요. 이 앱에서는 모습을 새로
-          지어내지 않아요.
-        </p>
         <ol>
           <li>보관소 README</li>
           <li>봄이 · 콩이</li>
@@ -23,14 +19,17 @@ export default function RulesPage() {
           <li>금지</li>
         </ol>
         <div className="price-box">
-          <p className="eyebrow">문서 위치 (프로젝트 창고)</p>
-          <p className="tiny">
-            docs/character-rules/README.md · media/character-refs/
+          <p className="eyebrow">봄이</p>
+          <p>
+            봄이 공식 소개와 기준 시트(표정·전신·디자인)가 준비되어 있어요.
           </p>
-          <p className="muted tiny">
-            앱 안에서는 요약만 보여 줘요. 자세한 규칙은 창고 문서를 보세요.
-          </p>
+          <Link className="btn btn-primary btn-wide" href="/characters/bomi">
+            봄이 소개 보기
+          </Link>
         </div>
+        <p className="muted tiny">
+          콩이 세부는 아직 사이트에 없어요. 모습을 새로 지어내지 않아요.
+        </p>
         <Link className="btn btn-soft btn-wide" href="/admin">
           올리기 화면으로
         </Link>

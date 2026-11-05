@@ -64,6 +64,16 @@ export default function HomePage() {
           </li>
         </ol>
       </section>
+
+      <section className="panel stub-card">
+        <h2 className="section-title">캐릭터 · 봄이</h2>
+        <p className="muted">
+          봄이 공식 소개와 기준 시트를 볼 수 있어요.
+        </p>
+        <Link className="btn btn-soft btn-wide" href="/characters/bomi">
+          봄이 소개 보기
+        </Link>
+      </section>
     </SiteShell>
   );
 }
