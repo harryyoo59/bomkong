@@ -27,9 +27,15 @@ export default function RulesPage() {
             봄이 소개 보기
           </Link>
         </div>
-        <p className="muted tiny">
-          콩이 세부는 아직 사이트에 없어요. 모습을 새로 지어내지 않아요.
-        </p>
+        <div className="price-box">
+          <p className="eyebrow">콩이</p>
+          <p>
+            콩이 공식 소개와 기준 시트(얼굴 분석·전신)가 준비되어 있어요.
+          </p>
+          <Link className="btn btn-primary btn-wide" href="/characters/kongi">
+            콩이 소개 보기
+          </Link>
+        </div>
         <Link className="btn btn-soft btn-wide" href="/admin">
           올리기 화면으로
         </Link>

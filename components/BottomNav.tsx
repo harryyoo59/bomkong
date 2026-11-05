@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV = [
   { href: "/", label: "홈" },
   { href: "/characters/bomi", label: "봄이" },
+  { href: "/characters/kongi", label: "콩이" },
   { href: "/episodes", label: "편 목록" },
   { href: "/subscribe", label: "구독" },
   { href: "/admin", label: "올리기" },
