@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { SiteShell } from "@/components/SiteShell";
 
-const UNDECIDED = [
-  "분위기",
-  "배경 톤",
-  "숏츠 비율",
-  "길이",
-  "로고·채널명 위치",
+const SHOT_VALUES = [
+  { label: "분위기", value: "아이들 캐릭터에 맞게 밝고 명랑하게" },
+  { label: "배경 톤", value: "실내는 파스텔톤, 외부는 자연 분위기" },
+  { label: "숏츠 비율", value: "9:16 (세로 숏츠 일반)" },
+  { label: "길이", value: "30초 이내" },
+  {
+    label: "로고·채널명 위치",
+    value: "화면 좌측 위: BomKong 자수 로고 / 채널명: 화면 아래",
+  },
 ] as const;
 
 export default function RulesPage() {
@@ -20,8 +23,8 @@ export default function RulesPage() {
         </p>
         <p className="character-copy">
           제작 전 이 문서를 먼저 읽고 따릅니다. 아래는 보관소 구조(1~7)와
-          최종안(A~I)을 겹치지 않게 합친 공식본입니다. 빈칸은 아직
-          미정입니다.
+          최종안(A~I)을 겹치지 않게 합친 공식본입니다. 화면·연출 공통
+          항목은 확정 값입니다.
         </p>
       </section>
 
@@ -101,13 +104,13 @@ export default function RulesPage() {
           흔들림이나 무서운 연출은 안 되며, 아이들 눈높이에 맞는 친절한
           구도로 찍어요.
         </p>
-        <p className="character-copy">아직 미정 (빈칸):</p>
+        <p className="character-copy">확정 값:</p>
         <ul className="rules-blank-list">
-          {UNDECIDED.map((label) => (
-            <li key={label} className="rules-blank-item">
-              <span className="rules-blank-label">{label}</span>
-              <span className="rules-blank-field" aria-label={`${label} 빈칸`}>
-                —
+          {SHOT_VALUES.map((item) => (
+            <li key={item.label} className="rules-blank-item">
+              <span className="rules-blank-label">{item.label}</span>
+              <span className="rules-blank-field rules-filled-field">
+                {item.value}
               </span>
             </li>
           ))}
@@ -175,14 +178,15 @@ export default function RulesPage() {
       <section className="panel character-section">
         <h2 className="section-title">8. 쿠키 실사</h2>
         <p className="character-copy">
-          본편 뒤에 그 편의 모티브가 된 실제 아이들 동영상이나 사진을
-          붙이고, 얼굴은 알아볼 수 없게 블러해요. 영어 버전에도 같은 쿠키를
-          붙이고, 번역하거나 더빙하지 않아요. 얼굴이 또렷한 컷, 쿠키만 따로
-          영어 더빙·자막, 본편과 무관한 실사는 안 돼요.
+          본편이 끝나면 바로 쿠키 영상으로 전환해요. 화면 위쪽에 BomKong
+          자수 로고를 넣고, 그 아래에 그 편에 지정한 실제 아이들 동영상이나
+          사진을 보여 줘요. 얼굴만 알아볼 수 없게 블러하고, 그 외 편집은
+          하지 않아요. 실제 이름 소리는 지워요.
         </p>
         <p className="character-copy">
-          로고 화면 아래에 실제 영상을 끝까지 보여줘요. 얼굴만 알아볼 수
-          없게 강하게 흐리게 하고, 실제 이름 소리는 지워요.
+          영어 버전에도 같은 쿠키를 붙이고, 번역하거나 더빙하지 않아요.
+          얼굴이 또렷한 컷, 쿠키만 따로 영어 더빙·자막, 본편과 무관한
+          실사는 안 돼요.
         </p>
         <p className="character-copy">
           실제 아이 영상은 참고용과 쿠키 영상에만 써요.

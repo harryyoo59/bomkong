@@ -833,6 +833,16 @@ textarea {
   font-weight: 700;
 }
 
+.rules-filled-field {
+  border-style: solid;
+  color: var(--ink);
+  font-weight: 650;
+  line-height: 1.35;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  min-height: auto;
+}
+
 .character-hero {
   background:
     linear-gradient(160deg, rgba(184, 158, 219, 0.28), rgba(255, 255, 255, 0.8)),
