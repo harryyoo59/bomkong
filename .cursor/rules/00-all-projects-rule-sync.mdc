@@ -1,0 +1,27 @@
+---
+description: 공통 규칙은 모든 프로젝트에 동일하게 반영
+alwaysApply: true
+---
+
+# 1. 전 프로젝트 규칙 동기화
+
+AI Rule, Cursor 규칙을 업데이트할 때, 특정 프로젝트에만 국한되는 규칙이 아닌 이상 항상 모든 프로젝트에 동일하게 반영한다.
+
+## 사장님 프로젝트 위치 (반드시 기억)
+
+프로젝트는 **같은 폴더**에 있다. 한쪽만 보면 안 된다.
+
+| 프로젝트 | 경로 |
+|----------|------|
+| cz assets | `/Users/harryyoo/Documents/chamzone-assets` |
+| ProjectH | `/Users/harryyoo/Documents/ProjectH` |
+| ProjectNL | `/Users/harryyoo/Documents/ProjectNL` |
+| ProjectSYDTour | `/Users/harryyoo/Documents/ProjectSYDTour` |
+
+- 규칙·공통 설정을 바꿀 때는 **모두** 확인하고 **모두** 맞춘다
+- "다른 프로젝트가 있는지" 찾을 때는 현재 작업 폴더만 보지 말고 **`/Users/harryyoo/Documents/`** 를 본다
+
+- 공통 규칙: `.agents/rules/USER_RULES.md`, `.cursor/rules/`의 `alwaysApply` 규칙
+- 프로젝트 전용 규칙: 해당 프로젝트에만 적용되는 별도 문서
+- **보고 방식 규칙(`02-user-communication.mdc`)은 모든 프로젝트에 필수** — 기술 용어 없이 쉬운 말로 보고
+- 새 프로젝트 생성 시 위 폴더·파일을 **통째로 복사**한 뒤, 프로젝트 전용 규칙만 추가한다
