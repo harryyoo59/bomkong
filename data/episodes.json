@@ -1,0 +1,54 @@
+[
+  {
+    "id": "ep-1",
+    "number": 1,
+    "titleKo": "공원에서 공 놀이",
+    "titleEn": "Ball at the park",
+    "wordEn": "ball",
+    "wordKo": "공",
+    "hasKo": true,
+    "hasEn": true,
+    "cookieLabel": "쿠키 · 실사 자리표시",
+    "visibility": "free",
+    "summary": "봄이가 콩이에게 ball(공)을 알려 줘요."
+  },
+  {
+    "id": "ep-2",
+    "number": 2,
+    "titleKo": "빨간 사과 나눠 먹기",
+    "titleEn": "Sharing a red apple",
+    "wordEn": "apple",
+    "wordKo": "사과",
+    "hasKo": true,
+    "hasEn": true,
+    "cookieLabel": "쿠키 · 실사 자리표시",
+    "visibility": "free",
+    "summary": "사과를 나눠 먹으며 apple을 배워요."
+  },
+  {
+    "id": "ep-3",
+    "number": 3,
+    "titleKo": "노란 해 인사하기",
+    "titleEn": "Hello, yellow sun",
+    "wordEn": "sun",
+    "wordKo": "해",
+    "hasKo": true,
+    "hasEn": false,
+    "cookieLabel": "쿠키 · 실사 자리표시",
+    "visibility": "free",
+    "summary": "영어판은 아직 준비 중이에요."
+  },
+  {
+    "id": "ep-4",
+    "number": 4,
+    "titleKo": "파란 물 한 모금",
+    "titleEn": "A sip of water",
+    "wordEn": "water",
+    "wordKo": "물",
+    "hasKo": true,
+    "hasEn": true,
+    "cookieLabel": "쿠키 · 실사 자리표시",
+    "visibility": "subscribers",
+    "summary": "물을 마시며 water를 배워요. (구독 맛보기)"
+  }
+]
