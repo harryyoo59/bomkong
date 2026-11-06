@@ -130,8 +130,8 @@ textarea {
   position: sticky;
   bottom: 8px;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 3px;
   padding: 8px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.88);
@@ -142,11 +142,12 @@ textarea {
 
 .nav-link {
   text-align: center;
-  font-size: 0.66rem;
+  font-size: 0.58rem;
   font-weight: 700;
   padding: 10px 1px;
   border-radius: 14px;
   color: var(--muted);
+  line-height: 1.2;
 }
 
 .nav-link:hover,
@@ -893,6 +894,46 @@ textarea {
 
 .character-section .character-copy:last-child {
   margin-bottom: 0;
+}
+
+.logo-hero {
+  background:
+    linear-gradient(160deg, rgba(255, 107, 61, 0.18), rgba(61, 184, 232, 0.16)),
+    var(--card);
+}
+
+.logo-page-title {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+  color: var(--brand-deep);
+}
+
+.logo-room-blurb {
+  margin: 0 0 12px;
+}
+
+.logo-card {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.logo-image {
+  width: 100%;
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: white;
+  display: block;
+}
+
+.logo-caption {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--muted);
 }
 
 @keyframes rise {
