@@ -66,6 +66,14 @@ export default function HomePage() {
       </section>
 
       <section className="panel stub-card">
+        <h2 className="section-title">로고 보관</h2>
+        <p className="muted">공식 로고만 모아 둔 방이에요.</p>
+        <Link className="btn btn-soft btn-wide" href="/logos">
+          로고 보관 보기
+        </Link>
+      </section>
+
+      <section className="panel stub-card">
         <h2 className="section-title">캐릭터 · 봄이</h2>
         <p className="muted">
           봄이 공식 소개와 기준 시트를 볼 수 있어요.
