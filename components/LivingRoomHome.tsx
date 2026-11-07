@@ -16,6 +16,8 @@ export type LivingMenuId = "watch" | "subscribe" | "goods";
 
 const MENUS: {
   id: LivingMenuId;
+  number: 1 | 2 | 3;
+  shortLabel: string;
   label: string;
   tvTitle: string;
   tvBlurb: string;
@@ -24,24 +26,30 @@ const MENUS: {
 }[] = [
   {
     id: "watch",
+    number: 1,
+    shortLabel: "영상",
     label: "영상 재생",
-    tvTitle: "영상 재생",
-    tvBlurb: "편 목록에서 고르거나, 이어보기로 바로 볼 수 있어요.",
+    tvTitle: "영상",
+    tvBlurb: "편 목록에서 고르거나 이어보기로 바로 봐요.",
     href: "/episodes",
     needsGuardian: false,
   },
   {
     id: "subscribe",
+    number: 2,
+    shortLabel: "구독",
     label: "구독 신청",
-    tvTitle: "구독 신청",
+    tvTitle: "구독",
     tvBlurb: "정기 구독 안내로 가요. 보호자 확인 후 진행해요.",
     href: "/subscribe",
     needsGuardian: true,
   },
   {
     id: "goods",
+    number: 3,
+    shortLabel: "상품",
     label: "상품 구매",
-    tvTitle: "상품 구매",
+    tvTitle: "상품",
     tvBlurb: "캐릭터 상품을 봐요. 보호자 확인 후 진행해요.",
     href: "/goods",
     needsGuardian: true,
@@ -120,6 +128,12 @@ export function LivingRoomHome({
 
   const onTvKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const idx = MENUS.findIndex((m) => m.id === selected);
+    if (event.key === "1" || event.key === "2" || event.key === "3") {
+      event.preventDefault();
+      const picked = MENUS.find((m) => String(m.number) === event.key);
+      if (picked) selectMenu(picked.id);
+      return;
+    }
     if (event.key === "ArrowDown") {
       event.preventDefault();
       selectMenu(MENUS[(idx + 1) % MENUS.length].id);
@@ -175,30 +189,15 @@ export function LivingRoomHome({
             aria-label="큰 티비 메뉴"
             onKeyDown={onTvKeyDown}
           >
-            <div className="tv-screen">
-              <p className="tv-eyebrow">지금 고른 메뉴</p>
+            <div className="tv-screen" key={selected}>
+              <p className="tv-eyebrow">
+                <span className="tv-number" aria-hidden>
+                  {current.number}
+                </span>
+                번 · 지금 화면
+              </p>
               <h1 className="tv-title">{current.tvTitle}</h1>
               <p className="tv-blurb">{current.tvBlurb}</p>
-              <ul className="tv-menu" role="listbox" aria-label="티비 메뉴">
-                {MENUS.map((item) => {
-                  const active = item.id === selected;
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active}
-                        className={
-                          active ? "tv-menu-btn is-active" : "tv-menu-btn"
-                        }
-                        onClick={() => selectMenu(item.id)}
-                      >
-                        <span className="tv-menu-label">{item.label}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
               <div className="tv-actions">
                 {current.id === "watch" ? (
                   <>
@@ -219,7 +218,7 @@ export function LivingRoomHome({
                     className="btn btn-primary tv-cta"
                     onClick={goSelected}
                   >
-                    {current.label} 열기
+                    {current.shortLabel} 열기
                   </button>
                 )}
               </div>
@@ -245,9 +244,11 @@ export function LivingRoomHome({
                   type="button"
                   className="frame-slot"
                   onClick={() => selectMenu(id)}
-                  aria-label={`액자 바로가기: ${item.label}`}
+                  aria-label={`액자 바로가기: ${item.number}번 ${item.shortLabel}`}
                 >
-                  <span className="frame-label">{item.label}</span>
+                  <span className="frame-label">
+                    {item.number}. {item.shortLabel}
+                  </span>
                 </button>
               );
             })}
@@ -268,10 +269,36 @@ export function LivingRoomHome({
           콩아 리모컨 눌러봐 / 응 누나
           <span className="living-caption-note">
             {" "}
-            · 번호 고르기는 화면 메뉴로만
+            · 1·2·3만 누르면 티비에 그 화면만
           </span>
         </p>
         <div className="living-controls">
+          <div
+            className="living-remote"
+            role="group"
+            aria-label="리모컨 번호"
+          >
+            {MENUS.map((item) => {
+              const active = item.id === selected;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  className={
+                    active
+                      ? "living-remote-btn is-active"
+                      : "living-remote-btn"
+                  }
+                  aria-pressed={active}
+                  aria-label={`${item.number}번 ${item.shortLabel}`}
+                  onClick={() => selectMenu(item.id)}
+                >
+                  <span className="living-remote-num">{item.number}</span>
+                  <span className="living-remote-label">{item.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             className="btn btn-soft living-ctrl"
