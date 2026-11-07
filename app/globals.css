@@ -1172,6 +1172,25 @@ textarea {
   pointer-events: none;
 }
 
+.frame-slot-photo {
+  padding: 0;
+  overflow: hidden;
+  background: rgba(20, 16, 12, 0.55);
+}
+
+.frame-slot-photo:hover {
+  background: rgba(20, 16, 12, 0.55);
+}
+
+.frame-photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 35%;
+  pointer-events: none;
+}
+
 .frame-label {
   display: block;
 }

@@ -227,30 +227,35 @@ export function LivingRoomHome({
           </div>
 
           <div className="hotspot hotspot-frames" aria-label="벽 액자 바로가기">
-            {[0, 1].map((slot) => {
-              const id = frameIds[slot];
-              if (!id) {
-                return (
-                  <div
-                    key={`empty-${slot}`}
-                    className="frame-slot is-empty"
-                    aria-hidden
-                  />
-                );
-              }
-              const item = menuById(id);
-              return (
-                <button
-                  key={id}
-                  type="button"
-                  className="frame-slot"
-                  onClick={() => selectMenu(id)}
-                  aria-label={`액자 바로가기: ${item.label}`}
-                >
-                  <span className="frame-label">{item.label}</span>
-                </button>
-              );
-            })}
+            <button
+              type="button"
+              className="frame-slot frame-slot-photo"
+              onClick={() => selectMenu("watch")}
+              aria-label="액자: 영상 보기"
+            >
+              <img
+                className="frame-photo"
+                src="/characters/duo/stage-performance.png"
+                alt="봄이·콩이 공연"
+                width={480}
+                height={320}
+                draggable={false}
+              />
+            </button>
+            {frameIds[0] ? (
+              <button
+                type="button"
+                className="frame-slot"
+                onClick={() => selectMenu(frameIds[0])}
+                aria-label={`액자 바로가기: ${menuById(frameIds[0]).label}`}
+              >
+                <span className="frame-label">
+                  {menuById(frameIds[0]).label}
+                </span>
+              </button>
+            ) : (
+              <div className="frame-slot is-empty" aria-hidden />
+            )}
           </div>
 
           <Link
