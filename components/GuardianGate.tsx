@@ -1,6 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function GuardianGate({
   open,
@@ -17,9 +18,18 @@ export function GuardianGate({
   onConfirm: () => void;
   confirmLabel?: string;
 }) {
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
-  return (
+  if (!open || typeof document === "undefined") return null;
+
+  return createPortal(
     <div
       className="guardian-backdrop"
       role="dialog"
@@ -45,6 +55,7 @@ export function GuardianGate({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
