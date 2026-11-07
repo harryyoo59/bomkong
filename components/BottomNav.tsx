@@ -3,15 +3,15 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+/** 손님용만. 관리자실(올리기)은 거실 문 → 서버 확인 후에만. */
 const NAV = [
   { href: "/", label: "홈" },
-  { href: "/characters/bomi", label: "봄이" },
-  { href: "/characters/kongi", label: "콩이" },
-  { href: "/logos", label: "로고 보관" },
   { href: "/episodes", label: "편 목록" },
   { href: "/subscribe", label: "구독" },
-  { href: "/admin", label: "올리기" },
-  { href: "/rules", label: "규칙" },
+  { href: "/goods", label: "상품" },
+  { href: "/characters/bomi", label: "봄이" },
+  { href: "/characters/kongi", label: "콩이" },
+  { href: "/logos", label: "로고" },
 ];
 
 function isActive(pathname: string, href: string): boolean {

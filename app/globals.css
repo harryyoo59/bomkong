@@ -130,7 +130,7 @@ textarea {
   position: sticky;
   bottom: 8px;
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   gap: 3px;
   padding: 8px;
   border-radius: 20px;
@@ -969,5 +969,521 @@ textarea {
     padding: 8px 12px 12px;
     background: rgba(255, 255, 255, 0.35);
     border: 1px solid rgba(255, 255, 255, 0.55);
+  }
+}
+
+/* —— Living room home (full composition, no crop of TV/door/sofa) —— */
+.app-root:has(.living-root) {
+  display: block;
+  padding: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 10%, #ffe7c2 0%, transparent 45%),
+    linear-gradient(180deg, #f3e4cf 0%, #dfeff8 100%);
+}
+
+.living-root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 10px 16px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.living-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 848 / 480;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #1f2a2e;
+  box-shadow: 0 18px 40px rgba(31, 42, 46, 0.18);
+  isolation: isolate;
+}
+
+.living-video,
+.living-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background: #2a3338;
+  user-select: none;
+  pointer-events: none;
+}
+
+.living-poster {
+  opacity: 0;
+  z-index: 1;
+  transition: opacity 0.25s ease;
+}
+
+.living-poster.is-visible {
+  opacity: 1;
+}
+
+.living-video.is-hidden {
+  opacity: 0;
+}
+
+.living-ui {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+
+/* Percentages map to the 848×480 living-room frame (contain, no crop). */
+.hotspot-tv {
+  position: absolute;
+  left: 3.2%;
+  top: 9%;
+  width: 29.5%;
+  height: 52%;
+  outline: none;
+}
+
+.tv-screen {
+  height: 100%;
+  padding: clamp(6px, 1.4vw, 12px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: auto;
+  border-radius: 4px;
+  background: rgba(255, 250, 240, 0.92);
+  border: 1px solid rgba(31, 42, 46, 0.08);
+  color: var(--ink);
+  animation: living-tv-in 0.45s ease both;
+}
+
+.tv-eyebrow {
+  margin: 0;
+  font-size: clamp(0.55rem, 1.4vw, 0.72rem);
+  font-weight: 800;
+  color: #0f6f93;
+}
+
+.tv-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 2.4vw, 1.35rem);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.tv-blurb {
+  margin: 0;
+  font-size: clamp(0.58rem, 1.35vw, 0.78rem);
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.tv-menu {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tv-menu-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.65);
+  color: var(--ink);
+  font-size: clamp(0.68rem, 1.5vw, 0.88rem);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tv-menu-btn.is-active {
+  background: linear-gradient(135deg, #ffe0cf, #d7f2ff);
+  border-color: rgba(255, 107, 61, 0.35);
+  box-shadow: 0 4px 10px rgba(255, 107, 61, 0.15);
+}
+
+.tv-menu-btn:focus-visible,
+.frame-slot:focus-visible,
+.hotspot-door:focus-visible,
+.hotspot-tv:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 2px;
+}
+
+.tv-actions {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.tv-cta {
+  padding: 7px 10px;
+  font-size: clamp(0.62rem, 1.4vw, 0.78rem);
+  border-radius: 12px;
+}
+
+.hotspot-frames {
+  position: absolute;
+  left: 39%;
+  top: 11.5%;
+  width: 24%;
+  height: 24%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3.5%;
+}
+
+.frame-slot {
+  border: none;
+  padding: 6%;
+  border-radius: 4px;
+  background: rgba(255, 252, 245, 0.88);
+  box-shadow: inset 0 0 0 2px rgba(120, 88, 48, 0.35);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  color: var(--ink);
+  font-size: clamp(0.5rem, 1.2vw, 0.72rem);
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.frame-slot:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 244, 220, 0.95);
+}
+
+.frame-slot.is-empty {
+  background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(120, 88, 48, 0.18);
+  cursor: default;
+  pointer-events: none;
+}
+
+.frame-label {
+  display: block;
+}
+
+/* Door may sit under sofa armrest — keep a usable click region. */
+.hotspot-door {
+  position: absolute;
+  right: 2.2%;
+  top: 7%;
+  width: 18.5%;
+  height: 72%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18%;
+  border-radius: 6px;
+  z-index: 3;
+}
+
+.door-label {
+  display: inline-block;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(31, 42, 46, 0.12);
+  font-family: var(--font-display);
+  font-size: clamp(0.7rem, 1.6vw, 0.95rem);
+  font-weight: 700;
+  color: #3a2b1a;
+  box-shadow: 0 6px 14px rgba(31, 42, 46, 0.12);
+  animation: living-door-pulse 2.4s ease-in-out infinite;
+}
+
+.living-chrome {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 0 4px;
+}
+
+.living-caption {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.living-caption-note {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.living-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.living-ctrl {
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+
+.living-audio-note {
+  margin: 0;
+}
+
+.guardian-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgba(20, 28, 32, 0.45);
+  backdrop-filter: blur(4px);
+  animation: rise 0.2s ease both;
+}
+
+.guardian-card {
+  width: min(100%, 380px);
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.guardian-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.92rem;
+}
+
+.guardian-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.admin-gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 20px 14px;
+}
+
+.admin-gate-card {
+  width: min(100%, 420px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.admin-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.field-input {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: white;
+}
+
+.form-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.status-box {
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.status-box-warn {
+  background: #fff4e5;
+  border-color: rgba(184, 110, 0, 0.25);
+}
+
+.status-box-info {
+  background: var(--sky-soft);
+  border-color: rgba(15, 111, 147, 0.2);
+  margin-top: 8px;
+}
+
+.status-title {
+  margin: 0 0 4px;
+  font-weight: 800;
+}
+
+.study-room {
+  width: min(100%, 520px);
+  margin: 0 auto;
+  padding: 16px 12px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.study-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.study-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.study-card {
+  display: block;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease;
+}
+
+.study-card:hover {
+  transform: translateY(-2px);
+}
+
+.study-card h2 {
+  margin: 0 0 4px;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.study-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.goods-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.goods-item {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.goods-name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+}
+
+.goods-buy {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+@keyframes living-tv-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes living-door-pulse {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (max-width: 520px) {
+  .living-root {
+    padding: 8px 8px 14px;
+  }
+
+  .living-stage {
+    border-radius: 14px;
+  }
+
+  /* Keep full frame visible — letterbox instead of cropping TV/door/sofa */
+  .living-video,
+  .living-poster {
+    object-fit: contain;
+  }
+
+  .tv-actions {
+    flex-direction: column;
+  }
+
+  .tv-cta {
+    width: 100%;
+    text-align: center;
+  }
+
+  .door-label {
+    font-size: 0.68rem;
+    padding: 4px 6px;
+  }
+}
+
+@media (min-width: 760px) {
+  .living-root {
+    padding: 18px 20px 24px;
+  }
+
+  .living-stage {
+    border-radius: 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .living-poster,
+  .tv-screen,
+  .door-label,
+  .study-card,
+  .frame-slot {
+    animation: none !important;
+    transition: none !important;
   }
 }
