@@ -250,9 +250,9 @@ export function LivingRoomHome({
           </button>
 
           <Link
-            href="/admin"
+            href="/admin/login"
             className="hotspot hotspot-door"
-            aria-label="관리자실"
+            aria-label="관리자실 입장"
           >
             <span className="door-label">관리자실</span>
           </Link>

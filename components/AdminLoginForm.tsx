@@ -12,7 +12,7 @@ export function AdminLoginForm({ nextPath }: { nextPath: string }) {
     <form action={action} className="admin-login-form">
       <input type="hidden" name="next" value={nextPath} />
       <label className="field-label" htmlFor="admin-password">
-        관리자 열쇠
+        비밀글
       </label>
       <input
         id="admin-password"
@@ -20,6 +20,7 @@ export function AdminLoginForm({ nextPath }: { nextPath: string }) {
         type="password"
         autoComplete="current-password"
         className="field-input"
+        placeholder="여기에 비밀글을 입력해요"
         required
         disabled={pending}
       />
@@ -33,7 +34,7 @@ export function AdminLoginForm({ nextPath }: { nextPath: string }) {
         className="btn btn-primary btn-wide"
         disabled={pending}
       >
-        {pending ? "확인 중…" : "관리자실 들어가기"}
+        {pending ? "확인 중…" : "들어가기"}
       </button>
     </form>
   );
