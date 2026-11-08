@@ -1420,6 +1420,134 @@ textarea {
   font-size: 0.88rem;
 }
 
+/* 관리자실 · 진료실 네 칸 */
+.clinic-room {
+  width: min(100%, 960px);
+  margin: 0 auto;
+  padding: 20px 16px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.clinic-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.clinic-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  align-items: start;
+}
+
+.clinic-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.clinic-door {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  min-height: 148px;
+  padding: 18px 18px 16px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 236, 0.88)),
+    var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.clinic-door:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 34px rgba(31, 42, 46, 0.12);
+}
+
+.clinic-door-number {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #ffe0cf, #ffd3a8);
+  color: var(--brand-deep);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+
+.clinic-door-body h2 {
+  margin: 2px 0 6px;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.clinic-door-body p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.clinic-door-note {
+  margin-top: 10px !important;
+  color: var(--brand-deep) !important;
+  font-size: 0.88rem !important;
+  font-weight: 700;
+}
+
+.clinic-door-empty,
+.clinic-door-photo {
+  cursor: default;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(245, 248, 250, 0.82)),
+    var(--card);
+  border-style: dashed;
+}
+
+.clinic-door-empty:hover,
+.clinic-door-photo:hover {
+  transform: none;
+  box-shadow: var(--shadow);
+}
+
+.clinic-door-photo {
+  min-height: 112px;
+  padding: 14px 16px;
+}
+
+.clinic-door-photo .clinic-door-number {
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  background: linear-gradient(160deg, #e8f4ff, #d7ebff);
+  color: #3a6f8f;
+}
+
+.clinic-door-photo h2 {
+  font-size: 1.05rem;
+}
+
+@media (max-width: 720px) {
+  .clinic-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .clinic-room {
+    width: min(100%, 520px);
+    padding: 16px 12px 28px;
+  }
+}
+
 .goods-list {
   list-style: none;
   margin: 0;
@@ -1513,6 +1641,7 @@ textarea {
   .tv-screen,
   .door-label,
   .study-card,
+  .clinic-door,
   .frame-slot {
     animation: none !important;
     transition: none !important;

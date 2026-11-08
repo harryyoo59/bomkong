@@ -5,35 +5,7 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-const FURNITURE = [
-  {
-    href: "/rules",
-    title: "책장 · 규칙",
-    blurb: "영상규칙 보관소를 읽어요.",
-  },
-  {
-    href: "/characters/bomi",
-    title: "책상 옆 · 봄이",
-    blurb: "봄이 공식 소개·기준 시트.",
-  },
-  {
-    href: "/characters/kongi",
-    title: "책상 옆 · 콩이",
-    blurb: "콩이 공식 소개·기준 시트.",
-  },
-  {
-    href: "/logos",
-    title: "로고 금고",
-    blurb: "공식 로고만 모아 둔 방.",
-  },
-  {
-    href: "/admin/upload",
-    title: "책상 · 올리기",
-    blurb: "편 올리기·파일 자리를 관리해요.",
-  },
-] as const;
-
-export default async function AdminStudyPage() {
+export default async function AdminClinicPage() {
   const gate = await requireAdminSession();
   if (!gate.ok) {
     redirect(
@@ -44,14 +16,14 @@ export default async function AdminStudyPage() {
   }
 
   return (
-    <div className="study-room">
-      <header className="study-header">
+    <div className="clinic-room">
+      <header className="clinic-header">
         <div>
-          <p className="eyebrow">관리자실 · 공부방</p>
-          <h1 className="section-title">가구를 눌러 메뉴를 열어요</h1>
+          <p className="eyebrow">관리자실 · 진료실</p>
+          <h1 className="section-title">관리자실을 네 칸으로 나눴어요</h1>
           <p className="muted">
-            손님용 TV 메뉴와 섞이지 않아요. 규칙·캐릭터·로고·올리기만 여기에
-            있어요.
+            손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고만 여기에
+            있어요. 연결된 칸만 눌러 들어가요.
           </p>
         </div>
         <form action={logoutAdmin}>
@@ -61,13 +33,90 @@ export default async function AdminStudyPage() {
         </form>
       </header>
 
-      <div className="study-grid">
-        {FURNITURE.map((item) => (
-          <Link key={item.href} href={item.href} className="study-card">
-            <h2>{item.title}</h2>
-            <p>{item.blurb}</p>
+      <div className="clinic-grid" role="list">
+        <div className="clinic-column" role="presentation">
+          <Link
+            href="/characters/bomi"
+            className="clinic-door"
+            role="listitem"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              1
+            </span>
+            <span className="clinic-door-body">
+              <h2>봄이</h2>
+              <p>봄이 소개와 기준 그림을 봐요.</p>
+            </span>
           </Link>
-        ))}
+          <div
+            className="clinic-door clinic-door-photo"
+            role="listitem"
+            aria-label="봄이 · 영상규칙에 쓸 사진 보관"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              ·
+            </span>
+            <span className="clinic-door-body">
+              <h2>영상규칙에 쓸 사진 보관</h2>
+              <p>봄이 칸 아래예요. 사진 자리는 비워 두었어요.</p>
+            </span>
+          </div>
+        </div>
+
+        <div className="clinic-column" role="presentation">
+          <Link
+            href="/characters/kongi"
+            className="clinic-door"
+            role="listitem"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              2
+            </span>
+            <span className="clinic-door-body">
+              <h2>콩이</h2>
+              <p>콩이 소개와 기준 그림을 봐요.</p>
+            </span>
+          </Link>
+          <div
+            className="clinic-door clinic-door-photo"
+            role="listitem"
+            aria-label="콩이 · 영상규칙에 쓸 사진 보관"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              ·
+            </span>
+            <span className="clinic-door-body">
+              <h2>영상규칙에 쓸 사진 보관</h2>
+              <p>콩이 칸 아래예요. 사진 자리는 비워 두었어요.</p>
+            </span>
+          </div>
+        </div>
+
+        <div
+          className="clinic-door clinic-door-empty"
+          role="listitem"
+          aria-label="영상제작 규칙 · 나중에 붙여 넣기"
+        >
+          <span className="clinic-door-number" aria-hidden="true">
+            3
+          </span>
+          <span className="clinic-door-body">
+            <h2>영상제작 규칙</h2>
+            <p>보관소 칸이에요. 안은 비워 두었어요.</p>
+            <p className="clinic-door-note">나중에 붙여 넣기</p>
+          </span>
+        </div>
+
+        <Link href="/logos" className="clinic-door" role="listitem">
+          <span className="clinic-door-number" aria-hidden="true">
+            4
+          </span>
+          <span className="clinic-door-body">
+            <h2>로고 관리</h2>
+            <p>공식 로고만 모아 둔 방이에요.</p>
+            <p className="clinic-door-note">상표·이름 관련은 나중에</p>
+          </span>
+        </Link>
       </div>
 
       <Link className="btn btn-soft btn-wide" href="/">
