@@ -24,8 +24,8 @@ const MENUS: {
 }[] = [
   {
     id: "watch",
-    label: "영상 재생",
-    tvTitle: "영상 재생",
+    label: "영상 보기",
+    tvTitle: "영상 보기",
     tvBlurb: "편 목록에서 고르거나, 이어보기로 바로 볼 수 있어요.",
     href: "/episodes",
     needsGuardian: false,
@@ -48,6 +48,9 @@ const MENUS: {
   },
 ];
 
+/** Wall frames left → right (A안 액자 3개). */
+const FRAME_MENUS: LivingMenuId[] = ["watch", "subscribe", "goods"];
+
 function menuById(id: LivingMenuId) {
   return MENUS.find((m) => m.id === id)!;
 }
@@ -60,7 +63,6 @@ export function LivingRoomHome({
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [selected, setSelected] = useState<LivingMenuId>("watch");
-  const [frameIds, setFrameIds] = useState<LivingMenuId[]>([]);
   const [playing, setPlaying] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
@@ -96,14 +98,7 @@ export function LivingRoomHome({
   }, [playing, reduceMotion]);
 
   const selectMenu = useCallback((id: LivingMenuId) => {
-    setSelected((prev) => {
-      if (prev === id) return prev;
-      setFrameIds((frames) => {
-        const next = [prev, ...frames.filter((f) => f !== id && f !== prev)];
-        return next.slice(0, 2);
-      });
-      return id;
-    });
+    setSelected((prev) => (prev === id ? prev : id));
   }, []);
 
   const goSelected = () => {
@@ -148,7 +143,7 @@ export function LivingRoomHome({
       <div className="living-stage" aria-labelledby={captionId}>
         <img
           className={`living-poster${showPosterOnly ? " is-visible" : ""}`}
-          src="/living-room/v4-frame-1s.jpg"
+          src="/living-room/a3-frame-1s.jpg"
           alt=""
           width={848}
           height={480}
@@ -157,8 +152,8 @@ export function LivingRoomHome({
         <video
           ref={videoRef}
           className={`living-video${showPosterOnly ? " is-hidden" : ""}`}
-          src="/living-room/living-room-v4.mp4"
-          poster="/living-room/v4-frame-1s.jpg"
+          src="/living-room/living-room-A-3frames.mp4"
+          poster="/living-room/a3-frame-1s.jpg"
           muted
           playsInline
           loop
@@ -227,25 +222,17 @@ export function LivingRoomHome({
           </div>
 
           <div className="hotspot hotspot-frames" aria-label="벽 액자 바로가기">
-            {[0, 1].map((slot) => {
-              const id = frameIds[slot];
-              if (!id) {
-                return (
-                  <div
-                    key={`empty-${slot}`}
-                    className="frame-slot is-empty"
-                    aria-hidden
-                  />
-                );
-              }
+            {FRAME_MENUS.map((id) => {
               const item = menuById(id);
+              const active = selected === id;
               return (
                 <button
                   key={id}
                   type="button"
-                  className="frame-slot"
+                  className={active ? "frame-slot is-active" : "frame-slot"}
                   onClick={() => selectMenu(id)}
                   aria-label={`액자 바로가기: ${item.label}`}
+                  aria-pressed={active}
                 >
                   <span className="frame-label">{item.label}</span>
                 </button>
