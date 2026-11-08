@@ -1441,6 +1441,14 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+  align-items: start;
+}
+
+.clinic-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
 }
 
 .clinic-door {
@@ -1497,7 +1505,8 @@ textarea {
   font-weight: 700;
 }
 
-.clinic-door-empty {
+.clinic-door-empty,
+.clinic-door-photo {
   cursor: default;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(245, 248, 250, 0.82)),
@@ -1505,9 +1514,27 @@ textarea {
   border-style: dashed;
 }
 
-.clinic-door-empty:hover {
+.clinic-door-empty:hover,
+.clinic-door-photo:hover {
   transform: none;
   box-shadow: var(--shadow);
+}
+
+.clinic-door-photo {
+  min-height: 112px;
+  padding: 14px 16px;
+}
+
+.clinic-door-photo .clinic-door-number {
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  background: linear-gradient(160deg, #e8f4ff, #d7ebff);
+  color: #3a6f8f;
+}
+
+.clinic-door-photo h2 {
+  font-size: 1.05rem;
 }
 
 @media (max-width: 720px) {

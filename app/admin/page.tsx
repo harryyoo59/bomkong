@@ -5,55 +5,6 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-type ClinicRoom =
-  | {
-      kind: "link";
-      href: string;
-      number: string;
-      title: string;
-      blurb: string;
-      note?: string;
-    }
-  | {
-      kind: "empty";
-      number: string;
-      title: string;
-      blurb: string;
-      note: string;
-    };
-
-const CLINIC_ROOMS: ClinicRoom[] = [
-  {
-    kind: "link",
-    href: "/characters/bomi",
-    number: "1",
-    title: "봄이",
-    blurb: "봄이 소개와 기준 그림을 봐요.",
-  },
-  {
-    kind: "link",
-    href: "/characters/kongi",
-    number: "2",
-    title: "콩이",
-    blurb: "콩이 소개와 기준 그림을 봐요.",
-  },
-  {
-    kind: "empty",
-    number: "3",
-    title: "영상제작 규칙",
-    blurb: "보관소 칸이에요. 안은 비워 두었어요.",
-    note: "나중에 붙여 넣기",
-  },
-  {
-    kind: "link",
-    href: "/logos",
-    number: "4",
-    title: "로고 관리",
-    blurb: "공식 로고만 모아 둔 방이에요.",
-    note: "상표·이름 관련은 나중에",
-  },
-];
-
 export default async function AdminClinicPage() {
   const gate = await requireAdminSession();
   if (!gate.ok) {
@@ -83,46 +34,89 @@ export default async function AdminClinicPage() {
       </header>
 
       <div className="clinic-grid" role="list">
-        {CLINIC_ROOMS.map((room) => {
-          const body = (
-            <>
-              <span className="clinic-door-number" aria-hidden="true">
-                {room.number}
-              </span>
-              <span className="clinic-door-body">
-                <h2>{room.title}</h2>
-                <p>{room.blurb}</p>
-                {room.note ? (
-                  <p className="clinic-door-note">{room.note}</p>
-                ) : null}
-              </span>
-            </>
-          );
+        <div className="clinic-column" role="presentation">
+          <Link
+            href="/characters/bomi"
+            className="clinic-door"
+            role="listitem"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              1
+            </span>
+            <span className="clinic-door-body">
+              <h2>봄이</h2>
+              <p>봄이 소개와 기준 그림을 봐요.</p>
+            </span>
+          </Link>
+          <div
+            className="clinic-door clinic-door-photo"
+            role="listitem"
+            aria-label="봄이 · 영상규칙에 쓸 사진 보관"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              ·
+            </span>
+            <span className="clinic-door-body">
+              <h2>영상규칙에 쓸 사진 보관</h2>
+              <p>봄이 칸 아래예요. 사진 자리는 비워 두었어요.</p>
+            </span>
+          </div>
+        </div>
 
-          if (room.kind === "link") {
-            return (
-              <Link
-                key={room.href}
-                href={room.href}
-                className="clinic-door"
-                role="listitem"
-              >
-                {body}
-              </Link>
-            );
-          }
+        <div className="clinic-column" role="presentation">
+          <Link
+            href="/characters/kongi"
+            className="clinic-door"
+            role="listitem"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              2
+            </span>
+            <span className="clinic-door-body">
+              <h2>콩이</h2>
+              <p>콩이 소개와 기준 그림을 봐요.</p>
+            </span>
+          </Link>
+          <div
+            className="clinic-door clinic-door-photo"
+            role="listitem"
+            aria-label="콩이 · 영상규칙에 쓸 사진 보관"
+          >
+            <span className="clinic-door-number" aria-hidden="true">
+              ·
+            </span>
+            <span className="clinic-door-body">
+              <h2>영상규칙에 쓸 사진 보관</h2>
+              <p>콩이 칸 아래예요. 사진 자리는 비워 두었어요.</p>
+            </span>
+          </div>
+        </div>
 
-          return (
-            <div
-              key={`empty-${room.number}`}
-              className="clinic-door clinic-door-empty"
-              role="listitem"
-              aria-label={`${room.title} · ${room.note}`}
-            >
-              {body}
-            </div>
-          );
-        })}
+        <div
+          className="clinic-door clinic-door-empty"
+          role="listitem"
+          aria-label="영상제작 규칙 · 나중에 붙여 넣기"
+        >
+          <span className="clinic-door-number" aria-hidden="true">
+            3
+          </span>
+          <span className="clinic-door-body">
+            <h2>영상제작 규칙</h2>
+            <p>보관소 칸이에요. 안은 비워 두었어요.</p>
+            <p className="clinic-door-note">나중에 붙여 넣기</p>
+          </span>
+        </div>
+
+        <Link href="/logos" className="clinic-door" role="listitem">
+          <span className="clinic-door-number" aria-hidden="true">
+            4
+          </span>
+          <span className="clinic-door-body">
+            <h2>로고 관리</h2>
+            <p>공식 로고만 모아 둔 방이에요.</p>
+            <p className="clinic-door-note">상표·이름 관련은 나중에</p>
+          </span>
+        </Link>
       </div>
 
       <Link className="btn btn-soft btn-wide" href="/">
