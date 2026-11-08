@@ -1211,15 +1211,17 @@ textarea {
   top: 6%;
   width: 17%;
   height: 70%;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 14%;
+  display: block;
   border-radius: 6px;
   z-index: 3;
 }
 
 .door-label {
+  /* 명패만 문짝 가운데 위 */
+  position: absolute;
+  left: 36%;
+  top: 3%;
+  transform: translateX(-50%);
   display: inline-block;
   padding: 5px 8px;
   border-radius: 8px;
@@ -1231,6 +1233,7 @@ textarea {
   color: #3a2b1a;
   box-shadow: 0 6px 14px rgba(31, 42, 46, 0.12);
   animation: living-door-pulse 2.4s ease-in-out infinite;
+  white-space: nowrap;
 }
 
 .living-chrome {
@@ -1458,10 +1461,10 @@ textarea {
 @keyframes living-door-pulse {
   0%,
   100% {
-    transform: translateY(0);
+    transform: translateX(-50%) translateY(0);
   }
   50% {
-    transform: translateY(-2px);
+    transform: translateX(-50%) translateY(-2px);
   }
 }
 
