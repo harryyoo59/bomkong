@@ -20,10 +20,10 @@ export default async function AdminClinicPage() {
       <header className="clinic-header">
         <div>
           <p className="eyebrow">관리자실 · 진료실</p>
-          <h1 className="section-title">관리자실을 네 칸으로 나눴어요</h1>
+          <h1 className="section-title">관리자실을 여섯 칸으로 나눴어요</h1>
           <p className="muted">
-            손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고만 여기에
-            있어요. 연결된 칸만 눌러 들어가요.
+            손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·소스
+            보관실·쿠키완료실이 여기에 있어요. 연결된 칸만 눌러 들어가요.
           </p>
         </div>
         <form action={logoutAdmin}>
@@ -115,6 +115,28 @@ export default async function AdminClinicPage() {
             <h2>로고 관리</h2>
             <p>공식 로고만 모아 둔 방이에요.</p>
             <p className="clinic-door-note">상표·이름 관련은 나중에</p>
+          </span>
+        </Link>
+
+        <Link href="/admin/source" className="clinic-door" role="listitem">
+          <span className="clinic-door-number" aria-hidden="true">
+            5
+          </span>
+          <span className="clinic-door-body">
+            <h2>소스 보관실</h2>
+            <p>쿠키 영상에 쓸 사진·동영상을 모아 둬요.</p>
+            <p className="clinic-door-note">제작 전 자료</p>
+          </span>
+        </Link>
+
+        <Link href="/admin/cookie" className="clinic-door" role="listitem">
+          <span className="clinic-door-number" aria-hidden="true">
+            6
+          </span>
+          <span className="clinic-door-body">
+            <h2>쿠키완료실</h2>
+            <p>쓴 소스를 옮겨 두고, 영상 제목을 붙여 보관해요.</p>
+            <p className="clinic-door-note">재사용 방지</p>
           </span>
         </Link>
       </div>
