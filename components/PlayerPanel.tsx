@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import {
   PLACEHOLDER_VIDEO,
   describeQueueItem,
@@ -11,17 +12,63 @@ import {
   trackLabel,
 } from "@/lib/episodes";
 import type { Episode, PlayTrack } from "@/lib/types";
+import { writeWatchProgress } from "@/lib/watch-progress";
 
 export function PlayerPanel({
   episode,
   track,
+  resumeSeconds = 0,
 }: {
   episode: Episode;
   track: PlayTrack;
+  /** 이어보기 시작 초 (없으면 0) */
+  resumeSeconds?: number;
 }) {
   const router = useRouter();
+  const videoRef = useRef<HTMLVideoElement>(null);
   const next = getNextInQueue(episode.id, track);
   const title = track === "ko" ? episode.titleKo : episode.titleEn;
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+
+    const startAt = resumeSeconds;
+    if (Number.isFinite(startAt) && startAt > 0) {
+      const seek = () => {
+        try {
+          v.currentTime = Math.min(startAt, v.duration || startAt);
+        } catch {
+          /* ignore */
+        }
+      };
+      if (v.readyState >= 1) seek();
+      else v.addEventListener("loadedmetadata", seek, { once: true });
+    }
+
+    let lastSaved = 0;
+    const save = () => {
+      if (!Number.isFinite(v.currentTime) || v.currentTime < 0.5) return;
+      const now = Date.now();
+      if (now - lastSaved < 800) return;
+      lastSaved = now;
+      writeWatchProgress({
+        episodeId: episode.id,
+        track,
+        position: v.currentTime,
+      });
+    };
+
+    v.addEventListener("timeupdate", save);
+    v.addEventListener("pause", save);
+    v.addEventListener("ended", save);
+    return () => {
+      v.removeEventListener("timeupdate", save);
+      v.removeEventListener("pause", save);
+      v.removeEventListener("ended", save);
+      save();
+    };
+  }, [episode.id, track, resumeSeconds]);
 
   function goNext() {
     if (!next) return;
@@ -64,6 +111,7 @@ export function PlayerPanel({
           지금 · {trackLabel(track)}
         </div>
         <video
+          ref={videoRef}
           className="video-el"
           controls
           playsInline

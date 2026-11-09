@@ -8,43 +8,45 @@ import {
   useId,
   useRef,
   useState,
-  type KeyboardEvent,
 } from "react";
 import { GuardianGate } from "@/components/GuardianGate";
+import { PLACEHOLDER_VIDEO, getEpisodeById } from "@/lib/episodes";
+import {
+  clearWatchProgress,
+  readWatchProgress,
+  watchHref,
+  type WatchProgress,
+} from "@/lib/watch-progress";
 
 export type LivingMenuId = "watch" | "subscribe" | "goods";
 
 const MENUS: {
   id: LivingMenuId;
   label: string;
-  tvTitle: string;
-  tvBlurb: string;
   href: string;
   needsGuardian: boolean;
+  frameTone: string;
 }[] = [
   {
     id: "watch",
     label: "영상 보기",
-    tvTitle: "영상 보기",
-    tvBlurb: "편 목록에서 고르거나, 이어보기로 바로 볼 수 있어요.",
     href: "/episodes",
     needsGuardian: false,
+    frameTone: "frame-tone-watch",
   },
   {
     id: "subscribe",
     label: "구독 신청",
-    tvTitle: "구독 신청",
-    tvBlurb: "정기 구독 안내로 가요. 보호자 확인 후 진행해요.",
     href: "/subscribe",
     needsGuardian: true,
+    frameTone: "frame-tone-subscribe",
   },
   {
     id: "goods",
     label: "상품 구매",
-    tvTitle: "상품 구매",
-    tvBlurb: "캐릭터 상품을 봐요. 보호자 확인 후 진행해요.",
     href: "/goods",
     needsGuardian: true,
+    frameTone: "frame-tone-goods",
   },
 ];
 
@@ -61,14 +63,14 @@ export function LivingRoomHome({
   firstWatchHref: string | null;
 }) {
   const router = useRouter();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [selected, setSelected] = useState<LivingMenuId>("watch");
+  const roomVideoRef = useRef<HTMLVideoElement>(null);
+  const tvVideoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(true);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
+  const [progress, setProgress] = useState<WatchProgress | null>(null);
+  const [promptVisible, setPromptVisible] = useState(false);
   const captionId = useId();
-
-  const current = menuById(selected);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -76,7 +78,7 @@ export function LivingRoomHome({
       setReduceMotion(mq.matches);
       if (mq.matches) {
         setPlaying(false);
-        videoRef.current?.pause();
+        roomVideoRef.current?.pause();
       }
     };
     apply();
@@ -85,7 +87,13 @@ export function LivingRoomHome({
   }, []);
 
   useEffect(() => {
-    const v = videoRef.current;
+    const saved = readWatchProgress();
+    setProgress(saved);
+    setPromptVisible(Boolean(saved && saved.position >= 1));
+  }, []);
+
+  useEffect(() => {
+    const v = roomVideoRef.current;
     if (!v) return;
     v.muted = true;
     v.defaultMuted = true;
@@ -97,34 +105,57 @@ export function LivingRoomHome({
     }
   }, [playing, reduceMotion]);
 
-  const selectMenu = useCallback((id: LivingMenuId) => {
-    setSelected((prev) => (prev === id ? prev : id));
-  }, []);
-
-  const goSelected = () => {
-    if (current.needsGuardian) {
-      setGuardianFor(current.id);
-      return;
+  useEffect(() => {
+    const v = tvVideoRef.current;
+    if (!v || reduceMotion) return;
+    v.muted = true;
+    v.defaultMuted = true;
+    if (progress && progress.position > 0) {
+      const seek = () => {
+        try {
+          v.currentTime = Math.min(progress.position, v.duration || progress.position);
+        } catch {
+          /* ignore seek errors before metadata */
+        }
+      };
+      if (v.readyState >= 1) seek();
+      else v.addEventListener("loadedmetadata", seek, { once: true });
     }
-    if (current.id === "watch" && firstWatchHref) {
+    void v.play().catch(() => {
+      /* autoplay may fail — poster still ok */
+    });
+  }, [progress, reduceMotion]);
+
+  const goFrame = useCallback(
+    (id: LivingMenuId) => {
+      const item = menuById(id);
+      if (item.needsGuardian) {
+        setGuardianFor(id);
+        return;
+      }
+      if (id === "watch" && firstWatchHref && !progress) {
+        router.push(firstWatchHref);
+        return;
+      }
+      router.push(item.href);
+    },
+    [firstWatchHref, progress, router],
+  );
+
+  const onResume = () => {
+    if (!progress) return;
+    router.push(watchHref(progress, true));
+  };
+
+  const onFresh = () => {
+    clearWatchProgress();
+    setProgress(null);
+    setPromptVisible(false);
+    if (firstWatchHref) {
       router.push(firstWatchHref);
       return;
     }
-    router.push(current.href);
-  };
-
-  const onTvKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const idx = MENUS.findIndex((m) => m.id === selected);
-    if (event.key === "ArrowDown") {
-      event.preventDefault();
-      selectMenu(MENUS[(idx + 1) % MENUS.length].id);
-    } else if (event.key === "ArrowUp") {
-      event.preventDefault();
-      selectMenu(MENUS[(idx - 1 + MENUS.length) % MENUS.length].id);
-    } else if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      goSelected();
-    }
+    router.push("/episodes");
   };
 
   const togglePlay = () => {
@@ -137,6 +168,10 @@ export function LivingRoomHome({
   };
 
   const showPosterOnly = reduceMotion || !playing;
+  const episode = progress ? getEpisodeById(progress.episodeId) : undefined;
+  const resumeLabel = episode
+    ? `${episode.number}편 · ${progress?.track === "en" ? "영어" : "한국어"}`
+    : null;
 
   return (
     <div className="living-root">
@@ -150,7 +185,7 @@ export function LivingRoomHome({
           draggable={false}
         />
         <video
-          ref={videoRef}
+          ref={roomVideoRef}
           className={`living-video${showPosterOnly ? " is-hidden" : ""}`}
           src="/living-room/comment-desk-preview.mp4"
           poster="/living-room/comment-desk-frame.jpg"
@@ -161,78 +196,65 @@ export function LivingRoomHome({
           aria-hidden={showPosterOnly}
         />
 
-        {/* Web UI layer — menus NOT burned into video */}
         <div className="living-ui" aria-label="거실 메뉴">
           <div
             className="hotspot hotspot-tv"
             tabIndex={0}
             role="region"
-            aria-label="큰 티비 메뉴"
-            onKeyDown={onTvKeyDown}
+            aria-label="큰 티비 화면"
           >
-            <div className="tv-screen">
-              <p className="tv-eyebrow">지금 고른 메뉴</p>
-              <h1 className="tv-title">{current.tvTitle}</h1>
-              <p className="tv-blurb">{current.tvBlurb}</p>
-              <ul className="tv-menu" role="listbox" aria-label="티비 메뉴">
-                {MENUS.map((item) => {
-                  const active = item.id === selected;
-                  return (
-                    <li key={item.id}>
-                      <button
-                        type="button"
-                        role="option"
-                        aria-selected={active}
-                        className={
-                          active ? "tv-menu-btn is-active" : "tv-menu-btn"
-                        }
-                        onClick={() => selectMenu(item.id)}
-                      >
-                        <span className="tv-menu-label">{item.label}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-              <div className="tv-actions">
-                {current.id === "watch" ? (
-                  <>
+            <div className="tv-screen tv-screen-video">
+              <video
+                ref={tvVideoRef}
+                className="tv-video-el"
+                src={PLACEHOLDER_VIDEO}
+                poster="/living-room/v4-frame-1s.jpg"
+                muted
+                playsInline
+                loop
+                autoPlay
+                preload="auto"
+                aria-label="봄이콩이 영상"
+              />
+              {promptVisible && progress ? (
+                <div className="tv-resume" role="dialog" aria-label="이어보기 선택">
+                  <p className="tv-resume-prompt">
+                    이어볼까요, 새 영상을 볼까요?
+                  </p>
+                  {resumeLabel ? (
+                    <p className="tv-resume-meta">{resumeLabel}</p>
+                  ) : null}
+                  <div className="tv-resume-actions">
                     <button
                       type="button"
                       className="btn btn-primary tv-cta"
-                      onClick={goSelected}
+                      onClick={onResume}
                     >
-                      {firstWatchHref ? "이어보기" : "편 목록"}
+                      이어보기
                     </button>
-                    <Link className="btn btn-soft tv-cta" href="/episodes">
-                      편 목록
-                    </Link>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary tv-cta"
-                    onClick={goSelected}
-                  >
-                    {current.label} 열기
-                  </button>
-                )}
-              </div>
+                    <button
+                      type="button"
+                      className="btn btn-soft tv-cta"
+                      onClick={onFresh}
+                    >
+                      새 영상
+                    </button>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
 
           <div className="hotspot hotspot-frames" aria-label="벽 액자 바로가기">
             {FRAME_MENUS.map((id) => {
               const item = menuById(id);
-              const active = selected === id;
               return (
                 <button
                   key={id}
                   type="button"
-                  className={active ? "frame-slot is-active" : "frame-slot"}
-                  onClick={() => selectMenu(id)}
+                  className={`frame-slot ${item.frameTone}`}
+                  onClick={() => goFrame(id)}
                   aria-label={`액자 바로가기: ${item.label}`}
-                  aria-pressed={active}
                 >
                   <span className="frame-label">{item.label}</span>
                 </button>

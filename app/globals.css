@@ -1037,12 +1037,13 @@ textarea {
 }
 
 /* Percentages map to the 848×480 living-room frame (contain, no crop). */
+/* TV enlarged into free wall space (left of frames); sofa/door untouched. */
 .hotspot-tv {
   position: absolute;
-  left: 3.2%;
-  top: 9%;
-  width: 29.5%;
-  height: 52%;
+  left: 2.2%;
+  top: 6.5%;
+  width: 33.5%;
+  height: 58%;
   outline: none;
 }
 
@@ -1060,54 +1061,65 @@ textarea {
   animation: living-tv-in 0.45s ease both;
 }
 
-.tv-eyebrow {
-  margin: 0;
-  font-size: clamp(0.55rem, 1.4vw, 0.72rem);
-  font-weight: 800;
-  color: #0f6f93;
-}
-
-.tv-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(0.95rem, 2.4vw, 1.35rem);
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-}
-
-.tv-blurb {
-  margin: 0;
-  font-size: clamp(0.58rem, 1.35vw, 0.78rem);
-  color: var(--muted);
-  line-height: 1.35;
-}
-
-.tv-menu {
-  list-style: none;
-  margin: 4px 0 0;
+.tv-screen-video {
+  position: relative;
   padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #101820;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(16, 24, 32, 0.35);
+}
+
+.tv-video-el {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #101820;
+  pointer-events: none;
+}
+
+.tv-resume {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8%;
+  background: linear-gradient(
+    180deg,
+    rgba(16, 24, 32, 0.15) 0%,
+    rgba(16, 24, 32, 0.72) 55%,
+    rgba(16, 24, 32, 0.82) 100%
+  );
+  color: #fff;
+  text-align: center;
 }
 
-.tv-menu-btn {
-  width: 100%;
-  text-align: left;
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 6px 8px;
-  background: rgba(255, 255, 255, 0.65);
-  color: var(--ink);
-  font-size: clamp(0.68rem, 1.5vw, 0.88rem);
+.tv-resume-prompt {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(0.72rem, 1.85vw, 1.05rem);
   font-weight: 800;
-  cursor: pointer;
+  line-height: 1.25;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.45);
 }
 
-.tv-menu-btn.is-active {
-  background: linear-gradient(135deg, #ffe0cf, #d7f2ff);
-  border-color: rgba(255, 107, 61, 0.35);
-  box-shadow: 0 4px 10px rgba(255, 107, 61, 0.15);
+.tv-resume-meta {
+  margin: 0;
+  font-size: clamp(0.55rem, 1.25vw, 0.72rem);
+  opacity: 0.9;
+}
+
+.tv-resume-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-top: 4px;
 }
 
 .tv-menu-btn:focus-visible,
@@ -1119,21 +1131,13 @@ textarea {
   outline-offset: 2px;
 }
 
-.tv-actions {
-  margin-top: auto;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 4px;
-}
-
 .tv-cta {
   padding: 7px 10px;
   font-size: clamp(0.62rem, 1.4vw, 0.78rem);
-  border-radius: 12px;
+  border-radius: 14px;
 }
 
-/* 가로 액자 3개 — 댓글 책상 구도 기준 최소 조정 */
+/* 가로 액자 3개 — 자리 유지, 둥글고 알록달록 */
 .hotspot-frames {
   position: absolute;
   left: 37%;
@@ -1147,29 +1151,40 @@ textarea {
 
 .frame-slot {
   border: none;
-  padding: 4%;
-  border-radius: 3px;
-  background: rgba(255, 252, 245, 0.9);
-  box-shadow: inset 0 0 0 2px rgba(120, 88, 48, 0.35);
+  padding: 6%;
+  border-radius: 22px;
   cursor: pointer;
   display: grid;
   place-items: center;
-  color: var(--ink);
+  color: #2a2a2a;
   font-size: clamp(0.48rem, 1.1vw, 0.7rem);
   font-weight: 800;
   line-height: 1.15;
   text-align: center;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+  box-shadow:
+    0 4px 0 rgba(0, 0, 0, 0.08),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.55);
 }
 
 .frame-slot:hover {
-  transform: translateY(-1px);
-  background: rgba(255, 244, 220, 0.95);
+  transform: translateY(-2px) scale(1.03);
+  filter: brightness(1.04);
 }
 
-.frame-slot.is-active {
-  background: linear-gradient(135deg, #ffe0cf, #d7f2ff);
-  box-shadow: inset 0 0 0 2px rgba(255, 107, 61, 0.45);
+.frame-tone-watch {
+  background: linear-gradient(160deg, #ffd36a 0%, #ff9f4a 55%, #ff7a59 100%);
+  color: #5a2a12;
+}
+
+.frame-tone-subscribe {
+  background: linear-gradient(160deg, #9be7ff 0%, #5bb8ff 50%, #6a8dff 100%);
+  color: #14345a;
+}
+
+.frame-tone-goods {
+  background: linear-gradient(160deg, #c8f59a 0%, #7ed957 52%, #3ecf8e 100%);
+  color: #1e4a22;
 }
 
 .frame-label {
@@ -1636,8 +1651,9 @@ textarea {
     object-fit: contain;
   }
 
-  .tv-actions {
+  .tv-resume-actions {
     flex-direction: column;
+    width: 100%;
   }
 
   .tv-cta {

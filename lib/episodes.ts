@@ -1,8 +1,8 @@
 import sampleEpisodes from "@/data/episodes.json";
 import type { Episode, PlayTrack, QueueItem } from "@/lib/types";
 
-export const PLACEHOLDER_VIDEO =
-  "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
+/** 자리표시 본편 — 외부 링크 대신 로컬(아이 기기에서 바로 재생). */
+export const PLACEHOLDER_VIDEO = "/videos/placeholder.mp4";
 
 export function getEpisodes(): Episode[] {
   return [...(sampleEpisodes as Episode[])].sort(

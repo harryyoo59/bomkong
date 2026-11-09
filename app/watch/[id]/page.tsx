@@ -13,12 +13,12 @@ import type { PlayTrack } from "@/lib/types";
 
 type PageProps = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ lang?: string }>;
+  searchParams: Promise<{ lang?: string; t?: string }>;
 };
 
 export default async function WatchPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const { lang } = await searchParams;
+  const { lang, t } = await searchParams;
   const episode = getEpisodeById(id);
   if (!episode) notFound();
 
@@ -26,10 +26,17 @@ export default async function WatchPage({ params, searchParams }: PageProps) {
   if (!canPlay(episode, track)) notFound();
 
   const next = getNextInQueue(episode.id, track);
+  const resumeSeconds = Number(t);
+  const safeResume =
+    Number.isFinite(resumeSeconds) && resumeSeconds > 0 ? resumeSeconds : 0;
 
   return (
     <SiteShell title="재생">
-      <PlayerPanel episode={episode} track={track} />
+      <PlayerPanel
+        episode={episode}
+        track={track}
+        resumeSeconds={safeResume}
+      />
       <section className="panel">
         <h2 className="section-title">이어보기</h2>
         <p className="muted tiny">
