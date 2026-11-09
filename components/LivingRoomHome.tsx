@@ -178,7 +178,7 @@ export function LivingRoomHome({
       <div className="living-stage" aria-labelledby={captionId}>
         <img
           className={`living-poster${showPosterOnly ? " is-visible" : ""}`}
-          src="/living-room/comment-desk-frame.jpg"
+          src="/living-room/sofa-back-icon-frame.jpg"
           alt=""
           width={848}
           height={480}
@@ -187,8 +187,8 @@ export function LivingRoomHome({
         <video
           ref={roomVideoRef}
           className={`living-video${showPosterOnly ? " is-hidden" : ""}`}
-          src="/living-room/comment-desk-preview.mp4"
-          poster="/living-room/comment-desk-frame.jpg"
+          src="/living-room/sofa-back-icon-preview.mp4"
+          poster="/living-room/sofa-back-icon-frame.jpg"
           muted
           playsInline
           loop
@@ -270,6 +270,17 @@ export function LivingRoomHome({
           >
             <span className="visually-hidden">댓글쓰기</span>
           </button>
+
+          {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
+          <a
+            href="https://chamzoneinteractive.vercel.app/"
+            className="hotspot hotspot-sofa-cz"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="참존 인터랙티브 회사 홈페이지 열기"
+          >
+            <span className="visually-hidden">회사 홈페이지로 가요</span>
+          </a>
 
           <Link
             href="/admin/login"

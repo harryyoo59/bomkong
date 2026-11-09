@@ -1126,7 +1126,8 @@ textarea {
 .frame-slot:focus-visible,
 .hotspot-door:focus-visible,
 .hotspot-tv:focus-visible,
-.hotspot-comment-desk:focus-visible {
+.hotspot-comment-desk:focus-visible,
+.hotspot-sofa-cz:focus-visible {
   outline: 2px solid var(--sky);
   outline-offset: 2px;
 }
@@ -1217,6 +1218,33 @@ textarea {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+/* 소파 바깥 등받이 · 영상에 구운 Cham Zone 로고 자리 (떠 있는 이미지 없음) */
+.hotspot-sofa-cz {
+  position: absolute;
+  left: 79.25%;
+  top: 85.42%;
+  width: 12.15%;
+  height: 13.12%;
+  display: block;
+  border: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 12px;
+  background: transparent;
+  cursor: pointer;
+  z-index: 4;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hotspot-sofa-cz:hover {
+    background: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  }
 }
 
 /* Door may sit under sofa — keep a usable click region at the top. */
