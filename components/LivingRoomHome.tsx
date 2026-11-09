@@ -67,6 +67,7 @@ export function LivingRoomHome({
   const [reduceMotion, setReduceMotion] = useState(false);
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
   const captionId = useId();
+  const sofaCzTipId = useId();
 
   const current = menuById(selected);
 
@@ -248,6 +249,28 @@ export function LivingRoomHome({
           >
             <span className="visually-hidden">댓글쓰기</span>
           </button>
+
+          {/* 소파 등받이 넓은 자리 · 회01(용) → Cham Zone Interactive 회사 홈 */}
+          <a
+            href="https://chamzoneinteractive.vercel.app/"
+            className="hotspot hotspot-sofa-cz"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="참존 인터랙티브 회사 홈페이지 열기"
+            aria-describedby={sofaCzTipId}
+          >
+            <img
+              className="sofa-cz-icon"
+              src="/living-room/chamzone-icon.png"
+              alt=""
+              width={271}
+              height={271}
+              draggable={false}
+            />
+            <span id={sofaCzTipId} className="sofa-cz-tooltip" role="tooltip">
+              회사 홈페이지로 가요
+            </span>
+          </a>
 
           <Link
             href="/admin/login"
