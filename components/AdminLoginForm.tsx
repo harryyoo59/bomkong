@@ -17,8 +17,9 @@ export function AdminLoginForm({ nextPath }: { nextPath: string }) {
       <input
         id="admin-password"
         name="password"
-        type="password"
-        autoComplete="current-password"
+        type="text"
+        inputMode="text"
+        autoComplete="off"
         className="field-input"
         placeholder="여기에 비밀글을 입력해요"
         required
