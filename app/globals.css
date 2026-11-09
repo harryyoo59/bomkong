@@ -66,10 +66,13 @@ textarea {
 
 .phone-shell {
   width: min(100%, var(--phone));
+  max-width: 100%;
+  min-width: 0;
   min-height: calc(100vh - 24px);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  overflow-x: clip;
 }
 
 .top-bar {
@@ -124,6 +127,8 @@ textarea {
   flex-direction: column;
   gap: 16px;
   padding-bottom: 72px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .bottom-nav {
@@ -138,6 +143,8 @@ textarea {
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow);
   border: 1px solid var(--line);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .nav-link {
@@ -148,6 +155,27 @@ textarea {
   border-radius: 14px;
   color: var(--muted);
   line-height: 1.2;
+  min-width: 0;
+}
+
+/* Narrow phones: keep every nav label visible via horizontal scroll */
+@media (max-width: 430px) {
+  .bottom-nav {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .nav-link {
+    flex: 0 0 auto;
+    min-width: 2.75rem;
+    padding: 10px 8px;
+    font-size: 0.68rem;
+  }
 }
 
 .nav-link:hover,
@@ -258,6 +286,9 @@ textarea {
   padding: 16px;
   box-shadow: var(--shadow);
   animation: rise 0.75s ease both;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .section-title {
@@ -617,10 +648,58 @@ textarea {
   font-weight: 600;
 }
 
+/* Admin upload: two fields side-by-side (div.form-row). */
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  min-width: 0;
+}
+
+/* Comments + mailbox: label above full-width control (label.form-row). */
+label.form-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+label.form-row > span {
+  display: block;
+  line-height: 1.35;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+label.form-row input,
+label.form-row textarea,
+label.form-row select {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: white;
+  font-weight: 600;
+}
+
+label.form-row textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+@media (max-width: 430px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .check-row {
@@ -1547,6 +1626,8 @@ textarea {
 
 .guardian-card {
   width: min(100%, 380px);
+  max-width: 100%;
+  min-width: 0;
   padding: 18px;
   border-radius: 20px;
   background: rgba(255, 255, 255, 0.96);
@@ -1555,6 +1636,8 @@ textarea {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow-x: clip;
+  box-sizing: border-box;
 }
 
 .guardian-body {
@@ -1985,9 +2068,18 @@ a.clinic-door-photo-open:hover {
   line-height: 1.45;
 }
 
-.comment-form {
+.comment-form,
+.mailbox-card-form .guardian-body {
   display: grid;
   gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.comment-form,
+.mailbox-card-form {
+  overflow-x: clip;
 }
 
 .comment-done {
