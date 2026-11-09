@@ -1821,6 +1821,19 @@ textarea {
   font-size: 1.05rem;
 }
 
+a.clinic-door-photo-open {
+  cursor: pointer;
+  border-style: solid;
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.92), rgba(232, 244, 255, 0.88)),
+    var(--card);
+}
+
+a.clinic-door-photo-open:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(31, 42, 46, 0.11);
+}
+
 @media (max-width: 720px) {
   .clinic-grid {
     grid-template-columns: 1fr;
