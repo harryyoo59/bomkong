@@ -1139,7 +1139,7 @@ textarea {
   border-radius: 14px;
 }
 
-/* 액자 3개 — 색·테두리는 영상에 구움. 웹은 투명 클릭 + 작은 안내만 */
+/* 액자 3개 — 번호·이름·색은 영상에 구움. 웹은 투명 클릭만(글씨 없음). */
 .hotspot-frames {
   position: absolute;
   inset: 0;
@@ -1155,9 +1155,6 @@ textarea {
   cursor: pointer;
   background: transparent;
   pointer-events: auto;
-  display: grid;
-  place-items: end center;
-  color: #2a2a2a;
   transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -1182,33 +1179,11 @@ textarea {
   height: 14.79%;
 }
 
-.frame-tip {
-  display: none;
-  margin-bottom: 4%;
-  padding: 2px 5px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(31, 42, 46, 0.12);
-  font-size: clamp(0.42rem, 0.95vw, 0.58rem);
-  font-weight: 700;
-  line-height: 1.1;
-  white-space: nowrap;
-  pointer-events: none;
-}
-
 @media (hover: hover) and (pointer: fine) {
   .frame-slot:hover {
     background: rgba(255, 255, 255, 0.12);
     box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
   }
-
-  .frame-slot:hover .frame-tip {
-    display: inline-block;
-  }
-}
-
-.frame-slot:focus-visible .frame-tip {
-  display: inline-block;
 }
 
 /* 모니터 「댓글쓰기」 — 페이지 미연결, 자리만 */
@@ -1339,6 +1314,201 @@ textarea {
 
 .living-audio-note {
   margin: 0;
+}
+
+/* —— Mobile/desktop 2×2 menu under living room (mockup v3) —— */
+.living-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: minmax(132px, 1fr) minmax(132px, 1fr);
+  gap: 10px;
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 280px;
+}
+
+.menu-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 0;
+  padding: 14px 10px 12px;
+  border-radius: 18px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  font: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.menu-tile:focus-visible,
+.menu-mini:focus-visible {
+  outline: 2px solid var(--sky);
+  outline-offset: 2px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .menu-tile:hover:not(.menu-tile-cluster),
+  .menu-mini:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(31, 42, 46, 0.1);
+  }
+}
+
+.menu-tile-watch {
+  background: #ffe8d6;
+  border-color: #f4b48a;
+}
+
+.menu-tile-subscribe {
+  background: #d9f0ff;
+  border-color: #8ec8ef;
+}
+
+.menu-tile-goods {
+  background: #dff5e6;
+  border-color: #8dcf9f;
+}
+
+.menu-tile-cluster {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+  box-shadow: none;
+}
+
+.menu-tile-label {
+  font-family: var(--font-display);
+  font-size: clamp(0.95rem, 3.4vw, 1.15rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.menu-tile-icon {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.menu-tile-icon.is-lg {
+  width: clamp(56px, 16vw, 72px);
+  height: clamp(56px, 16vw, 72px);
+}
+
+.menu-tile-icon.is-lg svg {
+  width: 54%;
+  height: 54%;
+}
+
+.menu-tile-icon.is-sm {
+  width: clamp(28px, 7.5vw, 36px);
+  height: clamp(28px, 7.5vw, 36px);
+}
+
+.menu-tile-icon.is-sm svg {
+  width: 56%;
+  height: 56%;
+}
+
+.menu-tile-icon-orange {
+  background: #f08a3a;
+}
+
+.menu-tile-icon-blue {
+  background: #3aa0e6;
+}
+
+.menu-tile-icon-green {
+  background: #3aa86a;
+}
+
+.menu-tile-icon-pink {
+  background: #e85b5b;
+}
+
+.menu-tile-icon-amber {
+  background: #f0a03a;
+}
+
+.menu-tile-icon-coral {
+  background: #e85b5b;
+}
+
+.menu-tile-icon-violet {
+  background: #5b7de8;
+}
+
+.menu-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 0;
+  padding: 8px 6px;
+  border-radius: 14px;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  font: inherit;
+  background: #fff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.menu-mini-label {
+  font-family: var(--font-display);
+  font-size: clamp(0.62rem, 2.5vw, 0.78rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.menu-mini-comment {
+  background: #ffe0e6;
+  border-color: #f0a8b4;
+}
+
+.menu-mini-feedback {
+  background: #ffe9c2;
+  border-color: #f0c878;
+}
+
+.menu-mini-youtube {
+  background: #ffd6d0;
+  border-color: #f0a898;
+}
+
+.menu-mini-company {
+  background: #e4e0ff;
+  border-color: #b4aef0;
+}
+
+.menu-mini.is-pending {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+@media (min-width: 760px) {
+  .living-menu-grid {
+    min-height: 320px;
+    gap: 12px;
+  }
+
+  .menu-tile-cluster {
+    gap: 10px;
+  }
 }
 
 .guardian-backdrop {

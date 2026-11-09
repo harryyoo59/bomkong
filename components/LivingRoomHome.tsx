@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import { GuardianGate } from "@/components/GuardianGate";
 import { PLACEHOLDER_VIDEO, getEpisodeById } from "@/lib/episodes";
@@ -29,35 +30,129 @@ const MENUS: {
 }[] = [
   {
     id: "watch",
-    label: "영상 보기",
+    label: "영상보기",
     href: "/episodes",
     needsGuardian: false,
   },
   {
     id: "subscribe",
-    label: "구독 신청",
+    label: "구독하기",
     href: "/subscribe",
     needsGuardian: true,
   },
   {
     id: "goods",
-    label: "상품 구매",
+    label: "상품구매",
     href: "/goods",
     needsGuardian: true,
   },
 ];
 
-/** Wall frames left → right (액자 3개). */
+/** Wall frames left → right (액자 3개). Labels baked in video — no web text. */
 const FRAME_MENUS: LivingMenuId[] = ["watch", "subscribe", "goods"];
+
+const COMPANY_HOME = "https://chamzoneinteractive.vercel.app/";
 
 function menuById(id: LivingMenuId) {
   return MENUS.find((m) => m.id === id)!;
 }
 
+function IconPlay({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M8.5 5.8v12.4L19 12 8.5 5.8z" />
+    </svg>
+  );
+}
+
+function IconBell({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 22a2.2 2.2 0 0 0 2.2-2.2h-4.4A2.2 2.2 0 0 0 12 22zm7-5.5V11a7 7 0 1 0-14 0v5.5L3 18.5V20h18v-1.5l-2-2z"
+      />
+    </svg>
+  );
+}
+
+function IconBag({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M7 7V6a5 5 0 0 1 10 0v1h3v14H4V7h3zm2 0h6V6a3 3 0 0 0-6 0v1z"
+      />
+    </svg>
+  );
+}
+
+function IconComment({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M4 4h16a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm3 5v2h10V9H7zm0 4v2h7v-2H7z"
+      />
+    </svg>
+  );
+}
+
+function IconFeedback({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M5 3h11l5 5v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm10 1.5V9h4.5L15 4.5zM7 12h10v2H7v-2zm0 4h8v2H7v-2z"
+      />
+    </svg>
+  );
+}
+
+function IconYoutube({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M23 12.2s0-3.4-.4-5a2.9 2.9 0 0 0-2-2C18.8 4.7 12 4.7 12 4.7s-6.8 0-8.6.5a2.9 2.9 0 0 0-2 2c-.4 1.6-.4 5-.4 5s0 3.4.4 5a2.9 2.9 0 0 0 2 2c1.8.5 8.6.5 8.6.5s6.8 0 8.6-.5a2.9 2.9 0 0 0 2-2c.4-1.6.4-5 .4-5zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"
+      />
+    </svg>
+  );
+}
+
+function IconCompany({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2.6 3 7v2h18V7l-9-4.4zM5 11v9h4v-6h6v6h4v-9H5zm6 9v-4h2v4h-2z"
+      />
+    </svg>
+  );
+}
+
+function TileIcon({
+  tone,
+  children,
+  size = "lg",
+}: {
+  tone: "orange" | "blue" | "green" | "pink" | "amber" | "coral" | "violet";
+  children: ReactNode;
+  size?: "lg" | "sm";
+}) {
+  return (
+    <span className={`menu-tile-icon menu-tile-icon-${tone} is-${size}`}>
+      {children}
+    </span>
+  );
+}
+
 export function LivingRoomHome({
   firstWatchHref,
+  youtubeChannelUrl = null,
 }: {
   firstWatchHref: string | null;
+  youtubeChannelUrl?: string | null;
 }) {
   const router = useRouter();
   const roomVideoRef = useRef<HTMLVideoElement>(null);
@@ -74,7 +169,9 @@ export function LivingRoomHome({
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackDone, setFeedbackDone] = useState(false);
+  const [commentNotice, setCommentNotice] = useState(false);
   const captionId = useId();
+  const youtubeUrl = youtubeChannelUrl?.trim() || null;
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -234,7 +331,7 @@ export function LivingRoomHome({
       <div className="living-stage" aria-labelledby={captionId}>
         <img
           className={`living-poster${showPosterOnly ? " is-visible" : ""}`}
-          src="/living-room/living-room-mailbox-frame.jpg"
+          src="/living-room/living-room-labeled-frame.jpg"
           alt=""
           width={848}
           height={480}
@@ -243,8 +340,8 @@ export function LivingRoomHome({
         <video
           ref={roomVideoRef}
           className={`living-video${showPosterOnly ? " is-hidden" : ""}`}
-          src="/living-room/living-room-mailbox-preview.mp4"
-          poster="/living-room/living-room-mailbox-frame.jpg"
+          src="/living-room/living-room-labeled-preview.mp4"
+          poster="/living-room/living-room-labeled-frame.jpg"
           muted
           playsInline
           loop
@@ -313,7 +410,7 @@ export function LivingRoomHome({
                   title={item.label}
                   aria-label={`액자 바로가기: ${item.label}`}
                 >
-                  <span className="frame-tip">{item.label}</span>
+                  <span className="visually-hidden">{item.label}</span>
                 </button>
               );
             })}
@@ -331,7 +428,7 @@ export function LivingRoomHome({
 
           {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
           <a
-            href="https://chamzoneinteractive.vercel.app/"
+            href={COMPANY_HOME}
             className="hotspot hotspot-sofa-cz"
             target="_blank"
             rel="noopener noreferrer"
@@ -366,10 +463,6 @@ export function LivingRoomHome({
       <div className="living-chrome">
         <p id={captionId} className="living-caption">
           콩아 리모컨 눌러봐 / 응 누나
-          <span className="living-caption-note">
-            {" "}
-            · 번호 고르기는 화면 메뉴로만
-          </span>
         </p>
         <div className="living-controls">
           <button
@@ -385,6 +478,104 @@ export function LivingRoomHome({
           </p>
         </div>
       </div>
+
+      <nav className="living-menu-grid" aria-label="봄이콩이 메뉴">
+        <button
+          type="button"
+          className="menu-tile menu-tile-watch"
+          onClick={() => goFrame("watch")}
+        >
+          <TileIcon tone="orange">
+            <IconPlay />
+          </TileIcon>
+          <span className="menu-tile-label">1. 영상보기</span>
+        </button>
+
+        <button
+          type="button"
+          className="menu-tile menu-tile-subscribe"
+          onClick={() => goFrame("subscribe")}
+        >
+          <TileIcon tone="blue">
+            <IconBell />
+          </TileIcon>
+          <span className="menu-tile-label">2. 구독하기</span>
+        </button>
+
+        <button
+          type="button"
+          className="menu-tile menu-tile-goods"
+          onClick={() => goFrame("goods")}
+        >
+          <TileIcon tone="green">
+            <IconBag />
+          </TileIcon>
+          <span className="menu-tile-label">3. 상품구매</span>
+        </button>
+
+        <div className="menu-tile menu-tile-cluster" role="group" aria-label="더 보기">
+          <button
+            type="button"
+            className="menu-mini menu-mini-comment"
+            onClick={() => setCommentNotice(true)}
+          >
+            <TileIcon tone="pink" size="sm">
+              <IconComment />
+            </TileIcon>
+            <span className="menu-mini-label">4. 댓글 달기</span>
+          </button>
+
+          <button
+            type="button"
+            className="menu-mini menu-mini-feedback"
+            onClick={openMailbox}
+          >
+            <TileIcon tone="amber" size="sm">
+              <IconFeedback />
+            </TileIcon>
+            <span className="menu-mini-label">5. 관리자에게 의견 보내기</span>
+          </button>
+
+          {youtubeUrl ? (
+            <a
+              className="menu-mini menu-mini-youtube"
+              href={youtubeUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <TileIcon tone="coral" size="sm">
+                <IconYoutube />
+              </TileIcon>
+              <span className="menu-mini-label">6. 유튜브 계정으로 들어가기</span>
+            </a>
+          ) : (
+            <button
+              type="button"
+              className="menu-mini menu-mini-youtube is-pending"
+              disabled
+              aria-disabled="true"
+              title="유튜브 주소는 아직 준비 중이에요"
+            >
+              <TileIcon tone="coral" size="sm">
+                <IconYoutube />
+              </TileIcon>
+              <span className="menu-mini-label">6. 유튜브 · 준비 중</span>
+            </button>
+          )}
+
+          <a
+            className="menu-mini menu-mini-company"
+            href={COMPANY_HOME}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <TileIcon tone="violet" size="sm">
+              <IconCompany />
+            </TileIcon>
+            <span className="menu-mini-label">7. 제작회사 홈페이지 입장하기</span>
+          </a>
+        </div>
+      </nav>
 
       <GuardianGate
         open={guardianFor !== null}
@@ -416,6 +607,34 @@ export function LivingRoomHome({
           </p>
         )}
       </GuardianGate>
+
+      {commentNotice ? (
+        <div
+          className="guardian-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="comment-notice-title"
+        >
+          <div className="guardian-card">
+            <p className="eyebrow">댓글 달기</p>
+            <h2 id="comment-notice-title" className="section-title">
+              아직 준비 중
+            </h2>
+            <div className="guardian-body">
+              <p>댓글 화면은 곧 열릴 예정이에요.</p>
+              <div className="guardian-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setCommentNotice(false)}
+                >
+                  확인
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {mailboxOpen ? (
         <div
