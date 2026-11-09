@@ -49,8 +49,9 @@ export default async function AdminClinicPage() {
               <p>봄이 소개와 기준 그림을 봐요.</p>
             </span>
           </Link>
-          <div
-            className="clinic-door clinic-door-photo"
+          <Link
+            href="/admin/bomi-photos"
+            className="clinic-door clinic-door-photo clinic-door-photo-open"
             role="listitem"
             aria-label="봄이 · 영상규칙에 쓸 사진 보관"
           >
@@ -59,9 +60,10 @@ export default async function AdminClinicPage() {
             </span>
             <span className="clinic-door-body">
               <h2>영상규칙에 쓸 사진 보관</h2>
-              <p>봄이 칸 아래예요. 사진 자리는 비워 두었어요.</p>
+              <p>봄이 칸 아래예요. 사진을 골라 넣을 수 있어요.</p>
+              <p className="clinic-door-note">사진 올리기 열림</p>
             </span>
-          </div>
+          </Link>
         </div>
 
         <div className="clinic-column" role="presentation">
@@ -78,8 +80,9 @@ export default async function AdminClinicPage() {
               <p>콩이 소개와 기준 그림을 봐요.</p>
             </span>
           </Link>
-          <div
-            className="clinic-door clinic-door-photo"
+          <Link
+            href="/admin/kongi-photos"
+            className="clinic-door clinic-door-photo clinic-door-photo-open"
             role="listitem"
             aria-label="콩이 · 영상규칙에 쓸 사진 보관"
           >
@@ -88,9 +91,10 @@ export default async function AdminClinicPage() {
             </span>
             <span className="clinic-door-body">
               <h2>영상규칙에 쓸 사진 보관</h2>
-              <p>콩이 칸 아래예요. 사진 자리는 비워 두었어요.</p>
+              <p>콩이 칸 아래예요. 사진을 골라 넣을 수 있어요.</p>
+              <p className="clinic-door-note">사진 올리기 열림</p>
             </span>
-          </div>
+          </Link>
         </div>
 
         <div
