@@ -463,6 +463,10 @@ export function LivingRoomHome({
       <div className="living-chrome">
         <p id={captionId} className="living-caption">
           콩아 리모컨 눌러봐 / 응 누나
+          <span className="living-caption-note">
+            {" "}
+            · 번호 고르기는 화면 메뉴로만
+          </span>
         </p>
         <div className="living-controls">
           <button
