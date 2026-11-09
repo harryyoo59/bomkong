@@ -1037,13 +1037,13 @@ textarea {
 }
 
 /* Percentages map to the 848×480 living-room frame (contain, no crop). */
-/* TV enlarged into free wall space (left of frames); sofa/door untouched. */
+/* living-room-mailbox metadata hotspots (object-fit: contain). */
 .hotspot-tv {
   position: absolute;
-  left: 2.2%;
-  top: 6.5%;
-  width: 33.5%;
-  height: 58%;
+  left: 2.19%;
+  top: 7.95%;
+  width: 31.22%;
+  height: 49.14%;
   outline: none;
 }
 
@@ -1127,7 +1127,8 @@ textarea {
 .hotspot-door:focus-visible,
 .hotspot-tv:focus-visible,
 .hotspot-comment-desk:focus-visible,
-.hotspot-sofa-cz:focus-visible {
+.hotspot-sofa-cz:focus-visible,
+.hotspot-mailbox:focus-visible {
   outline: 2px solid var(--sky);
   outline-offset: 2px;
 }
@@ -1138,67 +1139,85 @@ textarea {
   border-radius: 14px;
 }
 
-/* 가로 액자 3개 — 자리 유지, 둥글고 알록달록 */
+/* 액자 3개 — 색·테두리는 영상에 구움. 웹은 투명 클릭 + 작은 안내만 */
 .hotspot-frames {
   position: absolute;
-  left: 37%;
-  top: 14.5%;
-  width: 33%;
-  height: 18%;
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 9%;
+  inset: 0;
+  pointer-events: none;
 }
 
 .frame-slot {
+  position: absolute;
   border: none;
-  padding: 6%;
-  border-radius: 22px;
+  padding: 0;
+  margin: 0;
+  border-radius: 6px;
   cursor: pointer;
+  background: transparent;
+  pointer-events: auto;
   display: grid;
-  place-items: center;
+  place-items: end center;
   color: #2a2a2a;
-  font-size: clamp(0.48rem, 1.1vw, 0.7rem);
-  font-weight: 800;
-  line-height: 1.15;
-  text-align: center;
-  transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
-  box-shadow:
-    0 4px 0 rgba(0, 0, 0, 0.08),
-    inset 0 0 0 3px rgba(255, 255, 255, 0.55);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
 }
 
-.frame-slot:hover {
-  transform: translateY(-2px) scale(1.03);
-  filter: brightness(1.04);
+.frame-slot-watch {
+  left: 38.09%;
+  top: 16.46%;
+  width: 8.25%;
+  height: 14.79%;
 }
 
-.frame-tone-watch {
-  background: linear-gradient(160deg, #ffd36a 0%, #ff9f4a 55%, #ff7a59 100%);
-  color: #5a2a12;
+.frame-slot-subscribe {
+  left: 49.53%;
+  top: 16.46%;
+  width: 8.37%;
+  height: 14.79%;
 }
 
-.frame-tone-subscribe {
-  background: linear-gradient(160deg, #9be7ff 0%, #5bb8ff 50%, #6a8dff 100%);
-  color: #14345a;
+.frame-slot-goods {
+  left: 61.08%;
+  top: 16.46%;
+  width: 8.37%;
+  height: 14.79%;
 }
 
-.frame-tone-goods {
-  background: linear-gradient(160deg, #c8f59a 0%, #7ed957 52%, #3ecf8e 100%);
-  color: #1e4a22;
+.frame-tip {
+  display: none;
+  margin-bottom: 4%;
+  padding: 2px 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(31, 42, 46, 0.12);
+  font-size: clamp(0.42rem, 0.95vw, 0.58rem);
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
-.frame-label {
-  display: block;
+@media (hover: hover) and (pointer: fine) {
+  .frame-slot:hover {
+    background: rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.35);
+  }
+
+  .frame-slot:hover .frame-tip {
+    display: inline-block;
+  }
+}
+
+.frame-slot:focus-visible .frame-tip {
+  display: inline-block;
 }
 
 /* 모니터 「댓글쓰기」 — 페이지 미연결, 자리만 */
 .hotspot-comment-desk {
   position: absolute;
-  left: 33.5%;
-  top: 39%;
-  width: 14%;
-  height: 17%;
+  left: 36.32%;
+  top: 42.5%;
+  width: 12.97%;
+  height: 10.15%;
   border: none;
   padding: 0;
   margin: 0;
@@ -1247,36 +1266,41 @@ textarea {
   }
 }
 
-/* Door may sit under sofa — keep a usable click region at the top. */
+/* Door whole — plaque baked in video (no web label). */
 .hotspot-door {
   position: absolute;
-  right: 0.8%;
-  top: 6%;
-  width: 17%;
-  height: 70%;
+  left: 81.96%;
+  top: 11.46%;
+  width: 15.92%;
+  height: 71.88%;
   display: block;
   border-radius: 6px;
   z-index: 3;
+  text-decoration: none;
+  color: inherit;
 }
 
-.door-label {
-  /* 명패만 문짝 가운데 위 */
+/* Mailbox under plaque — click priority over door */
+.hotspot-mailbox {
   position: absolute;
-  left: 36%;
-  top: 3%;
-  transform: translateX(-50%);
-  display: inline-block;
-  padding: 5px 8px;
+  left: 83.02%;
+  top: 29.17%;
+  width: 7.31%;
+  height: 15.42%;
+  border: none;
+  padding: 0;
+  margin: 0;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(31, 42, 46, 0.12);
-  font-family: var(--font-display);
-  font-size: clamp(0.7rem, 1.6vw, 0.95rem);
-  font-weight: 700;
-  color: #3a2b1a;
-  box-shadow: 0 6px 14px rgba(31, 42, 46, 0.12);
-  animation: living-door-pulse 2.4s ease-in-out infinite;
-  white-space: nowrap;
+  background: transparent;
+  cursor: pointer;
+  z-index: 5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hotspot-mailbox:hover {
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  }
 }
 
 .living-chrome {
@@ -1654,16 +1678,6 @@ textarea {
   }
 }
 
-@keyframes living-door-pulse {
-  0%,
-  100% {
-    transform: translateX(-50%) translateY(0);
-  }
-  50% {
-    transform: translateX(-50%) translateY(-2px);
-  }
-}
-
 @media (max-width: 520px) {
   .living-root {
     padding: 8px 8px 14px;
@@ -1689,10 +1703,6 @@ textarea {
     text-align: center;
   }
 
-  .door-label {
-    font-size: 0.68rem;
-    padding: 4px 6px;
-  }
 }
 
 @media (min-width: 760px) {
@@ -1708,7 +1718,6 @@ textarea {
 @media (prefers-reduced-motion: reduce) {
   .living-poster,
   .tv-screen,
-  .door-label,
   .study-card,
   .clinic-door,
   .frame-slot {
@@ -1716,3 +1725,58 @@ textarea {
     transition: none !important;
   }
 }
+
+.mailbox-honeypot {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.mailbox-card-form textarea {
+  resize: vertical;
+  min-height: 88px;
+}
+
+.mailbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mailbox-card {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(31, 42, 46, 0.1);
+  box-shadow: 0 8px 18px rgba(31, 42, 46, 0.06);
+}
+
+.mailbox-card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  font-size: 0.86rem;
+}
+
+.mailbox-card-head time {
+  color: var(--muted, #667788);
+  font-size: 0.78rem;
+}
+
+.mailbox-card-body {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.45;
+}
+
