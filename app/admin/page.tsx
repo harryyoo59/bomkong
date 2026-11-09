@@ -20,10 +20,11 @@ export default async function AdminClinicPage() {
       <header className="clinic-header">
         <div>
           <p className="eyebrow">관리자실 · 진료실</p>
-          <h1 className="section-title">관리자실을 여섯 칸으로 나눴어요</h1>
+          <h1 className="section-title">관리자실을 칸으로 나눴어요</h1>
           <p className="muted">
             손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·소스
-            보관실·쿠키완료실이 여기에 있어요. 연결된 칸만 눌러 들어가요.
+            보관실·쿠키완료실·손님 의견이 여기에 있어요. 연결된 칸만 눌러
+            들어가요.
           </p>
         </div>
         <form action={logoutAdmin}>
@@ -137,6 +138,17 @@ export default async function AdminClinicPage() {
             <h2>쿠키완료실</h2>
             <p>쓴 소스를 옮겨 두고, 영상 제목을 붙여 보관해요.</p>
             <p className="clinic-door-note">재사용 방지</p>
+          </span>
+        </Link>
+
+        <Link href="/admin/mailbox" className="clinic-door" role="listitem">
+          <span className="clinic-door-number" aria-hidden="true">
+            우
+          </span>
+          <span className="clinic-door-body">
+            <h2>손님 의견</h2>
+            <p>거실 우편함으로 온 의견을 읽어요.</p>
+            <p className="clinic-door-note">의견 보내기</p>
           </span>
         </Link>
       </div>
