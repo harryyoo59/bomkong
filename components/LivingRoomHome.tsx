@@ -169,7 +169,6 @@ export function LivingRoomHome({
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackDone, setFeedbackDone] = useState(false);
-  const [commentNotice, setCommentNotice] = useState(false);
   const captionId = useId();
   const youtubeUrl = youtubeChannelUrl?.trim() || null;
 
@@ -416,15 +415,14 @@ export function LivingRoomHome({
             })}
           </div>
 
-          {/* 댓글 페이지가 아직 없어 이동 연결 없음 — 클릭 자리만 둠 */}
-          <button
-            type="button"
+          <Link
+            href="/comments"
             className="hotspot hotspot-comment-desk"
-            aria-label="댓글쓰기 (아직 연결 안 됨)"
+            aria-label="댓글쓰기"
             title="댓글쓰기"
           >
             <span className="visually-hidden">댓글쓰기</span>
-          </button>
+          </Link>
 
           {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
           <a
@@ -518,16 +516,16 @@ export function LivingRoomHome({
         </button>
 
         <div className="menu-tile menu-tile-cluster" role="group" aria-label="더 보기">
-          <button
-            type="button"
+          <Link
+            href="/comments"
             className="menu-mini menu-mini-comment"
-            onClick={() => setCommentNotice(true)}
+            aria-label="4. 댓글 달기"
           >
             <TileIcon tone="pink" size="sm">
               <IconComment />
             </TileIcon>
             <span className="menu-mini-label">4. 댓글 달기</span>
-          </button>
+          </Link>
 
           <button
             type="button"
@@ -611,34 +609,6 @@ export function LivingRoomHome({
           </p>
         )}
       </GuardianGate>
-
-      {commentNotice ? (
-        <div
-          className="guardian-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="comment-notice-title"
-        >
-          <div className="guardian-card">
-            <p className="eyebrow">댓글 달기</p>
-            <h2 id="comment-notice-title" className="section-title">
-              아직 준비 중
-            </h2>
-            <div className="guardian-body">
-              <p>댓글 화면은 곧 열릴 예정이에요.</p>
-              <div className="guardian-actions">
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={() => setCommentNotice(false)}
-                >
-                  확인
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {mailboxOpen ? (
         <div
