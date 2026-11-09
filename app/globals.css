@@ -936,6 +936,25 @@ textarea {
   color: var(--muted);
 }
 
+.logo-serial-badge {
+  margin: 0 0 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--sky-soft);
+  color: #0f6f93;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.logo-serial-line {
+  margin: 0 0 4px;
+  color: var(--brand-deep);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
 @keyframes rise {
   from {
     opacity: 0;

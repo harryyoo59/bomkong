@@ -108,13 +108,13 @@ export default async function AdminClinicPage() {
           </span>
         </div>
 
-        <Link href="/logos" className="clinic-door" role="listitem">
+        <Link href="/admin/logos" className="clinic-door" role="listitem">
           <span className="clinic-door-number" aria-hidden="true">
             4
           </span>
           <span className="clinic-door-body">
             <h2>로고 관리</h2>
-            <p>공식 로고만 모아 둔 방이에요.</p>
+            <p>공식 로고에 일련번호를 붙여 모아 둬요.</p>
             <p className="clinic-door-note">상표·이름 관련은 나중에</p>
           </span>
         </Link>
