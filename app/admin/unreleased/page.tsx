@@ -31,6 +31,9 @@ export default async function AdminUnreleasedPage() {
         <Link className="btn btn-soft" href="/admin/cookie">
           쿠키완료실로
         </Link>
+        <Link className="btn btn-soft" href="/admin/uploaded">
+          유튜브 올린 영상실로
+        </Link>
         <Link className="btn btn-soft" href="/admin">
           관리자실로
         </Link>

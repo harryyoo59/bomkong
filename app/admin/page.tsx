@@ -23,8 +23,8 @@ export default async function AdminClinicPage() {
           <h1 className="section-title">관리자실을 칸으로 나눴어요</h1>
           <p className="muted">
             손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·소스
-            보관실·쿠키완료실·미공개 영상실·손님 의견이 여기에 있어요.
-            연결된 칸만 눌러 들어가요.
+            보관실·쿠키완료실·미공개 영상실·유튜브 올린 영상실·손님 의견이
+            여기에 있어요. 연결된 칸만 눌러 들어가요.
           </p>
         </div>
         <form action={logoutAdmin}>
@@ -149,6 +149,17 @@ export default async function AdminClinicPage() {
             <h2>미공개 영상실</h2>
             <p>만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 둬요.</p>
             <p className="clinic-door-note">유튜브 올리기 전</p>
+          </span>
+        </Link>
+
+        <Link href="/admin/uploaded" className="clinic-door" role="listitem">
+          <span className="clinic-door-number" aria-hidden="true">
+            8
+          </span>
+          <span className="clinic-door-body">
+            <h2>유튜브 올린 영상실</h2>
+            <p>이미 유튜브에 올린 영상의 원본과 제목을 모아 둬요.</p>
+            <p className="clinic-door-note">공개한 원본</p>
           </span>
         </Link>
 
