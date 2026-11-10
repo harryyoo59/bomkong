@@ -1395,12 +1395,6 @@ label.form-row textarea {
   color: var(--ink);
 }
 
-.living-caption-note {
-  font-weight: 600;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
 .living-controls {
   display: flex;
   flex-wrap: wrap;
