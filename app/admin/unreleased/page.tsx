@@ -28,11 +28,11 @@ export default async function AdminUnreleasedPage() {
         <UnreleasedVideoRoom />
       </section>
       <div className="vault-nav-row">
-        <Link className="btn btn-soft" href="/admin/cookie">
-          쿠키완료실로
+        <Link className="btn btn-soft" href="/admin/public">
+          공개 영상실
         </Link>
         <Link className="btn btn-soft" href="/admin">
-          관리자실로
+          관리자실
         </Link>
       </div>
     </div>
