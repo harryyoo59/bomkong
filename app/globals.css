@@ -1413,10 +1413,6 @@ label.form-row textarea {
   font-size: 0.82rem;
 }
 
-.living-audio-note {
-  margin: 0;
-}
-
 /* —— Mobile/desktop 2×2 menu under living room (mockup v3) —— */
 .living-menu-grid {
   display: grid;

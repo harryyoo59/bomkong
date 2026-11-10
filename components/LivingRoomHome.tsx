@@ -210,6 +210,7 @@ export function LivingRoomHome({
     if (!v || reduceMotion) return;
     v.muted = true;
     v.defaultMuted = true;
+    v.volume = 0;
     if (progress && progress.position > 0) {
       const seek = () => {
         try {
@@ -342,6 +343,7 @@ export function LivingRoomHome({
           src="/living-room/living-room-labeled-preview.mp4"
           poster="/living-room/living-room-labeled-frame.jpg"
           muted
+          defaultMuted
           playsInline
           loop
           preload="metadata"
@@ -362,6 +364,7 @@ export function LivingRoomHome({
                 src={PLACEHOLDER_VIDEO}
                 poster="/living-room/v4-frame-1s.jpg"
                 muted
+                defaultMuted
                 playsInline
                 loop
                 autoPlay
@@ -475,9 +478,6 @@ export function LivingRoomHome({
           >
             {showPosterOnly ? "영상 재생" : "일시정지 · 사진"}
           </button>
-          <p className="tiny muted living-audio-note">
-            소리는 기본 꺼짐 · 반복해도 크게 나지 않아요
-          </p>
         </div>
       </div>
 
