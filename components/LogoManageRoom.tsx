@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminEmptyText } from "@/components/AdminEmptyText";
 import {
   formatSerial,
   makeLogoId,
@@ -252,7 +253,7 @@ export function LogoManageRoom() {
           있어요.
         </p>
         {items.length === 0 ? (
-          <p className="muted">아직 넣어 둔 로고가 없어요.</p>
+          <AdminEmptyText roomKey="logos" />
         ) : (
           <ul className="admin-ep-list">
             {items.map((item) => (

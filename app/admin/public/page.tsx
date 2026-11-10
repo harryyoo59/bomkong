@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { PublicVideoRoom } from "@/components/PublicVideoRoom";
 import { requireAdminSession } from "@/lib/admin-auth";
 
@@ -17,13 +18,7 @@ export default async function AdminPublicPage() {
 
   return (
     <div className="study-room">
-      <section className="panel">
-        <p className="eyebrow">관리자실 · 8번 칸</p>
-        <h1 className="section-title">공개 영상실</h1>
-        <p className="muted">
-          유튜브에 공개한 뒤의 원본과 제목을 모아 두는 방이에요.
-        </p>
-      </section>
+      <AdminRoomHeader roomKey="public" />
       <section className="panel">
         <PublicVideoRoom />
       </section>

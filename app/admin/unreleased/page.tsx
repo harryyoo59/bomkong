@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { UnreleasedVideoRoom } from "@/components/UnreleasedVideoRoom";
 import { requireAdminSession } from "@/lib/admin-auth";
 
@@ -17,13 +18,7 @@ export default async function AdminUnreleasedPage() {
 
   return (
     <div className="study-room">
-      <section className="panel">
-        <p className="eyebrow">관리자실 · 7번 칸</p>
-        <h1 className="section-title">미공개 영상실</h1>
-        <p className="muted">
-          만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.
-        </p>
-      </section>
+      <AdminRoomHeader roomKey="unreleased" />
       <section className="panel">
         <UnreleasedVideoRoom />
       </section>

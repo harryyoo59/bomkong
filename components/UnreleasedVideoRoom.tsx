@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminEmptyText } from "@/components/AdminEmptyText";
 import {
   makePublicId,
   readPublicMediaStore,
@@ -189,7 +190,7 @@ export function UnreleasedVideoRoom() {
           가져가요.
         </p>
         {items.length === 0 ? (
-          <p className="muted">아직 넣어 둔 미공개 영상이 없어요.</p>
+          <AdminEmptyText roomKey="unreleased" />
         ) : (
           <ul className="admin-ep-list">
             {items.map((item) => (

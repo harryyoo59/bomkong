@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { LogoManageRoom } from "@/components/LogoManageRoom";
 import { requireAdminSession } from "@/lib/admin-auth";
 
@@ -17,14 +18,7 @@ export default async function AdminLogosPage() {
 
   return (
     <div className="study-room">
-      <section className="panel">
-        <p className="eyebrow">관리자실 · 4번 칸</p>
-        <h1 className="section-title">로고 관리</h1>
-        <p className="muted">
-          공식 로고에 일련번호를 붙여 모아 두는 방이에요. 번호를 정하고,
-          나중에 고쳐도 돼요.
-        </p>
-      </section>
+      <AdminRoomHeader roomKey="logos" />
       <section className="panel">
         <LogoManageRoom />
       </section>

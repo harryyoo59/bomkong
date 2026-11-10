@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminEmptyText } from "@/components/AdminEmptyText";
 import {
   detectKind,
   kindLabel,
@@ -178,7 +179,7 @@ export function SourceVaultRoom() {
           자료를 다시 쓰지 않게 막아 줘요.
         </p>
         {items.length === 0 ? (
-          <p className="muted">아직 넣어 둔 사진·동영상이 없어요.</p>
+          <AdminEmptyText roomKey="source" />
         ) : (
           <ul className="admin-ep-list">
             {items.map((item) => (
