@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import {
+  makePublicId,
+  readPublicMediaStore,
+  writePublicMediaStore,
+} from "@/lib/public-media";
+import {
   makeUnreleasedId,
   readUnreleasedMediaStore,
   writeUnreleasedMediaStore,
@@ -19,6 +24,8 @@ export function UnreleasedVideoRoom() {
   );
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const [moveId, setMoveId] = useState<string | null>(null);
+  const [moveYoutubeUrl, setMoveYoutubeUrl] = useState("");
 
   useEffect(() => {
     const store = readUnreleasedMediaStore();
@@ -79,6 +86,52 @@ export function UnreleasedVideoRoom() {
     setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
   }
 
+  function startMove(id: string) {
+    setMoveId(id);
+    setMoveYoutubeUrl("");
+    setMessage("");
+  }
+
+  function cancelMove() {
+    setMoveId(null);
+    setMoveYoutubeUrl("");
+  }
+
+  function confirmMove(e: React.FormEvent) {
+    e.preventDefault();
+    if (!moveId) return;
+    const target = items.find((it) => it.id === moveId);
+    if (!target) {
+      setMessage("옮길 영상을 찾지 못했어요.");
+      cancelMove();
+      return;
+    }
+
+    const nextUnreleased = items.filter((it) => it.id !== moveId);
+    const publicStore = readPublicMediaStore();
+    const nextPublic = [
+      {
+        id: makePublicId(),
+        name: target.name,
+        title: target.title,
+        youtubeUrl: moveYoutubeUrl.trim(),
+        note: target.note,
+        addedAt: new Date().toISOString(),
+        youtubeStatus: "public" as const,
+        fromUnreleasedId: target.id,
+      },
+      ...publicStore.items,
+    ];
+
+    writeUnreleasedMediaStore({ items: nextUnreleased });
+    writePublicMediaStore({ items: nextPublic });
+    setItems(nextUnreleased);
+    setMessage(
+      `「${target.title}」을(를) 공개 영상실로 옮겼어요. 제목은 그대로 두었어요.`,
+    );
+    cancelMove();
+  }
+
   if (!ready) {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
@@ -132,8 +185,8 @@ export function UnreleasedVideoRoom() {
       <section>
         <h2 className="section-title">아직 유튜브에 안 올린 영상</h2>
         <p className="muted tiny">
-          이 기기에만 기억해요. 새로고침해도 남아 있어요. 서버 저장은 아직
-          없어요.
+          공개한 뒤에는 「공개 영상실로 옮기기」를 눌러 주세요. 제목은 그대로
+          가져가요.
         </p>
         {items.length === 0 ? (
           <p className="muted">아직 넣어 둔 미공개 영상이 없어요.</p>
@@ -155,16 +208,58 @@ export function UnreleasedVideoRoom() {
                     })}
                   </p>
                 </div>
-                <div className="vault-action-row">
-                  <span className="pair-chip">아직 유튜브 전</span>
-                  <button
-                    type="button"
-                    className="btn btn-soft"
-                    onClick={() => onRemove(item.id)}
+
+                {moveId === item.id ? (
+                  <form
+                    className="admin-form vault-move-form"
+                    onSubmit={confirmMove}
                   >
-                    목록에서 빼기
-                  </button>
-                </div>
+                    <p className="tiny muted">
+                      제목 「{item.title}」을(를) 그대로 공개 영상실로
+                      옮깁니다.
+                    </p>
+                    <label>
+                      유튜브 주소 (선택)
+                      <input
+                        value={moveYoutubeUrl}
+                        onChange={(e) => setMoveYoutubeUrl(e.target.value)}
+                        placeholder="예: https://youtu.be/…"
+                        inputMode="url"
+                        autoFocus
+                      />
+                    </label>
+                    <div className="vault-action-row">
+                      <button type="submit" className="btn btn-primary">
+                        옮기기 확인
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-soft"
+                        onClick={cancelMove}
+                      >
+                        취소
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="vault-action-row">
+                    <span className="pair-chip">아직 유튜브 전</span>
+                    <button
+                      type="button"
+                      className="btn btn-soft"
+                      onClick={() => startMove(item.id)}
+                    >
+                      공개 영상실로 옮기기
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-soft"
+                      onClick={() => onRemove(item.id)}
+                    >
+                      목록에서 빼기
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
