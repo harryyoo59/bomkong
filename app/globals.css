@@ -1395,12 +1395,6 @@ label.form-row textarea {
   color: var(--ink);
 }
 
-.living-caption-note {
-  font-weight: 600;
-  color: var(--muted);
-  font-size: 0.78rem;
-}
-
 .living-controls {
   display: flex;
   flex-wrap: wrap;
@@ -1411,10 +1405,6 @@ label.form-row textarea {
 .living-ctrl {
   padding: 8px 12px;
   font-size: 0.82rem;
-}
-
-.living-audio-note {
-  margin: 0;
 }
 
 /* —— Mobile/desktop 2×2 menu under living room (mockup v3) —— */

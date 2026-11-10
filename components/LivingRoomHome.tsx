@@ -210,6 +210,7 @@ export function LivingRoomHome({
     if (!v || reduceMotion) return;
     v.muted = true;
     v.defaultMuted = true;
+    v.volume = 0;
     if (progress && progress.position > 0) {
       const seek = () => {
         try {
@@ -461,10 +462,6 @@ export function LivingRoomHome({
       <div className="living-chrome">
         <p id={captionId} className="living-caption">
           콩아 리모컨 눌러봐 / 응 누나
-          <span className="living-caption-note">
-            {" "}
-            · 번호 고르기는 화면 메뉴로만
-          </span>
         </p>
         <div className="living-controls">
           <button
@@ -475,9 +472,6 @@ export function LivingRoomHome({
           >
             {showPosterOnly ? "영상 재생" : "일시정지 · 사진"}
           </button>
-          <p className="tiny muted living-audio-note">
-            소리는 기본 꺼짐 · 반복해도 크게 나지 않아요
-          </p>
         </div>
       </div>
 
