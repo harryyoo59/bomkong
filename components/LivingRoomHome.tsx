@@ -343,7 +343,6 @@ export function LivingRoomHome({
           src="/living-room/living-room-labeled-preview.mp4"
           poster="/living-room/living-room-labeled-frame.jpg"
           muted
-          defaultMuted
           playsInline
           loop
           preload="metadata"
@@ -364,7 +363,6 @@ export function LivingRoomHome({
                 src={PLACEHOLDER_VIDEO}
                 poster="/living-room/v4-frame-1s.jpg"
                 muted
-                defaultMuted
                 playsInline
                 loop
                 autoPlay
