@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { CharacterPhotoShelf } from "@/components/CharacterPhotoShelf";
 import { requireAdminSession } from "@/lib/admin-auth";
 
@@ -17,14 +18,7 @@ export default async function AdminBomiPhotosPage() {
 
   return (
     <div className="study-room">
-      <section className="panel">
-        <p className="eyebrow">관리자실 · 봄이 칸 아래</p>
-        <h1 className="section-title">영상규칙에 쓸 사진 보관</h1>
-        <p className="muted">
-          봄이 영상규칙에 쓸 사진을 모아 두는 방이에요. 사진을 골라 넣을 수
-          있어요.
-        </p>
-      </section>
+      <AdminRoomHeader roomKey="bomi-photos" />
       <section className="panel">
         <CharacterPhotoShelf shelf="bomi" />
       </section>

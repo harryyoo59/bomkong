@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { SourceVaultRoom } from "@/components/SourceVaultRoom";
 import { requireAdminSession } from "@/lib/admin-auth";
 
@@ -17,13 +18,7 @@ export default async function AdminSourcePage() {
 
   return (
     <div className="study-room">
-      <section className="panel">
-        <p className="eyebrow">관리자실 · 5번 칸</p>
-        <h1 className="section-title">소스 보관실</h1>
-        <p className="muted">
-          앞으로 쿠키 영상에 쓸 사진·동영상을 모아 두는 방이에요.
-        </p>
-      </section>
+      <AdminRoomHeader roomKey="source" />
       <section className="panel">
         <SourceVaultRoom />
       </section>

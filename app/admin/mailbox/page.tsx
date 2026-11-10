@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { AdminEmptyText } from "@/components/AdminEmptyText";
+import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { listMailboxFeedback } from "@/lib/mailbox-feedback";
 
@@ -29,20 +31,14 @@ export default async function AdminMailboxPage() {
   return (
     <div className="clinic-room">
       <header className="clinic-header">
-        <div>
-          <p className="eyebrow">관리자실 · 손님 의견</p>
-          <h1 className="section-title">의견 보내기 우편함</h1>
-          <p className="muted">
-            거실 빨간 우편함으로 온 글이에요. 이름은 비어 있을 수 있어요.
-          </p>
-        </div>
+        <AdminRoomHeader roomKey="mailbox" variant="plain" />
         <Link className="btn btn-soft" href="/admin">
           진료실로
         </Link>
       </header>
 
       {items.length === 0 ? (
-        <p className="muted">아직 받은 의견이 없어요.</p>
+        <AdminEmptyText roomKey="mailbox" />
       ) : (
         <ul className="mailbox-list" aria-label="받은 의견 목록">
           {items.map((item) => (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminEmptyText } from "@/components/AdminEmptyText";
 import {
   kindLabel,
   makeId,
@@ -129,7 +130,7 @@ export function CookieDoneRoom() {
           없어요.
         </p>
         {cookies.length === 0 ? (
-          <p className="muted">아직 옮긴 자료가 없어요.</p>
+          <AdminEmptyText roomKey="cookie" />
         ) : (
           <ul className="admin-ep-list">
             {cookies.map((item) => (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AdminEmptyText } from "@/components/AdminEmptyText";
 import {
   characterShelfLabel,
   makeCharacterPhotoId,
@@ -9,6 +10,7 @@ import {
   type CharacterPhotoItem,
   type CharacterShelf,
 } from "@/lib/character-photos";
+import type { RoomKey } from "@/lib/admin-copy";
 
 type Props = {
   shelf: CharacterShelf;
@@ -128,7 +130,11 @@ export function CharacterPhotoShelf({ shelf }: Props) {
           {who} 칸 아래 사진 보관이에요. 영상규칙에만 쓰는 자료예요.
         </p>
         {items.length === 0 ? (
-          <p className="muted">아직 넣어 둔 사진이 없어요.</p>
+          <AdminEmptyText
+            roomKey={
+              (shelf === "bomi" ? "bomi-photos" : "kongi-photos") as RoomKey
+            }
+          />
         ) : (
           <ul className="admin-ep-list">
             {items.map((item) => (
