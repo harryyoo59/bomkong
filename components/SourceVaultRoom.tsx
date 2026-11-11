@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
+import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import {
+  moveMediaPreview,
+  saveMediaPreview,
+} from "@/lib/media-preview-store";
 import {
   detectKind,
   kindLabel,
@@ -18,10 +23,7 @@ export function SourceVaultRoom() {
   const [kind, setKind] = useState<SourceKind>("video");
   const [note, setNote] = useState("");
   const [fileLabel, setFileLabel] = useState("");
-  const [pendingFile, setPendingFile] = useState<{
-    name: string;
-    kind: SourceKind;
-  } | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [moveId, setMoveId] = useState<string | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
@@ -47,12 +49,12 @@ export function SourceVaultRoom() {
     }
     const file = fileList[0];
     const detected = detectKind(file.name, file.type);
-    setPendingFile({ name: file.name, kind: detected });
+    setPendingFile(file);
     setKind(detected);
     setFileLabel(file.name);
   }
 
-  function onAdd(e: React.FormEvent) {
+  async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!pendingFile) {
       setMessage("사진이나 동영상 파일을 먼저 골라 주세요.");
@@ -65,6 +67,11 @@ export function SourceVaultRoom() {
       note: note.trim(),
       addedAt: new Date().toISOString(),
     };
+    try {
+      await saveMediaPreview(item.id, pendingFile, kind);
+    } catch {
+      setMessage("미리보기를 저장하지 못했어요. 목록에는 이름만 넣을게요.");
+    }
     persistSources([item, ...items]);
     setMessage(
       `${kindLabel(kind)} 「${item.name}」을(를) 소스 보관실에 넣었어요.`,
@@ -86,7 +93,7 @@ export function SourceVaultRoom() {
     setVideoTitle("");
   }
 
-  function confirmMove(e: React.FormEvent) {
+  async function confirmMove(e: React.FormEvent) {
     e.preventDefault();
     if (!moveId) return;
     const title = videoTitle.trim();
@@ -100,11 +107,12 @@ export function SourceVaultRoom() {
       cancelMove();
       return;
     }
+    const cookieId = makeId("ck");
     const store = readSourceMediaStore();
     const nextSources = store.sources.filter((it) => it.id !== moveId);
     const nextCookies = [
       {
-        id: makeId("ck"),
+        id: cookieId,
         kind: target.kind,
         name: target.name,
         videoTitle: title,
@@ -113,6 +121,7 @@ export function SourceVaultRoom() {
       },
       ...store.cookies,
     ];
+    await moveMediaPreview(target.id, cookieId);
     writeSourceMediaStore({ sources: nextSources, cookies: nextCookies });
     setItems(nextSources);
     setMessage(
@@ -184,24 +193,34 @@ export function SourceVaultRoom() {
           <ul className="admin-ep-list">
             {items.map((item) => (
               <li key={item.id} className="admin-ep-item">
-                <div>
-                  <strong>
-                    {kindLabel(item.kind)} · {item.name}
-                  </strong>
-                  {item.note ? (
-                    <p className="tiny muted">{item.note}</p>
-                  ) : null}
-                  <p className="tiny muted">
-                    넣은 날{" "}
-                    {new Date(item.addedAt).toLocaleString("ko-KR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
+                <div className="admin-ep-main">
+                  <AdminMediaPreview
+                    itemId={item.id}
+                    kindHint={item.kind}
+                    label={`${kindLabel(item.kind)} · ${item.name}`}
+                  />
+                  <div>
+                    <strong>
+                      {kindLabel(item.kind)} · {item.name}
+                    </strong>
+                    {item.note ? (
+                      <p className="tiny muted">{item.note}</p>
+                    ) : null}
+                    <p className="tiny muted">
+                      넣은 날{" "}
+                      {new Date(item.addedAt).toLocaleString("ko-KR", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
                 </div>
 
                 {moveId === item.id ? (
-                  <form className="admin-form vault-move-form" onSubmit={confirmMove}>
+                  <form
+                    className="admin-form vault-move-form"
+                    onSubmit={confirmMove}
+                  >
                     <label>
                       영상 제목 (쿠키에 쓴 제목)
                       <input
