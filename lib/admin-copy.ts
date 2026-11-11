@@ -48,6 +48,7 @@ export const ROOM_KEYS = [
   "cookie",
   "unreleased",
   "public",
+  "watch",
   "mailbox",
 ] as const;
 
@@ -61,6 +62,7 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   cookie: "쿠키완료실",
   unreleased: "미공개 영상실",
   public: "공개 영상실",
+  watch: "영상보기",
   mailbox: "손님 의견",
 };
 
@@ -70,7 +72,7 @@ export const DEFAULT_CLINIC: ClinicHeaderCopy = {
   eyebrow: "관리자실 · 진료실",
   title: "관리자실을 칸으로 나눴어요",
   intro:
-    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·소스 보관실·쿠키완료실·미공개 영상실·공개 영상실·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
+    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·소스 보관실·쿠키완료실·미공개 영상실·공개 영상실·영상보기·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
   logoutLabel: "나가기",
   homeLinkLabel: "거실로 돌아가기",
   editOpenLabel: "글 고치기",
@@ -189,6 +191,17 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     builtIn: true,
   },
   {
+    id: "door-watch",
+    number: "9",
+    title: "영상보기",
+    body: "거실에서 아이들이 보는 영상을 모아 둬요.",
+    note: "거실 영상보기",
+    href: "/admin/watch",
+    kind: "link",
+    groupId: "",
+    builtIn: true,
+  },
+  {
     id: "door-mailbox",
     number: "우",
     title: "손님 의견",
@@ -246,6 +259,13 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     title: "공개 영상실",
     intro: "유튜브에 공개한 뒤의 원본과 제목을 모아 두는 방이에요.",
     empty: "아직 넣어 둔 공개 영상이 없어요.",
+  },
+  watch: {
+    eyebrow: "관리자실 · 9번 칸",
+    title: "영상보기",
+    intro:
+      "거실 「영상보기」에 보여줄 영상만 모아 두는 방이에요. 다른 방 영상은 여기로 안 와요.",
+    empty: "아직 넣어 둔 영상이 없어요. 넣으면 거실 영상보기에 나와요.",
   },
   mailbox: {
     eyebrow: "관리자실 · 손님 의견",

@@ -12,7 +12,8 @@ import {
   type ReactNode,
 } from "react";
 import { GuardianGate } from "@/components/GuardianGate";
-import { PLACEHOLDER_VIDEO, getEpisodeById } from "@/lib/episodes";
+import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
+import { getWatchItemById } from "@/lib/watch-media";
 import {
   clearWatchProgress,
   readWatchProgress,
@@ -188,8 +189,21 @@ export function LivingRoomHome({
 
   useEffect(() => {
     const saved = readWatchProgress();
+    if (!saved) {
+      setProgress(null);
+      setPromptVisible(false);
+      return;
+    }
+    // 이어보기는 영상보기 방(9번)에 있는 것만. 예전 샘플·다른 방 기록은 무시.
+    const inWatchRoom = Boolean(getWatchItemById(saved.episodeId));
+    if (!inWatchRoom) {
+      clearWatchProgress();
+      setProgress(null);
+      setPromptVisible(false);
+      return;
+    }
     setProgress(saved);
-    setPromptVisible(Boolean(saved && saved.position >= 1));
+    setPromptVisible(saved.position >= 1);
   }, []);
 
   useEffect(() => {
@@ -261,11 +275,7 @@ export function LivingRoomHome({
     clearWatchProgress();
     setProgress(null);
     setPromptVisible(false);
-    if (firstWatchHref) {
-      router.push(firstWatchHref);
-      return;
-    }
-    router.push("/episodes");
+    router.push(firstWatchHref || "/episodes");
   };
 
   const togglePlay = () => {
@@ -321,10 +331,8 @@ export function LivingRoomHome({
   };
 
   const showPosterOnly = reduceMotion || !playing;
-  const episode = progress ? getEpisodeById(progress.episodeId) : undefined;
-  const resumeLabel = episode
-    ? `${episode.number}편 · ${progress?.track === "en" ? "영어" : "한국어"}`
-    : null;
+  const watchItem = progress ? getWatchItemById(progress.episodeId) : undefined;
+  const resumeLabel = watchItem ? watchItem.title : null;
 
   return (
     <div className="living-root">

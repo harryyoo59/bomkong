@@ -1,19 +1,14 @@
-import { EpisodeList } from "@/components/EpisodeList";
 import { SiteShell } from "@/components/SiteShell";
-import { getEpisodes } from "@/lib/episodes";
+import { WatchLobbyList } from "@/components/WatchLobbyList";
 
 export default function EpisodesPage() {
-  const episodes = getEpisodes();
-
   return (
-    <SiteShell title="편 목록">
+    <SiteShell title="영상보기">
       <section className="panel">
-        <h1 className="section-title">편 목록</h1>
-        <p className="muted">
-          한·영 짝이 보이면 같이 볼 수 있어요. 영어가 없으면 「영어 준비 중」.
-        </p>
+        <h1 className="section-title">영상보기</h1>
+        <p className="muted">사장님이 영상보기 방에 넣어 둔 영상만 나와요.</p>
       </section>
-      <EpisodeList episodes={episodes} />
+      <WatchLobbyList />
     </SiteShell>
   );
 }
