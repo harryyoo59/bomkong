@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import {
   deleteMediaPreview,
   saveMediaPreview,
@@ -24,6 +25,9 @@ export function PublicVideoRoom() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     const store = readPublicMediaStore();
@@ -67,14 +71,21 @@ export function PublicVideoRoom() {
       addedAt: new Date().toISOString(),
       youtubeStatus: "public",
     };
+    let previewOk = true;
     try {
       await saveMediaPreview(item.id, pendingFile, "video");
     } catch {
-      setMessage("미리보기를 저장하지 못했어요. 목록에는 이름만 넣을게요.");
+      previewOk = false;
     }
     persist([item, ...items]);
+    setPreviewTicks((prev) => ({
+      ...prev,
+      [item.id]: (prev[item.id] ?? 0) + 1,
+    }));
     setMessage(
-      `「${item.title}」을(를) 공개 영상실에 넣었어요. 원본과 제목을 기억해 둘게요.`,
+      previewOk
+        ? `「${item.title}」을(를) 공개 영상실에 넣었어요. 옆에 미리보기가 보여요.`
+        : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
     );
     setTitle("");
     setYoutubeUrl("");
@@ -100,8 +111,9 @@ export function PublicVideoRoom() {
     <div className="admin-wrap">
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          유튜브에 공개한 뒤의 원본 파일과 제목을 모아 두는 방이에요. 파일은
-          이름만 이 기기에 기억해요. 인터넷 저장소는 아직 없어요.
+          유튜브에 공개한 뒤의 원본 파일과 제목을 모아 두는 방이에요. 파일을
+          고르면 옆에 작은 미리보기가 이 기기에만 저장돼요. 예전에 이름만 넣은
+          항목은 「미리보기 파일 넣기」로 다시 넣어 주세요.
         </p>
 
         <label>
@@ -169,6 +181,7 @@ export function PublicVideoRoom() {
                     itemId={item.id}
                     kindHint="video"
                     label={item.title}
+                    refreshToken={previewTicks[item.id] ?? 0}
                   />
                   <div>
                     <strong>{item.title}</strong>
@@ -186,6 +199,18 @@ export function PublicVideoRoom() {
                         timeStyle: "short",
                       })}
                     </p>
+                    <AdminPreviewAttach
+                      itemId={item.id}
+                      kindHint="video"
+                      accept="video/*"
+                      onMessage={setMessage}
+                      onAttached={() =>
+                        setPreviewTicks((prev) => ({
+                          ...prev,
+                          [item.id]: (prev[item.id] ?? 0) + 1,
+                        }))
+                      }
+                    />
                   </div>
                 </div>
                 <div className="vault-action-row">

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import { moveMediaPreview } from "@/lib/media-preview-store";
 import {
   kindLabel,
@@ -20,6 +21,9 @@ export function CookieDoneRoom() {
   const [sourceId, setSourceId] = useState("");
   const [videoTitle, setVideoTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
+    {},
+  );
 
   function reload() {
     const store = readSourceMediaStore();
@@ -130,8 +134,8 @@ export function CookieDoneRoom() {
       <section>
         <h2 className="section-title">쿠키에 쓴 자료</h2>
         <p className="muted tiny">
-          이 기기에만 기억해요. 새로고침해도 남아 있어요. 서버 저장은 아직
-          없어요.
+          이 기기에만 기억해요. 새로고침해도 남아 있어요. 「미리보기 없음」이면
+          아래에서 파일을 다시 넣어 주세요.
         </p>
         {cookies.length === 0 ? (
           <AdminEmptyText roomKey="cookie" />
@@ -144,6 +148,7 @@ export function CookieDoneRoom() {
                     itemId={item.id}
                     kindHint={item.kind}
                     label={item.videoTitle}
+                    refreshToken={previewTicks[item.id] ?? 0}
                   />
                   <div>
                     <strong>
@@ -159,6 +164,20 @@ export function CookieDoneRoom() {
                         timeStyle: "short",
                       })}
                     </p>
+                    <AdminPreviewAttach
+                      itemId={item.id}
+                      kindHint={item.kind}
+                      accept={
+                        item.kind === "photo" ? "image/*" : "image/*,video/*"
+                      }
+                      onMessage={setMessage}
+                      onAttached={() =>
+                        setPreviewTicks((prev) => ({
+                          ...prev,
+                          [item.id]: (prev[item.id] ?? 0) + 1,
+                        }))
+                      }
+                    />
                   </div>
                 </div>
                 <span className="pair-chip pair-ok">쿠키 사용 완료</span>

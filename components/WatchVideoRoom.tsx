@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import {
   deleteMediaPreview,
   saveMediaPreview,
@@ -26,6 +27,9 @@ export function WatchVideoRoom() {
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
   const [editUrls, setEditUrls] = useState<Record<string, string>>({});
+  const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     const store = readWatchMediaStore();
@@ -77,18 +81,27 @@ export function WatchVideoRoom() {
       note: note.trim(),
       addedAt: new Date().toISOString(),
     };
+    let previewOk = true;
     if (pendingFile) {
       try {
         await saveMediaPreview(item.id, pendingFile, "video");
       } catch {
-        setMessage(
-          "미리보기를 저장하지 못했어요. 유튜브 주소와 제목은 넣었어요.",
-        );
+        previewOk = false;
       }
     }
     persist([item, ...items]);
+    if (pendingFile) {
+      setPreviewTicks((prev) => ({
+        ...prev,
+        [item.id]: (prev[item.id] ?? 0) + 1,
+      }));
+    }
     setMessage(
-      `「${item.title}」을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요.`,
+      pendingFile
+        ? previewOk
+          ? `「${item.title}」을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요. 옆에 관리용 미리보기도 있어요.`
+          : `유튜브 주소와 제목은 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`
+        : `「${item.title}」을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요.`,
     );
     setTitle("");
     setYoutubeUrl("");
@@ -207,6 +220,7 @@ export function WatchVideoRoom() {
                       itemId={item.id}
                       kindHint="video"
                       label={item.title}
+                      refreshToken={previewTicks[item.id] ?? 0}
                     />
                     <div>
                       <strong>{item.title}</strong>
@@ -230,6 +244,18 @@ export function WatchVideoRoom() {
                           timeStyle: "short",
                         })}
                       </p>
+                      <AdminPreviewAttach
+                        itemId={item.id}
+                        kindHint="video"
+                        accept="video/*"
+                        onMessage={setMessage}
+                        onAttached={() =>
+                          setPreviewTicks((prev) => ({
+                            ...prev,
+                            [item.id]: (prev[item.id] ?? 0) + 1,
+                          }))
+                        }
+                      />
                       <label className="admin-inline-youtube">
                         유튜브 주소
                         <input

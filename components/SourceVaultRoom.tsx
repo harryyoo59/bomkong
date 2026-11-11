@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import {
   moveMediaPreview,
   saveMediaPreview,
@@ -28,6 +29,9 @@ export function SourceVaultRoom() {
   const [moveId, setMoveId] = useState<string | null>(null);
   const [videoTitle, setVideoTitle] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     const store = readSourceMediaStore();
@@ -67,14 +71,21 @@ export function SourceVaultRoom() {
       note: note.trim(),
       addedAt: new Date().toISOString(),
     };
+    let previewOk = true;
     try {
       await saveMediaPreview(item.id, pendingFile, kind);
     } catch {
-      setMessage("미리보기를 저장하지 못했어요. 목록에는 이름만 넣을게요.");
+      previewOk = false;
     }
     persistSources([item, ...items]);
+    setPreviewTicks((prev) => ({
+      ...prev,
+      [item.id]: (prev[item.id] ?? 0) + 1,
+    }));
     setMessage(
-      `${kindLabel(kind)} 「${item.name}」을(를) 소스 보관실에 넣었어요.`,
+      previewOk
+        ? `${kindLabel(kind)} 「${item.name}」을(를) 소스 보관실에 넣었어요. 옆에 미리보기가 보여요.`
+        : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
     );
     setNote("");
     setPendingFile(null);
@@ -138,8 +149,9 @@ export function SourceVaultRoom() {
     <div className="admin-wrap">
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          나중에 쿠키 영상에 쓸 사진·동영상을 모아 두는 방이에요. 파일은
-          이름만 이 기기에 기억해요. 인터넷 저장소는 아직 없어요.
+          나중에 쿠키 영상에 쓸 사진·동영상을 모아 두는 방이에요. 파일을 고르면
+          옆에 작은 미리보기가 이 기기 브라우저에만 저장돼요. 예전에 이름만
+          넣은 항목은 「미리보기 파일 넣기」로 다시 넣어 주세요.
         </p>
 
         <label>
@@ -185,7 +197,8 @@ export function SourceVaultRoom() {
         <h2 className="section-title">보관 중인 소스</h2>
         <p className="muted tiny">
           쿠키 영상에 쓴 뒤에는 「쿠키완료실로 옮기기」를 눌러 주세요. 같은
-          자료를 다시 쓰지 않게 막아 줘요.
+          자료를 다시 쓰지 않게 막아 줘요. 「미리보기 없음」이면 그 줄에서
+          파일을 다시 넣으면 그림이 생겨요.
         </p>
         {items.length === 0 ? (
           <AdminEmptyText roomKey="source" />
@@ -198,6 +211,7 @@ export function SourceVaultRoom() {
                     itemId={item.id}
                     kindHint={item.kind}
                     label={`${kindLabel(item.kind)} · ${item.name}`}
+                    refreshToken={previewTicks[item.id] ?? 0}
                   />
                   <div>
                     <strong>
@@ -213,6 +227,20 @@ export function SourceVaultRoom() {
                         timeStyle: "short",
                       })}
                     </p>
+                    <AdminPreviewAttach
+                      itemId={item.id}
+                      kindHint={item.kind}
+                      accept={
+                        item.kind === "photo" ? "image/*" : "image/*,video/*"
+                      }
+                      onMessage={setMessage}
+                      onAttached={() =>
+                        setPreviewTicks((prev) => ({
+                          ...prev,
+                          [item.id]: (prev[item.id] ?? 0) + 1,
+                        }))
+                      }
+                    />
                   </div>
                 </div>
 
