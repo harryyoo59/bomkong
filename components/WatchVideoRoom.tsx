@@ -10,6 +10,7 @@ import {
 import {
   makeWatchId,
   readWatchMediaStore,
+  resolveYoutubeWatchUrl,
   writeWatchMediaStore,
   type WatchItem,
 } from "@/lib/watch-media";
@@ -18,21 +19,29 @@ export function WatchVideoRoom() {
   const [items, setItems] = useState<WatchItem[]>([]);
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [note, setNote] = useState("");
   const [fileLabel, setFileLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const [editUrls, setEditUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const store = readWatchMediaStore();
     setItems(store.items);
+    setEditUrls(
+      Object.fromEntries(store.items.map((it) => [it.id, it.youtubeUrl])),
+    );
     setReady(true);
   }, []);
 
   function persist(next: WatchItem[]) {
     writeWatchMediaStore({ items: next });
     setItems(next);
+    setEditUrls(
+      Object.fromEntries(next.map((it) => [it.id, it.youtubeUrl])),
+    );
   }
 
   function onPickFile(fileList: FileList | null) {
@@ -48,36 +57,65 @@ export function WatchVideoRoom() {
 
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!pendingFile) {
-      setMessage("아이들 보여줄 동영상 파일을 먼저 골라 주세요.");
-      return;
-    }
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setMessage("영상 제목을 적어 주세요.");
       return;
     }
+    const resolved = resolveYoutubeWatchUrl(youtubeUrl);
+    if (!resolved) {
+      setMessage(
+        "유튜브 주소를 붙여 넣어 주세요. 주소가 없거나 잘못된 것 같아요.",
+      );
+      return;
+    }
     const item: WatchItem = {
       id: makeWatchId(),
-      name: pendingFile.name,
+      name: pendingFile?.name ?? "",
       title: trimmedTitle,
+      youtubeUrl: youtubeUrl.trim(),
       note: note.trim(),
       addedAt: new Date().toISOString(),
     };
-    try {
-      await saveMediaPreview(item.id, pendingFile, "video");
-    } catch {
-      setMessage("미리보기를 저장하지 못했어요. 목록에는 이름만 넣을게요.");
+    if (pendingFile) {
+      try {
+        await saveMediaPreview(item.id, pendingFile, "video");
+      } catch {
+        setMessage(
+          "미리보기를 저장하지 못했어요. 유튜브 주소와 제목은 넣었어요.",
+        );
+      }
     }
     persist([item, ...items]);
     setMessage(
-      `「${item.title}」을(를) 영상보기 방에 넣었어요. 거실 영상보기에서만 보여요.`,
+      `「${item.title}」을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요.`,
     );
     setTitle("");
+    setYoutubeUrl("");
     setNote("");
     setPendingFile(null);
     setFileLabel("");
     setFormKey((k) => k + 1);
+  }
+
+  function onSaveYoutube(id: string) {
+    const target = items.find((it) => it.id === id);
+    if (!target) return;
+    const raw = (editUrls[id] ?? "").trim();
+    if (!raw) {
+      setMessage("유튜브 주소를 적어 주세요.");
+      return;
+    }
+    if (!resolveYoutubeWatchUrl(raw)) {
+      setMessage("유튜브 주소가 잘못된 것 같아요. 다시 붙여 넣어 주세요.");
+      return;
+    }
+    persist(
+      items.map((it) =>
+        it.id === id ? { ...it, youtubeUrl: raw } : it,
+      ),
+    );
+    setMessage(`「${target.title}」 유튜브 주소를 저장했어요.`);
   }
 
   async function onRemove(id: string) {
@@ -97,20 +135,18 @@ export function WatchVideoRoom() {
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
           거실에서 아이들이 「영상보기」를 누르면 여기 넣은 영상만 나와요.
-          공개·미공개·소스·쿠키 방과는 섞이지 않아요. 파일은 이름만 이 기기에
-          기억해요.
+          누르면 유튜브로 가서 조회수가 올라가요. 파일은 관리자 미리보기용이에요.
         </p>
 
         <label>
-          동영상 고르기
+          유튜브 주소 (또는 영상 아이디)
           <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => onPickFile(e.target.files)}
+            value={youtubeUrl}
+            onChange={(e) => setYoutubeUrl(e.target.value)}
+            placeholder="예: https://youtu.be/… 또는 영상 아이디"
+            inputMode="url"
+            required
           />
-          <span className="file-note">
-            {fileLabel ? `선택: ${fileLabel}` : "아직 안 고름"}
-          </span>
         </label>
 
         <label>
@@ -121,6 +157,20 @@ export function WatchVideoRoom() {
             placeholder="예: 공원에서 공 놀이"
             required
           />
+        </label>
+
+        <label>
+          동영상 미리보기 (선택 · 관리용)
+          <input
+            type="file"
+            accept="video/*"
+            onChange={(e) => onPickFile(e.target.files)}
+          />
+          <span className="file-note">
+            {fileLabel
+              ? `선택: ${fileLabel}`
+              : "없어도 돼요. 제목·유튜브만으로도 넣어요."}
+          </span>
         </label>
 
         <label>
@@ -148,41 +198,74 @@ export function WatchVideoRoom() {
           <AdminEmptyText roomKey="watch" />
         ) : (
           <ul className="admin-ep-list">
-            {items.map((item) => (
-              <li key={item.id} className="admin-ep-item">
-                <div className="admin-ep-main">
-                  <AdminMediaPreview
-                    itemId={item.id}
-                    kindHint="video"
-                    label={item.title}
-                  />
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p className="tiny muted">파일 · {item.name}</p>
-                    {item.note ? (
-                      <p className="tiny muted">{item.note}</p>
-                    ) : null}
-                    <p className="tiny muted">
-                      넣은 날{" "}
-                      {new Date(item.addedAt).toLocaleString("ko-KR", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </p>
+            {items.map((item) => {
+              const resolved = resolveYoutubeWatchUrl(item.youtubeUrl);
+              return (
+                <li key={item.id} className="admin-ep-item">
+                  <div className="admin-ep-main">
+                    <AdminMediaPreview
+                      itemId={item.id}
+                      kindHint="video"
+                      label={item.title}
+                    />
+                    <div>
+                      <strong>{item.title}</strong>
+                      {item.name ? (
+                        <p className="tiny muted">파일 · {item.name}</p>
+                      ) : (
+                        <p className="tiny muted">미리보기 파일 없음</p>
+                      )}
+                      {resolved ? (
+                        <p className="tiny muted">유튜브 · {resolved}</p>
+                      ) : (
+                        <p className="tiny muted">유튜브 주소 없음</p>
+                      )}
+                      {item.note ? (
+                        <p className="tiny muted">{item.note}</p>
+                      ) : null}
+                      <p className="tiny muted">
+                        넣은 날{" "}
+                        {new Date(item.addedAt).toLocaleString("ko-KR", {
+                          dateStyle: "medium",
+                          timeStyle: "short",
+                        })}
+                      </p>
+                      <label className="admin-inline-youtube">
+                        유튜브 주소
+                        <input
+                          value={editUrls[item.id] ?? ""}
+                          onChange={(e) =>
+                            setEditUrls((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="유튜브 주소 붙여 넣기"
+                          inputMode="url"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-soft"
+                        onClick={() => onSaveYoutube(item.id)}
+                      >
+                        유튜브 주소 저장
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="vault-action-row">
-                  <span className="pair-chip pair-ok">거실 영상보기</span>
-                  <button
-                    type="button"
-                    className="btn btn-soft"
-                    onClick={() => onRemove(item.id)}
-                  >
-                    목록에서 빼기
-                  </button>
-                </div>
-              </li>
-            ))}
+                  <div className="vault-action-row">
+                    <span className="pair-chip pair-ok">거실 영상보기</span>
+                    <button
+                      type="button"
+                      className="btn btn-soft"
+                      onClick={() => onRemove(item.id)}
+                    >
+                      목록에서 빼기
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

@@ -1,9 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   readWatchMediaStore,
+  resolveYoutubeWatchUrl,
   type WatchItem,
 } from "@/lib/watch-media";
 
@@ -34,26 +34,46 @@ export function WatchLobbyList() {
 
   return (
     <ul className="ep-list">
-      {items.map((item, index) => (
-        <li key={item.id} className="ep-row">
-          <div className="ep-meta">
-            <div className="ep-head">
-              <span className="ep-num">{index + 1}번</span>
-              <span className="badge badge-free">영상보기</span>
+      {items.map((item, index) => {
+        const youtubeHref = resolveYoutubeWatchUrl(item.youtubeUrl);
+        return (
+          <li key={item.id} className="ep-row">
+            <div className="ep-meta">
+              <div className="ep-head">
+                <span className="ep-num">{index + 1}번</span>
+                <span className="badge badge-free">영상보기</span>
+              </div>
+              <strong>{item.title}</strong>
+              {item.note ? <p className="muted tiny">{item.note}</p> : null}
+              {!youtubeHref ? (
+                <p className="muted tiny" role="status">
+                  유튜브 주소 없음
+                </p>
+              ) : null}
             </div>
-            <strong>{item.title}</strong>
-            {item.note ? <p className="muted tiny">{item.note}</p> : null}
-          </div>
-          <div className="ep-actions">
-            <Link
-              className="btn btn-primary"
-              href={`/watch/${encodeURIComponent(item.id)}`}
-            >
-              보기
-            </Link>
-          </div>
-        </li>
-      ))}
+            <div className="ep-actions">
+              {youtubeHref ? (
+                <a
+                  className="btn btn-primary"
+                  href={youtubeHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  유튜브에서 보기
+                </a>
+              ) : (
+                <span
+                  className="btn btn-soft is-disabled"
+                  aria-disabled="true"
+                  title="유튜브 주소가 아직 없어요"
+                >
+                  유튜브 주소 없음
+                </span>
+              )}
+            </div>
+          </li>
+        );
+      })}
     </ul>
   );
 }
