@@ -366,6 +366,30 @@ span.btn.is-disabled {
   font-size: 0.85rem;
 }
 
+.admin-preview-attach {
+  display: inline-flex;
+  align-items: center;
+  margin: 8px 0 4px;
+}
+
+.admin-preview-attach-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.admin-preview-attach-label {
+  font-size: 0.78rem;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

@@ -11,19 +11,32 @@ type Props = {
   /** 목록에 적힌 종류가 있으면 전달 (없어도 저장본으로 판단) */
   kindHint?: PreviewKind;
   label?: string;
+  /** 미리보기를 다시 넣었을 때 숫자만 올려 다시 읽기 */
+  refreshToken?: number;
 };
 
 type PreviewState =
   | { status: "loading" }
   | { status: "missing" }
-  | { status: "ready"; url: string; kind: PreviewKind };
+  | {
+      status: "ready";
+      mediaUrl: string;
+      thumbUrl: string | null;
+      kind: PreviewKind;
+    };
 
-export function AdminMediaPreview({ itemId, kindHint, label }: Props) {
+export function AdminMediaPreview({
+  itemId,
+  kindHint,
+  label,
+  refreshToken = 0,
+}: Props) {
   const dialogId = useId();
   const [state, setState] = useState<PreviewState>({ status: "loading" });
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const urlRef = useRef<string | null>(null);
+  const mediaUrlRef = useRef<string | null>(null);
+  const thumbUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -32,19 +45,31 @@ export function AdminMediaPreview({ itemId, kindHint, label }: Props) {
       setState({ status: "loading" });
       const record = await getMediaPreview(itemId);
       if (cancelled) return;
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = null;
+      if (mediaUrlRef.current) {
+        URL.revokeObjectURL(mediaUrlRef.current);
+        mediaUrlRef.current = null;
+      }
+      if (thumbUrlRef.current) {
+        URL.revokeObjectURL(thumbUrlRef.current);
+        thumbUrlRef.current = null;
       }
       if (!record) {
         setState({ status: "missing" });
         return;
       }
-      const url = URL.createObjectURL(record.blob);
-      urlRef.current = url;
+      const mediaUrl = URL.createObjectURL(record.blob);
+      mediaUrlRef.current = mediaUrl;
+      let thumbUrl: string | null = null;
+      if (record.thumbBlob) {
+        thumbUrl = URL.createObjectURL(record.thumbBlob);
+        thumbUrlRef.current = thumbUrl;
+      } else if (record.kind === "photo") {
+        thumbUrl = mediaUrl;
+      }
       setState({
         status: "ready",
-        url,
+        mediaUrl,
+        thumbUrl,
         kind: record.kind || kindHint || "video",
       });
     }
@@ -53,12 +78,16 @@ export function AdminMediaPreview({ itemId, kindHint, label }: Props) {
 
     return () => {
       cancelled = true;
-      if (urlRef.current) {
-        URL.revokeObjectURL(urlRef.current);
-        urlRef.current = null;
+      if (mediaUrlRef.current) {
+        URL.revokeObjectURL(mediaUrlRef.current);
+        mediaUrlRef.current = null;
+      }
+      if (thumbUrlRef.current && thumbUrlRef.current !== mediaUrlRef.current) {
+        URL.revokeObjectURL(thumbUrlRef.current);
+        thumbUrlRef.current = null;
       }
     };
-  }, [itemId, kindHint]);
+  }, [itemId, kindHint, refreshToken]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -84,14 +113,19 @@ export function AdminMediaPreview({ itemId, kindHint, label }: Props) {
     return (
       <div
         className="admin-media-preview admin-media-preview-missing"
-        title="미리보기 없음"
+        title="미리보기 없음 · 예전에 이름만 넣었거나, 아직 파일을 안 넣은 항목이에요"
       >
-        <span className="admin-media-preview-ph">미리보기 없음</span>
+        <span className="admin-media-preview-ph">
+          미리보기 없음
+          <br />
+          파일 다시 넣기
+        </span>
       </div>
     );
   }
 
-  const { url, kind } = state;
+  const { mediaUrl, thumbUrl, kind } = state;
+  const listSrc = thumbUrl || mediaUrl;
 
   return (
     <>
@@ -103,13 +137,13 @@ export function AdminMediaPreview({ itemId, kindHint, label }: Props) {
         aria-controls={dialogId}
         aria-label={`${title} 크게 보기`}
       >
-        {kind === "photo" ? (
+        {kind === "photo" || thumbUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={url} alt="" className="admin-media-preview-media" />
+          <img src={listSrc} alt="" className="admin-media-preview-media" />
         ) : (
           <video
             className="admin-media-preview-media"
-            src={url}
+            src={`${mediaUrl}#t=0.2`}
             muted
             playsInline
             preload="metadata"
@@ -147,14 +181,14 @@ export function AdminMediaPreview({ itemId, kindHint, label }: Props) {
           {kind === "photo" ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={url}
+              src={mediaUrl}
               alt={title}
               className="admin-media-preview-dialog-media"
             />
           ) : (
             <video
               className="admin-media-preview-dialog-media"
-              src={url}
+              src={mediaUrl}
               muted
               playsInline
               controls
