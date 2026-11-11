@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
+import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import { moveMediaPreview } from "@/lib/media-preview-store";
 import {
   kindLabel,
   makeId,
@@ -30,7 +32,7 @@ export function CookieDoneRoom() {
     setReady(true);
   }, []);
 
-  function onMove(e: React.FormEvent) {
+  async function onMove(e: React.FormEvent) {
     e.preventDefault();
     const title = videoTitle.trim();
     if (!sourceId) {
@@ -48,10 +50,11 @@ export function CookieDoneRoom() {
       reload();
       return;
     }
+    const cookieId = makeId("ck");
     const nextSources = store.sources.filter((it) => it.id !== sourceId);
     const nextCookies = [
       {
-        id: makeId("ck"),
+        id: cookieId,
         kind: target.kind,
         name: target.name,
         videoTitle: title,
@@ -60,6 +63,7 @@ export function CookieDoneRoom() {
       },
       ...store.cookies,
     ];
+    await moveMediaPreview(target.id, cookieId);
     writeSourceMediaStore({ sources: nextSources, cookies: nextCookies });
     setCookies(nextCookies);
     setSources(nextSources);
@@ -135,20 +139,27 @@ export function CookieDoneRoom() {
           <ul className="admin-ep-list">
             {cookies.map((item) => (
               <li key={item.id} className="admin-ep-item">
-                <div>
-                  <strong>
-                    {kindLabel(item.kind)} · {item.name}
-                  </strong>
-                  <p className="vault-title-line">
-                    영상 제목 · {item.videoTitle}
-                  </p>
-                  <p className="tiny muted">
-                    옮긴 날{" "}
-                    {new Date(item.movedAt).toLocaleString("ko-KR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
+                <div className="admin-ep-main">
+                  <AdminMediaPreview
+                    itemId={item.id}
+                    kindHint={item.kind}
+                    label={item.videoTitle}
+                  />
+                  <div>
+                    <strong>
+                      {kindLabel(item.kind)} · {item.name}
+                    </strong>
+                    <p className="vault-title-line">
+                      영상 제목 · {item.videoTitle}
+                    </p>
+                    <p className="tiny muted">
+                      옮긴 날{" "}
+                      {new Date(item.movedAt).toLocaleString("ko-KR", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
                 </div>
                 <span className="pair-chip pair-ok">쿠키 사용 완료</span>
               </li>

@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
+import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import {
+  deleteMediaPreview,
+  saveMediaPreview,
+} from "@/lib/media-preview-store";
 import {
   makePublicId,
   readPublicMediaStore,
@@ -16,9 +21,7 @@ export function PublicVideoRoom() {
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [note, setNote] = useState("");
   const [fileLabel, setFileLabel] = useState("");
-  const [pendingFile, setPendingFile] = useState<{ name: string } | null>(
-    null,
-  );
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
 
@@ -40,11 +43,11 @@ export function PublicVideoRoom() {
       return;
     }
     const file = fileList[0];
-    setPendingFile({ name: file.name });
+    setPendingFile(file);
     setFileLabel(file.name);
   }
 
-  function onAdd(e: React.FormEvent) {
+  async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!pendingFile) {
       setMessage("공개한 원본 동영상 파일을 먼저 골라 주세요.");
@@ -64,6 +67,11 @@ export function PublicVideoRoom() {
       addedAt: new Date().toISOString(),
       youtubeStatus: "public",
     };
+    try {
+      await saveMediaPreview(item.id, pendingFile, "video");
+    } catch {
+      setMessage("미리보기를 저장하지 못했어요. 목록에는 이름만 넣을게요.");
+    }
     persist([item, ...items]);
     setMessage(
       `「${item.title}」을(를) 공개 영상실에 넣었어요. 원본과 제목을 기억해 둘게요.`,
@@ -76,9 +84,10 @@ export function PublicVideoRoom() {
     setFormKey((k) => k + 1);
   }
 
-  function onRemove(id: string) {
+  async function onRemove(id: string) {
     const target = items.find((it) => it.id === id);
     if (!target) return;
+    await deleteMediaPreview(id);
     persist(items.filter((it) => it.id !== id));
     setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
   }
@@ -155,22 +164,29 @@ export function PublicVideoRoom() {
           <ul className="admin-ep-list">
             {items.map((item) => (
               <li key={item.id} className="admin-ep-item">
-                <div>
-                  <strong>{item.title}</strong>
-                  <p className="tiny muted">원본 · {item.name}</p>
-                  {item.youtubeUrl ? (
-                    <p className="tiny muted">주소 · {item.youtubeUrl}</p>
-                  ) : null}
-                  {item.note ? (
-                    <p className="tiny muted">{item.note}</p>
-                  ) : null}
-                  <p className="tiny muted">
-                    넣은 날{" "}
-                    {new Date(item.addedAt).toLocaleString("ko-KR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
+                <div className="admin-ep-main">
+                  <AdminMediaPreview
+                    itemId={item.id}
+                    kindHint="video"
+                    label={item.title}
+                  />
+                  <div>
+                    <strong>{item.title}</strong>
+                    <p className="tiny muted">원본 · {item.name}</p>
+                    {item.youtubeUrl ? (
+                      <p className="tiny muted">주소 · {item.youtubeUrl}</p>
+                    ) : null}
+                    {item.note ? (
+                      <p className="tiny muted">{item.note}</p>
+                    ) : null}
+                    <p className="tiny muted">
+                      넣은 날{" "}
+                      {new Date(item.addedAt).toLocaleString("ko-KR", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </p>
+                  </div>
                 </div>
                 <div className="vault-action-row">
                   <span className="pair-chip">공개함</span>
