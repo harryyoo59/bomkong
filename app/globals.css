@@ -431,6 +431,21 @@ span.btn.is-disabled {
   box-shadow: var(--shadow);
 }
 
+.ep-row.is-resume {
+  border-color: #e09a3a;
+  background: #fff8ee;
+  box-shadow: 0 0 0 2px rgba(224, 154, 58, 0.22);
+}
+
+.badge-resume {
+  background: #ffe2b8;
+  color: #8a4b00;
+}
+
+.watch-resume-hint {
+  margin: 0 0 10px;
+}
+
 .ep-head {
   display: flex;
   align-items: center;
