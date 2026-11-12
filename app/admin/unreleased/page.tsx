@@ -23,6 +23,9 @@ export default async function AdminUnreleasedPage() {
         <UnreleasedVideoRoom />
       </section>
       <div className="vault-nav-row">
+        <Link className="btn btn-soft" href="/admin/youtube-connect">
+          유튜브 숏츠 연결
+        </Link>
         <Link className="btn btn-soft" href="/admin/public">
           공개 영상실
         </Link>

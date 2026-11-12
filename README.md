@@ -28,6 +28,8 @@ npm run dev
 
 관리자 열쇠 설정: [docs/admin-auth-setup.md](docs/admin-auth-setup.md)
 
+유튜브 숏츠 올리기(미공개 영상실): [docs/youtube-shorts-setup.md](docs/youtube-shorts-setup.md)
+
 ## 빌드
 
 ```bash
