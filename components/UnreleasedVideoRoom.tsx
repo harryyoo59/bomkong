@@ -332,7 +332,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
           {lang === "ko" ? "영어 버전으로" : "한국어 버전으로"}
         </Link>
         <Link className="btn btn-soft" href="/admin/unreleased">
-          문 고르기로
+          미공개 영상실
         </Link>
       </div>
 

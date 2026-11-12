@@ -24,7 +24,7 @@ export default async function AdminUnreleasedEnPage() {
       </section>
       <div className="vault-nav-row">
         <Link className="btn btn-soft" href="/admin/unreleased">
-          미공개 문 고르기
+          미공개 영상실
         </Link>
         <Link className="btn btn-soft" href="/admin/unreleased/ko">
           한국어 버전으로
