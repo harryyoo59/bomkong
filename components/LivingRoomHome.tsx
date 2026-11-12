@@ -22,12 +22,10 @@ import {
   watchHref,
   type WatchProgress,
 } from "@/lib/watch-progress";
-import {
-  LIVING_ROOM_BEATS,
-  type LivingStoryTarget,
-} from "@/lib/living-room-story";
-
 export type LivingMenuId = "watch" | "subscribe" | "goods";
+
+/** 거실 영상 속 봄이·콩이 대사 (한 줄) */
+const LIVING_CAPTION = "콩아 리모컨 눌러봐 / 응 누나";
 
 const MENUS: {
   id: LivingMenuId;
@@ -164,19 +162,14 @@ export function LivingRoomHome({
   const router = useRouter();
   const roomVideoRef = useRef<HTMLVideoElement>(null);
   const tvVideoRef = useRef<HTMLVideoElement>(null);
-  // 말은 첫 「영상 재생」 누름 뒤에 이어짐 (폰이 자동 말을 막아서)
+  // 봄이·콩이 목소리는 영상 소리. 첫 「영상 재생」 뒤에 남 (폰이 자동 소리를 막아서)
   const [playing, setPlaying] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
   const [progress, setProgress] = useState<WatchProgress | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
-  const [beatIndex, setBeatIndex] = useState(0);
   const captionId = useId();
   const youtubeUrl = youtubeChannelUrl?.trim() || null;
-  const beat = LIVING_ROOM_BEATS[beatIndex] ?? LIVING_ROOM_BEATS[0];
-  const storyTarget: LivingStoryTarget = beat.target;
-  const beatCount = LIVING_ROOM_BEATS.length;
-  const speakTokenRef = useRef(0);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -212,13 +205,19 @@ export function LivingRoomHome({
   }, []);
 
   useEffect(() => {
+    // 어른 자동 목소리가 남아 있으면 끔
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
+
+  useEffect(() => {
     const v = roomVideoRef.current;
     if (!v) return;
-    // 짧은 미리보기 영상 소리는 같은 첫 문장만 반복해서,
-    // 안내는 말로 이어 주고 영상은 그림만 돌려요.
-    v.muted = true;
-    v.defaultMuted = true;
-    v.volume = 0;
+    // 예전에 넣었던 봄이·콩이 영상 목소리
+    v.muted = false;
+    v.defaultMuted = false;
+    v.volume = 1;
     if (playing && !reduceMotion) {
       void v.play().catch(() => setPlaying(false));
     } else {
@@ -247,80 +246,6 @@ export function LivingRoomHome({
       /* autoplay may fail — poster still ok */
     });
   }, [progress, reduceMotion]);
-
-  // 로비 안내 말: 한 줄씩 이어 읽고, 자막도 그에 맞춤
-  useEffect(() => {
-    const token = ++speakTokenRef.current;
-    const stopSpeech = () => {
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-
-    if (!playing || reduceMotion || guardianFor) {
-      stopSpeech();
-      return () => {
-        speakTokenRef.current += 1;
-        stopSpeech();
-      };
-    }
-
-    const canSpeak =
-      typeof window !== "undefined" && "speechSynthesis" in window;
-
-    const advance = () => {
-      if (speakTokenRef.current !== token) return;
-      setBeatIndex((i) => (i + 1) % beatCount);
-    };
-
-    if (!canSpeak) {
-      const timer = window.setTimeout(advance, 4200);
-      return () => {
-        speakTokenRef.current += 1;
-        window.clearTimeout(timer);
-        stopSpeech();
-      };
-    }
-
-    stopSpeech();
-    const utter = new SpeechSynthesisUtterance(beat.speak);
-    utter.lang = "ko-KR";
-    utter.rate = 1.02;
-    const voices = window.speechSynthesis.getVoices();
-    const ko = voices.find(
-      (v) => v.lang.startsWith("ko") && /female|여자|yuna|sora|google/i.test(v.name),
-    ) || voices.find((v) => v.lang.startsWith("ko"));
-    if (ko) utter.voice = ko;
-    utter.onend = () => {
-      if (speakTokenRef.current !== token) return;
-      // 짧은 숨 고른 뒤 다음 안내
-      window.setTimeout(advance, 280);
-    };
-    utter.onerror = () => {
-      if (speakTokenRef.current !== token) return;
-      window.setTimeout(advance, 800);
-    };
-    window.speechSynthesis.speak(utter);
-
-    return () => {
-      speakTokenRef.current += 1;
-      stopSpeech();
-    };
-  }, [playing, reduceMotion, guardianFor, beatIndex, beat.speak, beatCount]);
-
-  // 어떤 환경은 목소리가 늦게 뜸
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const bump = () => undefined;
-    window.speechSynthesis.addEventListener("voiceschanged", bump);
-    window.speechSynthesis.getVoices();
-    return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", bump);
-    };
-  }, []);
-
-  const storyClass = (target: LivingStoryTarget) =>
-    storyTarget === target ? " is-story-lit" : "";
 
   const goFrame = useCallback(
     (id: LivingMenuId) => {
@@ -360,12 +285,15 @@ export function LivingRoomHome({
 
   const togglePlay = () => {
     const v = roomVideoRef.current;
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
     if (reduceMotion) {
       setReduceMotion(false);
       if (v) {
-        v.muted = true;
-        v.defaultMuted = true;
-        v.volume = 0;
+        v.muted = false;
+        v.defaultMuted = false;
+        v.volume = 1;
         void v.play().catch(() => setPlaying(false));
       }
       setPlaying(true);
@@ -375,15 +303,12 @@ export function LivingRoomHome({
       const next = !p;
       if (v) {
         if (next) {
-          v.muted = true;
-          v.defaultMuted = true;
-          v.volume = 0;
+          v.muted = false;
+          v.defaultMuted = false;
+          v.volume = 1;
           void v.play().catch(() => setPlaying(false));
         } else {
           v.pause();
-          if (typeof window !== "undefined" && "speechSynthesis" in window) {
-            window.speechSynthesis.cancel();
-          }
         }
       }
       return next;
@@ -397,7 +322,7 @@ export function LivingRoomHome({
   return (
     <div className="living-root">
       <div
-        className={`living-stage${storyClass("room")}`}
+        className="living-stage"
         aria-labelledby={captionId}
       >
         <img
@@ -421,7 +346,7 @@ export function LivingRoomHome({
 
         <div className="living-ui" aria-label="거실 메뉴">
           <div
-            className={`hotspot hotspot-tv${storyClass("tv")}`}
+            className="hotspot hotspot-tv"
             tabIndex={0}
             role="region"
             aria-label="큰 티비 화면"
@@ -469,7 +394,7 @@ export function LivingRoomHome({
           </div>
 
           <div
-            className={`hotspot hotspot-frames${storyClass("frames")}`}
+            className="hotspot hotspot-frames"
             aria-label="벽 액자 바로가기"
           >
             {FRAME_MENUS.map((id) => {
@@ -491,7 +416,7 @@ export function LivingRoomHome({
 
           <Link
             href="/comments"
-            className={`hotspot hotspot-comment-desk${storyClass("comment")}`}
+            className="hotspot hotspot-comment-desk"
             aria-label="댓글쓰기 서랍장 · 의견 보내기 우편함"
             title="댓글쓰기 서랍장"
           >
@@ -501,7 +426,7 @@ export function LivingRoomHome({
           {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
           <a
             href={COMPANY_HOME}
-            className={`hotspot hotspot-sofa-cz${storyClass("sofa")}`}
+            className="hotspot hotspot-sofa-cz"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="참존 인터랙티브 회사 홈페이지 열기"
@@ -512,7 +437,7 @@ export function LivingRoomHome({
           {/* 문 전체 → 관리자실. 명패는 영상에 구움(웹 글씨 없음). */}
           <Link
             href="/admin/login"
-            className={`hotspot hotspot-door${storyClass("door")}`}
+            className="hotspot hotspot-door"
             aria-label="관리자실 입장"
             title="관리자실"
           >
@@ -522,8 +447,8 @@ export function LivingRoomHome({
       </div>
 
       <div className="living-chrome">
-        <p id={captionId} className="living-caption" aria-live="polite">
-          {beat.caption || "\u00a0"}
+        <p id={captionId} className="living-caption">
+          {LIVING_CAPTION}
         </p>
         <div className="living-controls">
           <button
@@ -538,7 +463,7 @@ export function LivingRoomHome({
       </div>
 
       <nav
-        className={`living-menu-grid${storyClass("menu")}`}
+        className="living-menu-grid"
         aria-label="봄이콩이 메뉴"
       >
         <button
