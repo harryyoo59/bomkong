@@ -284,17 +284,31 @@ export function LivingRoomHome({
     stopSpeech();
     const utter = new SpeechSynthesisUtterance(beat.speak);
     utter.lang = "ko-KR";
-    // 아이 말투에 가깝게: 조금 높고 빠르게
-    utter.pitch = 1.45;
-    utter.rate = 1.08;
     const voices = window.speechSynthesis.getVoices();
-    const ko =
-      voices.find(
-        (v) =>
-          v.lang.startsWith("ko") &&
-          /yuna|sora|female|여자|google.*한국어|korean/i.test(v.name),
-      ) || voices.find((v) => v.lang.startsWith("ko"));
-    if (ko) utter.voice = ko;
+    const isKongi = beat.speaker === "kongi";
+    // 봄이: 더 어린 6살 누나 / 콩이: 더 낮은 4살 동생
+    if (isKongi) {
+      utter.pitch = 1.15;
+      utter.rate = 0.98;
+      const kongiVoice =
+        voices.find(
+          (v) =>
+            v.lang.startsWith("ko") &&
+            /male|남자|inJoon|jinho|hyoung|boy/i.test(v.name),
+        ) ||
+        voices.find((v) => v.lang.startsWith("ko"));
+      if (kongiVoice) utter.voice = kongiVoice;
+    } else {
+      utter.pitch = 1.78;
+      utter.rate = 1.12;
+      const bomiVoice =
+        voices.find(
+          (v) =>
+            v.lang.startsWith("ko") &&
+            /yuna|sora|female|여자|google.*한국어|korean/i.test(v.name),
+        ) || voices.find((v) => v.lang.startsWith("ko"));
+      if (bomiVoice) utter.voice = bomiVoice;
+    }
     utter.onend = () => {
       if (speakTokenRef.current !== token) return;
       window.setTimeout(advance, 220);
@@ -309,7 +323,15 @@ export function LivingRoomHome({
       speakTokenRef.current += 1;
       stopSpeech();
     };
-  }, [playing, reduceMotion, guardianFor, beatIndex, beat.speak, beatCount]);
+  }, [
+    playing,
+    reduceMotion,
+    guardianFor,
+    beatIndex,
+    beat.speak,
+    beat.speaker,
+    beatCount,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
