@@ -396,6 +396,16 @@ export function LivingRoomHome({
     });
   };
 
+  const leaveSite = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    // 이 사이트에서 나감 (탭을 닫고, 안 되면 빈 화면으로)
+    window.open("", "_self");
+    window.close();
+    window.location.replace("about:blank");
+  };
+
   const showPosterOnly = reduceMotion || !playing;
   const watchItem = progress ? getWatchItemById(progress.episodeId) : undefined;
   const resumeLabel = watchItem ? watchItem.title : null;
@@ -549,6 +559,13 @@ export function LivingRoomHome({
             aria-pressed={playing && !reduceMotion}
           >
             {showPosterOnly ? "영상 재생" : "일시 정지"}
+          </button>
+          <button
+            type="button"
+            className="btn btn-soft living-ctrl living-ctrl-exit"
+            onClick={leaveSite}
+          >
+            나가기
           </button>
         </div>
       </div>

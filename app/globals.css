@@ -1689,7 +1689,7 @@ label.form-row textarea {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 8px 16px;
   padding: 0 4px;
 }
