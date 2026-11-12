@@ -1528,6 +1528,7 @@ label.form-row textarea {
 .hotspot-door:focus-visible,
 .hotspot-tv:focus-visible,
 .hotspot-comment-desk:focus-visible,
+.hotspot-mailbox:focus-visible,
 .hotspot-sofa-cz:focus-visible {
   outline: 2px solid var(--sky);
   outline-offset: 2px;
@@ -1603,6 +1604,32 @@ label.form-row textarea {
   z-index: 3;
   text-decoration: none;
   color: inherit;
+}
+
+/* 서랍장 앞 우편함 → 의견 보내기 */
+.hotspot-mailbox {
+  position: absolute;
+  left: 39.86%;
+  top: 59.38%;
+  width: 6.84%;
+  height: 20%;
+  display: block;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  z-index: 4;
+  text-decoration: none;
+  color: inherit;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hotspot-mailbox:hover {
+    background: rgba(255, 255, 255, 0.14);
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
+  }
 }
 
 .visually-hidden {
