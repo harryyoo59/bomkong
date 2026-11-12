@@ -212,9 +212,11 @@ export function LivingRoomHome({
   useEffect(() => {
     const v = roomVideoRef.current;
     if (!v) return;
-    v.muted = true;
-    v.defaultMuted = true;
-    v.volume = 0;
+    // 거실 배경 영상은 말·소리가 나게. (첫 자동 재생은 폰이 막을 수 있어,
+    // 막히면 「영상 재생」을 한 번 누르면 소리가 나요.)
+    v.muted = false;
+    v.defaultMuted = false;
+    v.volume = 1;
     if (playing && !reduceMotion) {
       void v.play().catch(() => setPlaying(false));
     } else {
@@ -290,12 +292,32 @@ export function LivingRoomHome({
   };
 
   const togglePlay = () => {
+    const v = roomVideoRef.current;
     if (reduceMotion) {
       setReduceMotion(false);
+      if (v) {
+        v.muted = false;
+        v.defaultMuted = false;
+        v.volume = 1;
+        void v.play().catch(() => setPlaying(false));
+      }
       setPlaying(true);
       return;
     }
-    setPlaying((p) => !p);
+    setPlaying((p) => {
+      const next = !p;
+      if (v) {
+        if (next) {
+          v.muted = false;
+          v.defaultMuted = false;
+          v.volume = 1;
+          void v.play().catch(() => setPlaying(false));
+        } else {
+          v.pause();
+        }
+      }
+      return next;
+    });
   };
 
   const openMailbox = () => {
@@ -361,7 +383,6 @@ export function LivingRoomHome({
           className={`living-video${showPosterOnly ? " is-hidden" : ""}`}
           src="/living-room/living-room-labeled-preview.mp4"
           poster="/living-room/living-room-labeled-frame.jpg"
-          muted
           playsInline
           loop
           preload="metadata"
