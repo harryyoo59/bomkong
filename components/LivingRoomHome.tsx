@@ -422,10 +422,33 @@ export function LivingRoomHome({
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
-    // 이 사이트에서 나감 (탭을 닫고, 안 되면 빈 화면으로)
-    window.open("", "_self");
-    window.close();
-    window.location.replace("about:blank");
+    // 핸드폰 바탕화면(홈)으로 나가기 — 흰 화면(about:blank)은 쓰지 않음
+    try {
+      window.close();
+    } catch {
+      /* 브라우저가 막을 수 있음 */
+    }
+
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    if (/Android/i.test(ua)) {
+      window.location.replace(
+        "intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.HOME;end",
+      );
+      return;
+    }
+
+    // 아이폰 등: 탭을 못 닫으면 이전 화면으로 (흰 화면 대신)
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
+    try {
+      window.open("", "_self");
+      window.close();
+    } catch {
+      /* ignore */
+    }
   };
 
   const showPosterOnly = reduceMotion || !playing;
