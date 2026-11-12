@@ -417,10 +417,20 @@ export function LivingRoomHome({
           <Link
             href="/comments"
             className="hotspot hotspot-comment-desk"
-            aria-label="댓글쓰기 서랍장 · 의견 보내기 우편함"
-            title="댓글쓰기 서랍장"
+            aria-label="댓글쓰기"
+            title="댓글쓰기"
           >
-            <span className="visually-hidden">댓글쓰기 서랍장</span>
+            <span className="visually-hidden">댓글쓰기</span>
+          </Link>
+
+          {/* 서랍장 앞 우편함 → 의견 보내기 */}
+          <Link
+            href="/comments#mailbox"
+            className="hotspot hotspot-mailbox"
+            aria-label="의견 보내기 우편함"
+            title="의견 보내기"
+          >
+            <span className="visually-hidden">의견 보내기</span>
           </Link>
 
           {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
