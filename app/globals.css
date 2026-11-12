@@ -2018,6 +2018,44 @@ label.form-row textarea {
   font-weight: 800;
 }
 
+.yt-status-box {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 247, 237, 0.9);
+  border: 1px solid rgba(255, 186, 120, 0.45);
+}
+
+.yt-status-box a {
+  color: var(--brand-deep);
+  font-weight: 700;
+}
+
+.admin-steps {
+  margin: 12px 0 16px;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--ink);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.admin-steps ul {
+  margin: 6px 0 0;
+  padding-left: 1.1rem;
+}
+
+.inline-code {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  font-size: 0.84em;
+  word-break: break-all;
+}
+
 /* 관리자실 · 진료실 칸 */
 .clinic-room {
   width: min(100%, 960px);
