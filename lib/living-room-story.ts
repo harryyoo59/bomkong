@@ -1,4 +1,4 @@
-/** 로비에서 봄이가 콩이에게 하나씩 알려 주는 이야기 */
+/** 로비 한 줄 안내 — 짧을 때만 자막, 길면 말만 */
 
 export type LivingStoryTarget =
   | "room"
@@ -9,105 +9,57 @@ export type LivingStoryTarget =
   | "door"
   | "menu";
 
-export type LivingStoryLine = {
-  speaker: "봄이" | "콩이";
-  text: string;
-};
-
-export type LivingStoryStep = {
+export type LivingStoryBeat = {
   id: string;
   target: LivingStoryTarget;
-  title: string;
-  lines: LivingStoryLine[];
+  /** 화면에 한 줄로 보여줄 말. 길면 비워 두고 소리만 */
+  caption: string;
+  /** 읽어 줄 말 (항상) */
+  speak: string;
 };
 
-export const LIVING_ROOM_STORY: LivingStoryStep[] = [
+/** 봄이가 콩이에게 거실을 알려 주는 짧은 순서 */
+export const LIVING_ROOM_BEATS: LivingStoryBeat[] = [
   {
     id: "hello",
     target: "room",
-    title: "우리 거실",
-    lines: [
-      { speaker: "봄이", text: "콩아, 여기가 우리 봄이콩이 거실이야." },
-      { speaker: "콩이", text: "와, 넓다 누나!" },
-    ],
+    caption: "콩아, 여기가 우리 거실이야",
+    speak: "콩아, 여기가 우리 봄이콩이 거실이야.",
   },
   {
     id: "tv",
     target: "tv",
-    title: "큰 티비",
-    lines: [
-      {
-        speaker: "봄이",
-        text: "왼쪽 큰 티비를 누르면 영상을 이어 볼 수 있어.",
-      },
-      { speaker: "콩이", text: "리모컨처럼 누르는 거지?" },
-      { speaker: "봄이", text: "응. 콩아, 리모컨 눌러 봐." },
-      { speaker: "콩이", text: "응 누나!" },
-    ],
+    caption: "콩아 리모컨 눌러봐 / 응 누나",
+    speak: "왼쪽 큰 티비를 누르면 영상을 볼 수 있어. 콩아, 리모컨 눌러 봐. 응 누나!",
   },
   {
     id: "frames",
     target: "frames",
-    title: "벽 액자",
-    lines: [
-      {
-        speaker: "봄이",
-        text: "벽에 걸린 액자는 바로가기야. 영상보기·구독·상품이 있어.",
-      },
-      { speaker: "콩이", text: "액자마다 다른 문이구나!" },
-    ],
+    caption: "벽 액자는 바로가기야",
+    speak: "벽에 걸린 액자는 영상보기, 구독, 상품 바로가기야.",
   },
   {
     id: "comment",
     target: "comment",
-    title: "댓글쓰기 서랍장",
-    lines: [
-      {
-        speaker: "봄이",
-        text: "저 서랍장은 댓글 쓰는 곳이야. 우편함도 그 안에 있어.",
-      },
-      {
-        speaker: "콩이",
-        text: "친구 댓글이랑, 관리자한테 보내는 의견이 같이 있는 거지?",
-      },
-      { speaker: "봄이", text: "맞아. 서랍장을 눌러 보면 둘 다 나와." },
-    ],
+    caption: "서랍장에서 댓글·의견",
+    speak: "댓글쓰기 서랍장에서는 댓글도 쓰고, 관리자에게 의견도 보낼 수 있어.",
   },
   {
     id: "sofa",
     target: "sofa",
-    title: "소파 로고",
-    lines: [
-      {
-        speaker: "봄이",
-        text: "소파에 있는 표시를 누르면 우리 회사 이야기로 갈 수 있어.",
-      },
-      { speaker: "콩이", text: "신기하다!" },
-    ],
+    caption: "소파 표시는 회사 홈",
+    speak: "소파에 있는 표시를 누르면 우리 회사 홈페이지로 가요.",
   },
   {
     id: "door",
     target: "door",
-    title: "관리자실 문",
-    lines: [
-      {
-        speaker: "봄이",
-        text: "저 문은 관리자실이야. 어른이 열쇠로만 들어갈 수 있어.",
-      },
-      { speaker: "콩이", text: "나는 거실에서 놀게!" },
-    ],
+    caption: "저 문은 관리자실",
+    speak: "저 문은 관리자실이야. 어른 열쇠로만 들어갈 수 있어.",
   },
   {
     id: "menu",
     target: "menu",
-    title: "아래 메뉴",
-    lines: [
-      {
-        speaker: "봄이",
-        text: "아래 큰 칸들도 같아. 영상보기, 구독, 상품, 댓글 쓰기…",
-      },
-      { speaker: "콩이", text: "하나씩 눌러 볼게 누나!" },
-      { speaker: "봄이", text: "좋아. 천천히 같이 보자." },
-    ],
+    caption: "아래 칸도 같은 메뉴야",
+    speak: "아래 큰 칸들도 같아. 영상보기, 구독, 상품, 댓글 쓰기가 있어요.",
   },
 ];

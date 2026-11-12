@@ -23,7 +23,7 @@ import {
   type WatchProgress,
 } from "@/lib/watch-progress";
 import {
-  LIVING_ROOM_STORY,
+  LIVING_ROOM_BEATS,
   type LivingStoryTarget,
 } from "@/lib/living-room-story";
 
@@ -164,19 +164,19 @@ export function LivingRoomHome({
   const router = useRouter();
   const roomVideoRef = useRef<HTMLVideoElement>(null);
   const tvVideoRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(true);
+  // 말은 첫 「영상 재생」 누름 뒤에 이어짐 (폰이 자동 말을 막아서)
+  const [playing, setPlaying] = useState(false);
   const [reduceMotion, setReduceMotion] = useState(false);
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
   const [progress, setProgress] = useState<WatchProgress | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
-  const [storyIndex, setStoryIndex] = useState(0);
-  const [storyPaused, setStoryPaused] = useState(false);
+  const [beatIndex, setBeatIndex] = useState(0);
   const captionId = useId();
-  const storyPanelId = useId();
   const youtubeUrl = youtubeChannelUrl?.trim() || null;
-  const storyStep = LIVING_ROOM_STORY[storyIndex] ?? LIVING_ROOM_STORY[0];
-  const storyTarget: LivingStoryTarget = storyStep.target;
-  const storyCount = LIVING_ROOM_STORY.length;
+  const beat = LIVING_ROOM_BEATS[beatIndex] ?? LIVING_ROOM_BEATS[0];
+  const storyTarget: LivingStoryTarget = beat.target;
+  const beatCount = LIVING_ROOM_BEATS.length;
+  const speakTokenRef = useRef(0);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -214,11 +214,11 @@ export function LivingRoomHome({
   useEffect(() => {
     const v = roomVideoRef.current;
     if (!v) return;
-    // 거실 배경 영상은 말·소리가 나게. (첫 자동 재생은 폰이 막을 수 있어,
-    // 막히면 「영상 재생」을 한 번 누르면 소리가 나요.)
-    v.muted = false;
-    v.defaultMuted = false;
-    v.volume = 1;
+    // 짧은 미리보기 영상 소리는 같은 첫 문장만 반복해서,
+    // 안내는 말로 이어 주고 영상은 그림만 돌려요.
+    v.muted = true;
+    v.defaultMuted = true;
+    v.volume = 0;
     if (playing && !reduceMotion) {
       void v.play().catch(() => setPlaying(false));
     } else {
@@ -248,21 +248,79 @@ export function LivingRoomHome({
     });
   }, [progress, reduceMotion]);
 
+  // 로비 안내 말: 한 줄씩 이어 읽고, 자막도 그에 맞춤
   useEffect(() => {
-    if (storyPaused || guardianFor || reduceMotion) return;
-    const timer = window.setTimeout(() => {
-      setStoryIndex((i) => (i + 1) % storyCount);
-    }, 5200);
-    return () => window.clearTimeout(timer);
-  }, [storyIndex, storyPaused, storyCount, guardianFor, reduceMotion]);
+    const token = ++speakTokenRef.current;
+    const stopSpeech = () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+
+    if (!playing || reduceMotion || guardianFor) {
+      stopSpeech();
+      return () => {
+        speakTokenRef.current += 1;
+        stopSpeech();
+      };
+    }
+
+    const canSpeak =
+      typeof window !== "undefined" && "speechSynthesis" in window;
+
+    const advance = () => {
+      if (speakTokenRef.current !== token) return;
+      setBeatIndex((i) => (i + 1) % beatCount);
+    };
+
+    if (!canSpeak) {
+      const timer = window.setTimeout(advance, 4200);
+      return () => {
+        speakTokenRef.current += 1;
+        window.clearTimeout(timer);
+        stopSpeech();
+      };
+    }
+
+    stopSpeech();
+    const utter = new SpeechSynthesisUtterance(beat.speak);
+    utter.lang = "ko-KR";
+    utter.rate = 1.02;
+    const voices = window.speechSynthesis.getVoices();
+    const ko = voices.find(
+      (v) => v.lang.startsWith("ko") && /female|여자|yuna|sora|google/i.test(v.name),
+    ) || voices.find((v) => v.lang.startsWith("ko"));
+    if (ko) utter.voice = ko;
+    utter.onend = () => {
+      if (speakTokenRef.current !== token) return;
+      // 짧은 숨 고른 뒤 다음 안내
+      window.setTimeout(advance, 280);
+    };
+    utter.onerror = () => {
+      if (speakTokenRef.current !== token) return;
+      window.setTimeout(advance, 800);
+    };
+    window.speechSynthesis.speak(utter);
+
+    return () => {
+      speakTokenRef.current += 1;
+      stopSpeech();
+    };
+  }, [playing, reduceMotion, guardianFor, beatIndex, beat.speak, beatCount]);
+
+  // 어떤 환경은 목소리가 늦게 뜸
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const bump = () => undefined;
+    window.speechSynthesis.addEventListener("voiceschanged", bump);
+    window.speechSynthesis.getVoices();
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", bump);
+    };
+  }, []);
 
   const storyClass = (target: LivingStoryTarget) =>
     storyTarget === target ? " is-story-lit" : "";
-
-  const goStory = (dir: -1 | 1) => {
-    setStoryPaused(true);
-    setStoryIndex((i) => (i + dir + storyCount) % storyCount);
-  };
 
   const goFrame = useCallback(
     (id: LivingMenuId) => {
@@ -305,9 +363,9 @@ export function LivingRoomHome({
     if (reduceMotion) {
       setReduceMotion(false);
       if (v) {
-        v.muted = false;
-        v.defaultMuted = false;
-        v.volume = 1;
+        v.muted = true;
+        v.defaultMuted = true;
+        v.volume = 0;
         void v.play().catch(() => setPlaying(false));
       }
       setPlaying(true);
@@ -317,12 +375,15 @@ export function LivingRoomHome({
       const next = !p;
       if (v) {
         if (next) {
-          v.muted = false;
-          v.defaultMuted = false;
-          v.volume = 1;
+          v.muted = true;
+          v.defaultMuted = true;
+          v.volume = 0;
           void v.play().catch(() => setPlaying(false));
         } else {
           v.pause();
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+          }
         }
       }
       return next;
@@ -335,11 +396,9 @@ export function LivingRoomHome({
 
   return (
     <div className="living-root">
-      <div className="living-hero">
       <div
         className={`living-stage${storyClass("room")}`}
         aria-labelledby={captionId}
-        aria-describedby={storyPanelId}
       >
         <img
           className={`living-poster${showPosterOnly ? " is-visible" : ""}`}
@@ -462,57 +521,9 @@ export function LivingRoomHome({
         </div>
       </div>
 
-      <aside
-        id={storyPanelId}
-        className="living-story"
-        aria-label="봄이가 콩이에게 알려 주는 이야기"
-      >
-        <p className="living-story-kicker">봄이 → 콩이</p>
-        <h2 className="living-story-title">{storyStep.title}</h2>
-        <ol className="living-story-lines">
-          {storyStep.lines.map((line, i) => (
-            <li
-              key={`${storyStep.id}-${i}`}
-              className={`living-story-line is-${line.speaker === "봄이" ? "bomi" : "kongi"}`}
-            >
-              <span className="living-story-who">{line.speaker}</span>
-              <span className="living-story-text">{line.text}</span>
-            </li>
-          ))}
-        </ol>
-        <div className="living-story-nav">
-          <button
-            type="button"
-            className="btn btn-soft living-ctrl"
-            onClick={() => goStory(-1)}
-          >
-            이전
-          </button>
-          <p className="living-story-page" aria-live="polite">
-            {storyIndex + 1} / {storyCount}
-          </p>
-          <button
-            type="button"
-            className="btn btn-soft living-ctrl"
-            onClick={() => goStory(1)}
-          >
-            다음
-          </button>
-          <button
-            type="button"
-            className="btn btn-soft living-ctrl"
-            onClick={() => setStoryPaused((p) => !p)}
-            aria-pressed={storyPaused}
-          >
-            {storyPaused ? "이어서" : "잠시 멈춤"}
-          </button>
-        </div>
-      </aside>
-      </div>
-
       <div className="living-chrome">
-        <p id={captionId} className="living-caption">
-          봄이가 콩이에게 「{storyStep.title}」를 알려 주는 중
+        <p id={captionId} className="living-caption" aria-live="polite">
+          {beat.caption || "\u00a0"}
         </p>
         <div className="living-controls">
           <button

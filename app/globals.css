@@ -1331,32 +1331,6 @@ label.form-row textarea {
   margin: 0 auto;
 }
 
-.living-hero {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-}
-
-@media (min-width: 860px) {
-  .living-hero {
-    flex-direction: row;
-    align-items: stretch;
-    gap: 14px;
-  }
-
-  .living-hero .living-stage {
-    flex: 1.35 1 0;
-    min-width: 0;
-  }
-
-  .living-story {
-    flex: 1 1 0;
-    min-width: 260px;
-    max-width: 360px;
-  }
-}
-
 .living-stage {
   position: relative;
   width: 100%;
@@ -1428,99 +1402,6 @@ label.form-row textarea {
 
 .living-ui .hotspot-frames.is-story-lit {
   border-radius: 10px;
-}
-
-.living-story {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 14px 14px 12px;
-  border-radius: 18px;
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.88), rgba(255, 246, 232, 0.92)),
-    radial-gradient(circle at 90% 0%, rgba(61, 184, 232, 0.18), transparent 55%);
-  border: 1px solid rgba(31, 42, 46, 0.08);
-}
-
-.living-story-kicker {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--brand-deep);
-}
-
-.living-story-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.28rem;
-  line-height: 1.25;
-  color: var(--ink);
-}
-
-.living-story-lines {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1 1 auto;
-}
-
-.living-story-line {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 8px 10px;
-  align-items: start;
-  padding: 8px 0;
-  border-top: 1px solid rgba(31, 42, 46, 0.06);
-}
-
-.living-story-line:first-child {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.living-story-who {
-  display: inline-block;
-  min-width: 2.4em;
-  font-family: var(--font-display);
-  font-size: 0.92rem;
-  font-weight: 700;
-}
-
-.living-story-line.is-bomi .living-story-who {
-  color: var(--brand-deep);
-}
-
-.living-story-line.is-kongi .living-story-who {
-  color: #1f7a9a;
-}
-
-.living-story-text {
-  margin: 0;
-  font-size: 0.95rem;
-  line-height: 1.45;
-  color: var(--ink);
-}
-
-.living-story-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.living-story-page {
-  margin: 0;
-  min-width: 3.2em;
-  text-align: center;
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: var(--muted);
 }
 
 .living-video,
@@ -1788,9 +1669,14 @@ label.form-row textarea {
 
 .living-caption {
   margin: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: 0.86rem;
   font-weight: 700;
   color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .living-controls {
