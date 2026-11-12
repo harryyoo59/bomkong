@@ -48,6 +48,8 @@ export const ROOM_KEYS = [
   "source",
   "cookie",
   "unreleased",
+  "unreleased-ko",
+  "unreleased-en",
   "public",
   "watch",
   "mailbox",
@@ -63,6 +65,8 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   source: "소스 보관실",
   cookie: "쿠키완료실",
   unreleased: "미공개 영상실",
+  "unreleased-ko": "미공개 영상실 · 한국어",
+  "unreleased-en": "미공개 영상실 · 영어",
   public: "공개 영상실",
   watch: "영상보기",
   mailbox: "손님 의견",
@@ -174,8 +178,8 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     id: "door-unreleased",
     number: "7",
     title: "미공개 영상실",
-    body: "만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 둬요.",
-    note: "유튜브 올리기 전",
+    body: "만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 둬요. 한국어·영어를 따로 열어요.",
+    note: "한국어 · 영어",
     href: "/admin/unreleased",
     kind: "link",
     groupId: "",
@@ -260,8 +264,22 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     eyebrow: "관리자실 · 7번 칸",
     title: "미공개 영상실",
     intro:
-      "만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.",
-    empty: "아직 넣어 둔 미공개 영상이 없어요.",
+      "한국어용·영어용 미공개 영상을 따로 모아 둬요. 아래 문 중 하나를 눌러 들어가세요.",
+    empty: "",
+  },
+  "unreleased-ko": {
+    eyebrow: "관리자실 · 7번 칸 · 한국어",
+    title: "미공개 영상실 · 한국어",
+    intro:
+      "한국어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.",
+    empty: "아직 넣어 둔 한국어 미공개 영상이 없어요.",
+  },
+  "unreleased-en": {
+    eyebrow: "관리자실 · 7번 칸 · 영어",
+    title: "미공개 영상실 · 영어",
+    intro:
+      "영어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.",
+    empty: "아직 넣어 둔 영어 미공개 영상이 없어요.",
   },
   public: {
     eyebrow: "관리자실 · 8번 칸",
@@ -325,25 +343,46 @@ function migrateBuiltInDoor(
   fallback?: ClinicDoor,
 ): ClinicDoor {
   if (!fallback || !door.builtIn) return door;
-  if (door.id !== "door-rules") return door;
-  if (door.href) return door;
 
-  const bodyLooksBlank =
-    !door.body ||
-    door.body.includes("비워") ||
-    door.body.includes("나중에 붙여");
-  const noteLooksBlank =
-    !door.note ||
-    door.note === "나중에 붙여 넣기" ||
-    door.note.includes("붙여");
+  if (door.id === "door-rules") {
+    if (door.href) return door;
 
-  return {
-    ...door,
-    href: fallback.href,
-    kind: fallback.kind,
-    body: bodyLooksBlank ? fallback.body : door.body,
-    note: noteLooksBlank ? fallback.note : door.note,
-  };
+    const bodyLooksBlank =
+      !door.body ||
+      door.body.includes("비워") ||
+      door.body.includes("나중에 붙여");
+    const noteLooksBlank =
+      !door.note ||
+      door.note === "나중에 붙여 넣기" ||
+      door.note.includes("붙여");
+
+    return {
+      ...door,
+      href: fallback.href,
+      kind: fallback.kind,
+      body: bodyLooksBlank ? fallback.body : door.body,
+      note: noteLooksBlank ? fallback.note : door.note,
+    };
+  }
+
+  /** 미공개 칸: 예전 한 줄 안내 → 한국어·영어 분리 안내로 이어 받음 */
+  if (door.id === "door-unreleased") {
+    const oldNote = door.note === "유튜브 올리기 전" || !door.note;
+    const oldBody =
+      !door.body ||
+      door.body ===
+        "만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 둬요.";
+    if (!oldNote && !oldBody) return door;
+    return {
+      ...door,
+      href: door.href || fallback.href,
+      kind: fallback.kind,
+      body: oldBody ? fallback.body : door.body,
+      note: oldNote ? fallback.note : door.note,
+    };
+  }
+
+  return door;
 }
 
 function normalizeRoom(raw: Partial<RoomCopy>, fallback: RoomCopy): RoomCopy {

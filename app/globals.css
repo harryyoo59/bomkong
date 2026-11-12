@@ -1999,6 +1999,26 @@ label.form-row textarea {
   gap: 10px;
 }
 
+.unreleased-lang-doors {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.unreleased-lang-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 720px) {
+  .unreleased-lang-doors {
+    grid-template-columns: 1fr;
+  }
+}
+
 .vault-action-row {
   display: flex;
   flex-wrap: wrap;
