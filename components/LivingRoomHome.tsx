@@ -521,7 +521,7 @@ export function LivingRoomHome({
             onClick={togglePlay}
             aria-pressed={playing && !reduceMotion}
           >
-            {showPosterOnly ? "영상 재생" : "일시정지 · 사진"}
+            {showPosterOnly ? "영상 재생" : "일시 정지"}
           </button>
         </div>
       </div>
