@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminRoomHeader } from "@/components/AdminRoomHeader";
-import { UnreleasedVideoRoom } from "@/components/UnreleasedVideoRoom";
+import { UnreleasedLangChooser } from "@/components/UnreleasedLangChooser";
 import { requireAdminSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminUnreleasedPage() {
+export default async function AdminUnreleasedHubPage() {
   const gate = await requireAdminSession();
   if (!gate.ok) {
     redirect(
@@ -20,7 +20,7 @@ export default async function AdminUnreleasedPage() {
     <div className="study-room">
       <AdminRoomHeader roomKey="unreleased" />
       <section className="panel">
-        <UnreleasedVideoRoom />
+        <UnreleasedLangChooser />
       </section>
       <div className="vault-nav-row">
         <Link className="btn btn-soft" href="/admin/youtube-connect">

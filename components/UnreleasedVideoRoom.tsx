@@ -19,8 +19,10 @@ import {
 import {
   makeUnreleasedId,
   readUnreleasedMediaStore,
+  UNRELEASED_LANG_LABELS,
   writeUnreleasedMediaStore,
   type UnreleasedItem,
+  type UnreleasedLang,
 } from "@/lib/unreleased-media";
 import {
   uploadShortViaServer,
@@ -34,7 +36,13 @@ type YoutubeStatus = {
   channelHint: string;
 };
 
-export function UnreleasedVideoRoom() {
+type Props = {
+  lang: UnreleasedLang;
+};
+
+export function UnreleasedVideoRoom({ lang }: Props) {
+  const langLabel = UNRELEASED_LANG_LABELS[lang];
+  const roomKey = lang === "ko" ? "unreleased-ko" : "unreleased-en";
   const [items, setItems] = useState<UnreleasedItem[]>([]);
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState("");
@@ -59,10 +67,10 @@ export function UnreleasedVideoRoom() {
   const [lastUploadUrl, setLastUploadUrl] = useState("");
 
   useEffect(() => {
-    const store = readUnreleasedMediaStore();
+    const store = readUnreleasedMediaStore(lang);
     setItems(store.items);
     setReady(true);
-  }, []);
+  }, [lang]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,7 +110,7 @@ export function UnreleasedVideoRoom() {
   }, []);
 
   function persist(next: UnreleasedItem[]) {
-    writeUnreleasedMediaStore({ items: next });
+    writeUnreleasedMediaStore(lang, { items: next });
     setItems(next);
   }
 
@@ -149,7 +157,7 @@ export function UnreleasedVideoRoom() {
     }));
     setMessage(
       previewOk
-        ? `「${item.title}」을(를) 미공개 영상실에 넣었어요. 옆에 미리보기가 보여요.`
+        ? `「${item.title}」을(를) 미공개 영상실(${langLabel})에 넣었어요. 옆에 미리보기가 보여요.`
         : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
     );
     setTitle("");
@@ -226,7 +234,7 @@ export function UnreleasedVideoRoom() {
     ];
 
     await moveMediaPreview(target.id, publicId);
-    writeUnreleasedMediaStore({ items: nextUnreleased });
+    writeUnreleasedMediaStore(lang, { items: nextUnreleased });
     writePublicMediaStore({ items: nextPublic });
     setItems(nextUnreleased);
     setMessage(
@@ -315,11 +323,25 @@ export function UnreleasedVideoRoom() {
 
   return (
     <div className="admin-wrap">
+      <div className="unreleased-lang-switch" aria-label="미공개 버전 바꾸기">
+        <span className="pair-chip">지금 · {langLabel}</span>
+        <Link
+          className="btn btn-soft"
+          href={lang === "ko" ? "/admin/unreleased/en" : "/admin/unreleased/ko"}
+        >
+          {lang === "ko" ? "영어 버전으로" : "한국어 버전으로"}
+        </Link>
+        <Link className="btn btn-soft" href="/admin/unreleased">
+          문 고르기로
+        </Link>
+      </div>
+
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.
-          파일을 고르면 옆에 작은 미리보기가 이 기기에만 저장돼요. 예전에
-          이름만 넣은 항목은 「미리보기 파일 넣기」로 다시 넣어 주세요.
+          {langLabel} 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린
+          영상을 모아 두는 방이에요. 파일을 고르면 옆에 작은 미리보기가 이
+          기기에만 저장돼요. 예전에 이름만 넣은 항목은 「미리보기 파일
+          넣기」로 다시 넣어 주세요. 한국어·영어 목록은 서로 섞이지 않아요.
         </p>
 
         <label>
@@ -354,7 +376,7 @@ export function UnreleasedVideoRoom() {
         </label>
 
         <button type="submit" className="btn btn-primary btn-wide">
-          미공개 영상실에 넣기
+          미공개({langLabel})에 넣기
         </button>
       </form>
 
@@ -390,13 +412,15 @@ export function UnreleasedVideoRoom() {
       ) : null}
 
       <section>
-        <h2 className="section-title">아직 유튜브에 안 올린 영상</h2>
+        <h2 className="section-title">
+          아직 유튜브에 안 올린 영상 · {langLabel}
+        </h2>
         <p className="muted tiny">
           「유튜브 숏츠로 올리기」로 채널에 올린 뒤, 「공개 영상실로 옮기기」로
           보관할 수 있어요. 제목은 그대로 가져가요.
         </p>
         {items.length === 0 ? (
-          <AdminEmptyText roomKey="unreleased" />
+          <AdminEmptyText roomKey={roomKey} />
         ) : (
           <ul className="admin-ep-list">
             {items.map((item) => (
