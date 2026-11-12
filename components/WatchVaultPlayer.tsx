@@ -7,6 +7,10 @@ import {
   resolveYoutubeWatchUrl,
   type WatchItem,
 } from "@/lib/watch-media";
+import {
+  nextWatchItemAfter,
+  writeWatchResume,
+} from "@/lib/watch-resume";
 
 export function WatchVaultPlayer({
   id,
@@ -16,6 +20,7 @@ export function WatchVaultPlayer({
 }) {
   const [item, setItem] = useState<WatchItem | null | undefined>(undefined);
   const [nextItem, setNextItem] = useState<WatchItem | null>(null);
+  const [wrapsToFirst, setWrapsToFirst] = useState(false);
 
   useEffect(() => {
     const store = readWatchMediaStore();
@@ -23,11 +28,18 @@ export function WatchVaultPlayer({
     setItem(found);
     if (!found) {
       setNextItem(null);
+      setWrapsToFirst(false);
       return;
     }
     const index = store.items.findIndex((it) => it.id === id);
-    const next = index >= 0 ? store.items[index + 1] : undefined;
-    setNextItem(next ?? null);
+    const next = nextWatchItemAfter(store.items, id);
+    setNextItem(next);
+    setWrapsToFirst(
+      store.items.length > 1 &&
+        index === store.items.length - 1 &&
+        Boolean(next) &&
+        next?.id === store.items[0]?.id,
+    );
   }, [id]);
 
   if (item === undefined) {
@@ -54,6 +66,10 @@ export function WatchVaultPlayer({
     ? resolveYoutubeWatchUrl(nextItem.youtubeUrl)
     : null;
 
+  const markOpened = (openedId: string) => {
+    writeWatchResume(openedId);
+  };
+
   return (
     <>
       <section className="panel watch-empty-panel" aria-live="polite">
@@ -71,6 +87,7 @@ export function WatchVaultPlayer({
                 href={youtubeHref}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => markOpened(item.id)}
               >
                 유튜브에서 보기
               </a>
@@ -94,17 +111,18 @@ export function WatchVaultPlayer({
 
       <section className="panel">
         <h2 className="section-title">이어보기</h2>
-        {nextItem ? (
+        {nextItem && nextItem.id !== item.id ? (
           nextYoutubeHref ? (
             <p className="queue-note">
-              끝나면 →{" "}
+              {wrapsToFirst ? "끝나면 → 처음으로 · " : "끝나면 → "}
               <a
                 className="queue-link"
                 href={nextYoutubeHref}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={() => markOpened(nextItem.id)}
               >
-                다음 영상 (유튜브)
+                {nextItem.title} (유튜브)
               </a>
             </p>
           ) : (
