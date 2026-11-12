@@ -177,6 +177,7 @@ export function LivingRoomHome({
   const storyTarget: LivingStoryTarget = beat.target;
   const beatCount = LIVING_ROOM_BEATS.length;
   const speakTokenRef = useRef(0);
+  const storyAudioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -247,101 +248,86 @@ export function LivingRoomHome({
     });
   }, [progress, reduceMotion]);
 
-  // 로비 스토리: 한 문장씩 이어서 말하기 (자막 없음)
+  // 로비 스토리: 미리 만든 6살 봄이 / 4살 콩이 목소리로 한 문장씩 (자막 없음)
   useEffect(() => {
     const token = ++speakTokenRef.current;
-    const stopSpeech = () => {
+    const stopStoryVoice = () => {
+      const a = storyAudioRef.current;
+      if (a) {
+        a.onended = null;
+        a.onerror = null;
+        a.pause();
+        a.removeAttribute("src");
+        a.load();
+        storyAudioRef.current = null;
+      }
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
     };
 
     if (!playing || reduceMotion || guardianFor) {
-      stopSpeech();
+      stopStoryVoice();
       return () => {
         speakTokenRef.current += 1;
-        stopSpeech();
+        stopStoryVoice();
       };
     }
-
-    const canSpeak =
-      typeof window !== "undefined" && "speechSynthesis" in window;
 
     const advance = () => {
       if (speakTokenRef.current !== token) return;
       setBeatIndex((i) => (i + 1) % beatCount);
     };
 
-    if (!canSpeak) {
-      const timer = window.setTimeout(advance, 3800);
-      return () => {
-        speakTokenRef.current += 1;
-        window.clearTimeout(timer);
-        stopSpeech();
-      };
-    }
+    stopStoryVoice();
 
-    stopSpeech();
-    const utter = new SpeechSynthesisUtterance(beat.speak);
-    utter.lang = "ko-KR";
-    const voices = window.speechSynthesis.getVoices();
-    const isKongi = beat.speaker === "kongi";
-    // 봄이: 더 어린 6살 누나 / 콩이: 더 낮은 4살 동생
-    if (isKongi) {
-      utter.pitch = 1.15;
-      utter.rate = 0.98;
-      const kongiVoice =
-        voices.find(
-          (v) =>
-            v.lang.startsWith("ko") &&
-            /male|남자|inJoon|jinho|hyoung|boy/i.test(v.name),
-        ) ||
-        voices.find((v) => v.lang.startsWith("ko"));
-      if (kongiVoice) utter.voice = kongiVoice;
-    } else {
-      utter.pitch = 1.78;
-      utter.rate = 1.12;
-      const bomiVoice =
-        voices.find(
-          (v) =>
-            v.lang.startsWith("ko") &&
-            /yuna|sora|female|여자|google.*한국어|korean/i.test(v.name),
-        ) || voices.find((v) => v.lang.startsWith("ko"));
-      if (bomiVoice) utter.voice = bomiVoice;
-    }
-    utter.onend = () => {
+    const audio = new Audio(beat.audioSrc);
+    audio.preload = "auto";
+    storyAudioRef.current = audio;
+    audio.onended = () => {
       if (speakTokenRef.current !== token) return;
       window.setTimeout(advance, 220);
     };
-    utter.onerror = () => {
+    audio.onerror = () => {
+      if (speakTokenRef.current !== token) return;
+      // 파일이 안 되면 예전처럼 말하기로 잠깐 대체
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        const utter = new SpeechSynthesisUtterance(beat.speak);
+        utter.lang = "ko-KR";
+        utter.pitch = beat.speaker === "kongi" ? 1.35 : 1.9;
+        utter.rate = beat.speaker === "kongi" ? 0.95 : 1.1;
+        utter.onend = () => {
+          if (speakTokenRef.current !== token) return;
+          window.setTimeout(advance, 220);
+        };
+        utter.onerror = () => {
+          if (speakTokenRef.current !== token) return;
+          window.setTimeout(advance, 700);
+        };
+        window.speechSynthesis.speak(utter);
+      } else {
+        window.setTimeout(advance, 700);
+      }
+    };
+    void audio.play().catch(() => {
       if (speakTokenRef.current !== token) return;
       window.setTimeout(advance, 700);
-    };
-    window.speechSynthesis.speak(utter);
+    });
 
     return () => {
       speakTokenRef.current += 1;
-      stopSpeech();
+      stopStoryVoice();
     };
   }, [
     playing,
     reduceMotion,
     guardianFor,
     beatIndex,
+    beat.audioSrc,
     beat.speak,
     beat.speaker,
     beatCount,
   ]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    const bump = () => undefined;
-    window.speechSynthesis.addEventListener("voiceschanged", bump);
-    window.speechSynthesis.getVoices();
-    return () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", bump);
-    };
-  }, []);
 
   const storyClass = (target: LivingStoryTarget) =>
     storyTarget === target ? " is-story-lit" : "";
@@ -382,11 +368,24 @@ export function LivingRoomHome({
     router.push(firstWatchHref || "/episodes");
   };
 
-  const togglePlay = () => {
-    const v = roomVideoRef.current;
+  const stopStoryVoiceNow = () => {
+    const a = storyAudioRef.current;
+    if (a) {
+      a.onended = null;
+      a.onerror = null;
+      a.pause();
+      a.removeAttribute("src");
+      a.load();
+      storyAudioRef.current = null;
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
+  };
+
+  const togglePlay = () => {
+    const v = roomVideoRef.current;
+    stopStoryVoiceNow();
     if (reduceMotion) {
       setReduceMotion(false);
       if (v) {
@@ -419,9 +418,7 @@ export function LivingRoomHome({
   };
 
   const leaveSite = () => {
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopStoryVoiceNow();
     // 핸드폰 바탕화면(홈)으로 나가기 — 흰 화면(about:blank)은 쓰지 않음
     try {
       window.close();
