@@ -8,7 +8,6 @@ import {
   useId,
   useRef,
   useState,
-  type FormEvent,
   type ReactNode,
 } from "react";
 import { GuardianGate } from "@/components/GuardianGate";
@@ -170,13 +169,6 @@ export function LivingRoomHome({
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
   const [progress, setProgress] = useState<WatchProgress | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
-  const [mailboxOpen, setMailboxOpen] = useState(false);
-  const [feedbackName, setFeedbackName] = useState("");
-  const [feedbackMessage, setFeedbackMessage] = useState("");
-  const [feedbackHoneypot, setFeedbackHoneypot] = useState("");
-  const [feedbackBusy, setFeedbackBusy] = useState(false);
-  const [feedbackError, setFeedbackError] = useState<string | null>(null);
-  const [feedbackDone, setFeedbackDone] = useState(false);
   const [storyIndex, setStoryIndex] = useState(0);
   const [storyPaused, setStoryPaused] = useState(false);
   const captionId = useId();
@@ -257,28 +249,12 @@ export function LivingRoomHome({
   }, [progress, reduceMotion]);
 
   useEffect(() => {
-    if (!mailboxOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [mailboxOpen]);
-
-  useEffect(() => {
-    if (storyPaused || mailboxOpen || guardianFor || reduceMotion) return;
+    if (storyPaused || guardianFor || reduceMotion) return;
     const timer = window.setTimeout(() => {
       setStoryIndex((i) => (i + 1) % storyCount);
     }, 5200);
     return () => window.clearTimeout(timer);
-  }, [
-    storyIndex,
-    storyPaused,
-    storyCount,
-    mailboxOpen,
-    guardianFor,
-    reduceMotion,
-  ]);
+  }, [storyIndex, storyPaused, storyCount, guardianFor, reduceMotion]);
 
   const storyClass = (target: LivingStoryTarget) =>
     storyTarget === target ? " is-story-lit" : "";
@@ -351,49 +327,6 @@ export function LivingRoomHome({
       }
       return next;
     });
-  };
-
-  const openMailbox = () => {
-    setMailboxOpen(true);
-    setFeedbackError(null);
-    setFeedbackDone(false);
-  };
-
-  const closeMailbox = () => {
-    if (feedbackBusy) return;
-    setMailboxOpen(false);
-    setFeedbackError(null);
-  };
-
-  const submitMailbox = async (event: FormEvent) => {
-    event.preventDefault();
-    if (feedbackBusy) return;
-    setFeedbackBusy(true);
-    setFeedbackError(null);
-    try {
-      const res = await fetch("/api/feedback", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: feedbackName,
-          message: feedbackMessage,
-          website: feedbackHoneypot,
-        }),
-      });
-      const data = (await res.json()) as { ok?: boolean; error?: string };
-      if (!res.ok || !data.ok) {
-        setFeedbackError(data.error || "지금은 보낼 수 없어요.");
-        return;
-      }
-      setFeedbackDone(true);
-      setFeedbackName("");
-      setFeedbackMessage("");
-      setFeedbackHoneypot("");
-    } catch {
-      setFeedbackError("연결이 끊겼어요. 잠시 뒤 다시 해 주세요.");
-    } finally {
-      setFeedbackBusy(false);
-    }
   };
 
   const showPosterOnly = reduceMotion || !playing;
@@ -500,10 +433,10 @@ export function LivingRoomHome({
           <Link
             href="/comments"
             className={`hotspot hotspot-comment-desk${storyClass("comment")}`}
-            aria-label="댓글쓰기"
-            title="댓글쓰기"
+            aria-label="댓글쓰기 서랍장 · 의견 보내기 우편함"
+            title="댓글쓰기 서랍장"
           >
-            <span className="visually-hidden">댓글쓰기</span>
+            <span className="visually-hidden">댓글쓰기 서랍장</span>
           </Link>
 
           {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
@@ -526,17 +459,6 @@ export function LivingRoomHome({
           >
             <span className="visually-hidden">관리자실</span>
           </Link>
-
-          {/* 우편함 — 문보다 위. 의견 보내기 */}
-          <button
-            type="button"
-            className={`hotspot hotspot-mailbox${storyClass("mailbox")}`}
-            onClick={openMailbox}
-            aria-label="의견 보내기"
-            title="의견 보내기"
-          >
-            <span className="visually-hidden">의견 보내기</span>
-          </button>
         </div>
       </div>
 
@@ -653,16 +575,16 @@ export function LivingRoomHome({
             <span className="menu-mini-label">댓글 쓰기</span>
           </Link>
 
-          <button
-            type="button"
+          <Link
+            href="/comments#mailbox"
             className="menu-mini menu-mini-feedback"
-            onClick={openMailbox}
+            aria-label="관리자에게 의견 보내기"
           >
             <TileIcon tone="amber" size="sm">
               <IconFeedback />
             </TileIcon>
             <span className="menu-mini-label">5. 관리자에게 의견 보내기</span>
-          </button>
+          </Link>
 
           {youtubeUrl ? (
             <a
@@ -735,97 +657,6 @@ export function LivingRoomHome({
           </p>
         )}
       </GuardianGate>
-
-      {mailboxOpen ? (
-        <div
-          className="guardian-backdrop"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="mailbox-title"
-        >
-          <div className="guardian-card mailbox-card-form">
-            <p className="eyebrow">의견 보내기</p>
-            <h2 id="mailbox-title" className="section-title">
-              빨간 우편함
-            </h2>
-            {feedbackDone ? (
-              <div className="guardian-body">
-                <p>잘 받았어요. 고마워요!</p>
-                <div className="guardian-actions">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={closeMailbox}
-                  >
-                    닫기
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <form className="guardian-body" onSubmit={submitMailbox}>
-                <label className="form-row">
-                  <span>이름 (선택)</span>
-                  <input
-                    type="text"
-                    name="name"
-                    autoComplete="nickname"
-                    maxLength={80}
-                    value={feedbackName}
-                    onChange={(e) => setFeedbackName(e.target.value)}
-                    placeholder="비워 둬도 돼요"
-                  />
-                </label>
-                <label className="form-row">
-                  <span>메시지 (필수)</span>
-                  <textarea
-                    name="message"
-                    required
-                    rows={4}
-                    maxLength={2000}
-                    value={feedbackMessage}
-                    onChange={(e) => setFeedbackMessage(e.target.value)}
-                    placeholder="하고 싶은 말을 적어 주세요"
-                  />
-                </label>
-                {/* Honeypot — hidden from people */}
-                <label className="mailbox-honeypot" aria-hidden="true">
-                  <span>회사 사이트</span>
-                  <input
-                    type="text"
-                    name="website"
-                    tabIndex={-1}
-                    autoComplete="off"
-                    value={feedbackHoneypot}
-                    onChange={(e) => setFeedbackHoneypot(e.target.value)}
-                  />
-                </label>
-                {feedbackError ? (
-                  <p className="form-error" role="alert">
-                    {feedbackError}
-                  </p>
-                ) : null}
-                <div className="guardian-actions">
-                  <button
-                    type="button"
-                    className="btn btn-soft"
-                    onClick={closeMailbox}
-                    disabled={feedbackBusy}
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary"
-                    disabled={feedbackBusy || feedbackMessage.trim().length < 2}
-                  >
-                    {feedbackBusy ? "보내는 중…" : "보내기"}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
