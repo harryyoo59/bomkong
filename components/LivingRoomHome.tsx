@@ -532,12 +532,12 @@ export function LivingRoomHome({
           <Link
             href="/comments"
             className="menu-mini menu-mini-comment"
-            aria-label="4. 댓글 달기"
+            aria-label="댓글 쓰기"
           >
             <TileIcon tone="pink" size="sm">
               <IconComment />
             </TileIcon>
-            <span className="menu-mini-label">4. 댓글 달기</span>
+            <span className="menu-mini-label">댓글 쓰기</span>
           </Link>
 
           <button
