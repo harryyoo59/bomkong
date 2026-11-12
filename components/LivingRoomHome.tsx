@@ -23,6 +23,10 @@ import {
   watchHref,
   type WatchProgress,
 } from "@/lib/watch-progress";
+import {
+  LIVING_ROOM_STORY,
+  type LivingStoryTarget,
+} from "@/lib/living-room-story";
 
 export type LivingMenuId = "watch" | "subscribe" | "goods";
 
@@ -173,8 +177,14 @@ export function LivingRoomHome({
   const [feedbackBusy, setFeedbackBusy] = useState(false);
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackDone, setFeedbackDone] = useState(false);
+  const [storyIndex, setStoryIndex] = useState(0);
+  const [storyPaused, setStoryPaused] = useState(false);
   const captionId = useId();
+  const storyPanelId = useId();
   const youtubeUrl = youtubeChannelUrl?.trim() || null;
+  const storyStep = LIVING_ROOM_STORY[storyIndex] ?? LIVING_ROOM_STORY[0];
+  const storyTarget: LivingStoryTarget = storyStep.target;
+  const storyCount = LIVING_ROOM_STORY.length;
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -254,6 +264,29 @@ export function LivingRoomHome({
       document.body.style.overflow = prev;
     };
   }, [mailboxOpen]);
+
+  useEffect(() => {
+    if (storyPaused || mailboxOpen || guardianFor || reduceMotion) return;
+    const timer = window.setTimeout(() => {
+      setStoryIndex((i) => (i + 1) % storyCount);
+    }, 5200);
+    return () => window.clearTimeout(timer);
+  }, [
+    storyIndex,
+    storyPaused,
+    storyCount,
+    mailboxOpen,
+    guardianFor,
+    reduceMotion,
+  ]);
+
+  const storyClass = (target: LivingStoryTarget) =>
+    storyTarget === target ? " is-story-lit" : "";
+
+  const goStory = (dir: -1 | 1) => {
+    setStoryPaused(true);
+    setStoryIndex((i) => (i + dir + storyCount) % storyCount);
+  };
 
   const goFrame = useCallback(
     (id: LivingMenuId) => {
@@ -369,7 +402,12 @@ export function LivingRoomHome({
 
   return (
     <div className="living-root">
-      <div className="living-stage" aria-labelledby={captionId}>
+      <div className="living-hero">
+      <div
+        className={`living-stage${storyClass("room")}`}
+        aria-labelledby={captionId}
+        aria-describedby={storyPanelId}
+      >
         <img
           className={`living-poster${showPosterOnly ? " is-visible" : ""}`}
           src="/living-room/living-room-labeled-frame.jpg"
@@ -391,7 +429,7 @@ export function LivingRoomHome({
 
         <div className="living-ui" aria-label="거실 메뉴">
           <div
-            className="hotspot hotspot-tv"
+            className={`hotspot hotspot-tv${storyClass("tv")}`}
             tabIndex={0}
             role="region"
             aria-label="큰 티비 화면"
@@ -438,7 +476,10 @@ export function LivingRoomHome({
             </div>
           </div>
 
-          <div className="hotspot hotspot-frames" aria-label="벽 액자 바로가기">
+          <div
+            className={`hotspot hotspot-frames${storyClass("frames")}`}
+            aria-label="벽 액자 바로가기"
+          >
             {FRAME_MENUS.map((id) => {
               const item = menuById(id);
               return (
@@ -458,7 +499,7 @@ export function LivingRoomHome({
 
           <Link
             href="/comments"
-            className="hotspot hotspot-comment-desk"
+            className={`hotspot hotspot-comment-desk${storyClass("comment")}`}
             aria-label="댓글쓰기"
             title="댓글쓰기"
           >
@@ -468,7 +509,7 @@ export function LivingRoomHome({
           {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
           <a
             href={COMPANY_HOME}
-            className="hotspot hotspot-sofa-cz"
+            className={`hotspot hotspot-sofa-cz${storyClass("sofa")}`}
             target="_blank"
             rel="noopener noreferrer"
             aria-label="참존 인터랙티브 회사 홈페이지 열기"
@@ -479,7 +520,7 @@ export function LivingRoomHome({
           {/* 문 전체 → 관리자실. 명패는 영상에 구움(웹 글씨 없음). */}
           <Link
             href="/admin/login"
-            className="hotspot hotspot-door"
+            className={`hotspot hotspot-door${storyClass("door")}`}
             aria-label="관리자실 입장"
             title="관리자실"
           >
@@ -489,7 +530,7 @@ export function LivingRoomHome({
           {/* 우편함 — 문보다 위. 의견 보내기 */}
           <button
             type="button"
-            className="hotspot hotspot-mailbox"
+            className={`hotspot hotspot-mailbox${storyClass("mailbox")}`}
             onClick={openMailbox}
             aria-label="의견 보내기"
             title="의견 보내기"
@@ -499,9 +540,57 @@ export function LivingRoomHome({
         </div>
       </div>
 
+      <aside
+        id={storyPanelId}
+        className="living-story"
+        aria-label="봄이가 콩이에게 알려 주는 이야기"
+      >
+        <p className="living-story-kicker">봄이 → 콩이</p>
+        <h2 className="living-story-title">{storyStep.title}</h2>
+        <ol className="living-story-lines">
+          {storyStep.lines.map((line, i) => (
+            <li
+              key={`${storyStep.id}-${i}`}
+              className={`living-story-line is-${line.speaker === "봄이" ? "bomi" : "kongi"}`}
+            >
+              <span className="living-story-who">{line.speaker}</span>
+              <span className="living-story-text">{line.text}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="living-story-nav">
+          <button
+            type="button"
+            className="btn btn-soft living-ctrl"
+            onClick={() => goStory(-1)}
+          >
+            이전
+          </button>
+          <p className="living-story-page" aria-live="polite">
+            {storyIndex + 1} / {storyCount}
+          </p>
+          <button
+            type="button"
+            className="btn btn-soft living-ctrl"
+            onClick={() => goStory(1)}
+          >
+            다음
+          </button>
+          <button
+            type="button"
+            className="btn btn-soft living-ctrl"
+            onClick={() => setStoryPaused((p) => !p)}
+            aria-pressed={storyPaused}
+          >
+            {storyPaused ? "이어서" : "잠시 멈춤"}
+          </button>
+        </div>
+      </aside>
+      </div>
+
       <div className="living-chrome">
         <p id={captionId} className="living-caption">
-          콩아 리모컨 눌러봐 / 응 누나
+          봄이가 콩이에게 「{storyStep.title}」를 알려 주는 중
         </p>
         <div className="living-controls">
           <button
@@ -515,7 +604,10 @@ export function LivingRoomHome({
         </div>
       </div>
 
-      <nav className="living-menu-grid" aria-label="봄이콩이 메뉴">
+      <nav
+        className={`living-menu-grid${storyClass("menu")}`}
+        aria-label="봄이콩이 메뉴"
+      >
         <button
           type="button"
           className="menu-tile menu-tile-watch"
