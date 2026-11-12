@@ -286,32 +286,32 @@ export function LivingRoomHome({
     storyAudioRef.current = audio;
     audio.onended = () => {
       if (speakTokenRef.current !== token) return;
-      window.setTimeout(advance, 220);
+      setTimeout(advance, 220);
     };
     audio.onerror = () => {
       if (speakTokenRef.current !== token) return;
       // 파일이 안 되면 예전처럼 말하기로 잠깐 대체
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        const utter = new SpeechSynthesisUtterance(beat.speak);
-        utter.lang = "ko-KR";
-        utter.pitch = beat.speaker === "kongi" ? 1.35 : 1.9;
-        utter.rate = beat.speaker === "kongi" ? 0.95 : 1.1;
-        utter.onend = () => {
-          if (speakTokenRef.current !== token) return;
-          window.setTimeout(advance, 220);
-        };
-        utter.onerror = () => {
-          if (speakTokenRef.current !== token) return;
-          window.setTimeout(advance, 700);
-        };
-        window.speechSynthesis.speak(utter);
-      } else {
-        window.setTimeout(advance, 700);
+      if (!("speechSynthesis" in window)) {
+        setTimeout(advance, 700);
+        return;
       }
+      const utter = new SpeechSynthesisUtterance(beat.speak);
+      utter.lang = "ko-KR";
+      utter.pitch = beat.speaker === "kongi" ? 1.35 : 1.9;
+      utter.rate = beat.speaker === "kongi" ? 0.95 : 1.1;
+      utter.onend = () => {
+        if (speakTokenRef.current !== token) return;
+        setTimeout(advance, 220);
+      };
+      utter.onerror = () => {
+        if (speakTokenRef.current !== token) return;
+        setTimeout(advance, 700);
+      };
+      window.speechSynthesis.speak(utter);
     };
     void audio.play().catch(() => {
       if (speakTokenRef.current !== token) return;
-      window.setTimeout(advance, 700);
+      setTimeout(advance, 700);
     });
 
     return () => {
