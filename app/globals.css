@@ -1647,8 +1647,7 @@ label.form-row textarea {
 .hotspot-door:focus-visible,
 .hotspot-tv:focus-visible,
 .hotspot-comment-desk:focus-visible,
-.hotspot-sofa-cz:focus-visible,
-.hotspot-mailbox:focus-visible {
+.hotspot-sofa-cz:focus-visible {
   outline: 2px solid var(--sky);
   outline-offset: 2px;
 }
@@ -1776,29 +1775,6 @@ label.form-row textarea {
   z-index: 3;
   text-decoration: none;
   color: inherit;
-}
-
-/* Mailbox under plaque — click priority over door */
-.hotspot-mailbox {
-  position: absolute;
-  left: 83.02%;
-  top: 29.17%;
-  width: 7.31%;
-  height: 15.42%;
-  border: none;
-  padding: 0;
-  margin: 0;
-  border-radius: 8px;
-  background: transparent;
-  cursor: pointer;
-  z-index: 5;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .hotspot-mailbox:hover {
-    background: rgba(255, 255, 255, 0.14);
-    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.3);
-  }
 }
 
 .living-chrome {

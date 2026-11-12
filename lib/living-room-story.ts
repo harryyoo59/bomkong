@@ -5,7 +5,6 @@ export type LivingStoryTarget =
   | "tv"
   | "frames"
   | "comment"
-  | "mailbox"
   | "sofa"
   | "door"
   | "menu";
@@ -61,26 +60,17 @@ export const LIVING_ROOM_STORY: LivingStoryStep[] = [
   {
     id: "comment",
     target: "comment",
-    title: "댓글쓰기 책상",
+    title: "댓글쓰기 서랍장",
     lines: [
       {
         speaker: "봄이",
-        text: "책상은 댓글 쓰는 곳이야. 보고 난 기분을 남길 수 있어.",
+        text: "저 서랍장은 댓글 쓰는 곳이야. 우편함도 그 안에 있어.",
       },
-      { speaker: "콩이", text: "나는 하트 많이 그릴래." },
-    ],
-  },
-  {
-    id: "mailbox",
-    target: "mailbox",
-    title: "우편함",
-    lines: [
       {
-        speaker: "봄이",
-        text: "문 옆 우편함은 관리자에게 의견 보내는 곳이야.",
+        speaker: "콩이",
+        text: "친구 댓글이랑, 관리자한테 보내는 의견이 같이 있는 거지?",
       },
-      { speaker: "콩이", text: "편지도 넣을 수 있어?" },
-      { speaker: "봄이", text: "응, 하고 싶은 말을 적으면 돼." },
+      { speaker: "봄이", text: "맞아. 서랍장을 눌러 보면 둘 다 나와." },
     ],
   },
   {

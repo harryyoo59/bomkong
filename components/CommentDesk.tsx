@@ -30,6 +30,12 @@ export function CommentDesk() {
   const [done, setDone] = useState(false);
   const [comments, setComments] = useState<PublicComment[]>([]);
   const [loadingList, setLoadingList] = useState(true);
+  const [feedbackName, setFeedbackName] = useState("");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackHoneypot, setFeedbackHoneypot] = useState("");
+  const [feedbackBusy, setFeedbackBusy] = useState(false);
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackDone, setFeedbackDone] = useState(false);
 
   const loadComments = async () => {
     try {
@@ -50,6 +56,13 @@ export function CommentDesk() {
 
   useEffect(() => {
     void loadComments();
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash !== "#mailbox") return;
+    const el = document.getElementById("mailbox");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
 
   const onSubmit = async (event: FormEvent) => {
@@ -93,14 +106,46 @@ export function CommentDesk() {
     }
   };
 
+  const onFeedbackSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (feedbackBusy) return;
+    setFeedbackBusy(true);
+    setFeedbackError(null);
+    setFeedbackDone(false);
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: feedbackName,
+          message: feedbackMessage,
+          website: feedbackHoneypot,
+        }),
+      });
+      const data = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !data.ok) {
+        setFeedbackError(data.error || "지금은 보낼 수 없어요.");
+        return;
+      }
+      setFeedbackDone(true);
+      setFeedbackName("");
+      setFeedbackMessage("");
+      setFeedbackHoneypot("");
+    } catch {
+      setFeedbackError("연결이 끊겼어요. 잠시 뒤 다시 해 주세요.");
+    } finally {
+      setFeedbackBusy(false);
+    }
+  };
+
   return (
     <>
       <section className="panel stub-card">
-        <p className="eyebrow">댓글쓰기 책상</p>
+        <p className="eyebrow">댓글쓰기 서랍장</p>
         <h1 className="section-title">봄이콩이에게 한마디</h1>
         <p>
           영상 보고 느낀 말, 응원, 궁금한 점을 남겨 주세요. 친구들이 함께 볼 수
-          있어요.
+          있어요. 관리자에게만 전하고 싶은 말은 아래 우편함에 넣어 주세요.
         </p>
       </section>
 
@@ -186,6 +231,72 @@ export function CommentDesk() {
             ))}
           </ul>
         )}
+      </section>
+
+      <section id="mailbox" className="panel mailbox-card-form">
+        <p className="eyebrow">의견 보내기 우편함</p>
+        <h2 className="section-title">관리자에게만 전하기</h2>
+        <p className="muted tiny">
+          친구들 댓글과 따로, 관리자만 보는 우편함이에요. 댓글쓰기 서랍장 안에
+          두었어요.
+        </p>
+        {feedbackDone ? (
+          <p className="comment-done" role="status">
+            잘 받았어요. 고마워요!
+          </p>
+        ) : null}
+        <form className="comment-form" onSubmit={onFeedbackSubmit}>
+          <label className="form-row">
+            <span>이름 (선택)</span>
+            <input
+              type="text"
+              name="feedback-name"
+              autoComplete="nickname"
+              maxLength={80}
+              value={feedbackName}
+              onChange={(e) => setFeedbackName(e.target.value)}
+              placeholder="비워 둬도 돼요"
+            />
+          </label>
+          <label className="form-row">
+            <span>메시지 (필수)</span>
+            <textarea
+              name="feedback-message"
+              required
+              rows={4}
+              maxLength={2000}
+              value={feedbackMessage}
+              onChange={(e) => {
+                setFeedbackMessage(e.target.value);
+                if (feedbackDone) setFeedbackDone(false);
+              }}
+              placeholder="하고 싶은 말을 적어 주세요"
+            />
+          </label>
+          <label className="mailbox-honeypot" aria-hidden="true">
+            <span>회사 사이트</span>
+            <input
+              type="text"
+              name="feedback-website"
+              tabIndex={-1}
+              autoComplete="off"
+              value={feedbackHoneypot}
+              onChange={(e) => setFeedbackHoneypot(e.target.value)}
+            />
+          </label>
+          {feedbackError ? (
+            <p className="form-error" role="alert">
+              {feedbackError}
+            </p>
+          ) : null}
+          <button
+            type="submit"
+            className="btn btn-primary btn-wide"
+            disabled={feedbackBusy || feedbackMessage.trim().length < 2}
+          >
+            {feedbackBusy ? "보내는 중…" : "의견 보내기"}
+          </button>
+        </form>
       </section>
 
       <p className="tiny muted center-text">
