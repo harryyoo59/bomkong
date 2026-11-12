@@ -43,6 +43,7 @@ export type AdminCopyStore = {
 export const ROOM_KEYS = [
   "bomi-photos",
   "kongi-photos",
+  "rules",
   "logos",
   "source",
   "cookie",
@@ -57,6 +58,7 @@ export type RoomKey = (typeof ROOM_KEYS)[number];
 export const ROOM_LABELS: Record<RoomKey, string> = {
   "bomi-photos": "봄이 사진 보관",
   "kongi-photos": "콩이 사진 보관",
+  rules: "영상제작 규칙",
   logos: "로고 관리",
   source: "소스 보관실",
   cookie: "쿠키완료실",
@@ -128,10 +130,10 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     id: "door-rules",
     number: "3",
     title: "영상제작 규칙",
-    body: "보관소 칸이에요. 안은 비워 두었어요.",
-    note: "나중에 붙여 넣기",
-    href: "",
-    kind: "empty",
+    body: "최종 확정본을 읽고 따라요.",
+    note: "열어 보기",
+    href: "/admin/rules",
+    kind: "link",
     groupId: "",
     builtIn: true,
   },
@@ -227,6 +229,13 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     intro: "콩이 영상규칙에 쓸 사진을 모아 두는 방이에요. 사진을 골라 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
+  rules: {
+    eyebrow: "관리자실 · 3번 칸",
+    title: "영상제작 규칙",
+    intro:
+      "봄이콩이 모든 영상의 절대 기준이에요. 아래로 스크롤하며 읽고, 필요하면 「글 고치기」로 고쳐요.",
+    empty: "",
+  },
   logos: {
     eyebrow: "관리자실 · 4번 칸",
     title: "로고 관리",
@@ -310,6 +319,33 @@ function normalizeDoor(raw: Partial<ClinicDoor>, fallback?: ClinicDoor): ClinicD
   };
 }
 
+/** 예전에 비워 둔 기본 칸이 새 기본 연결을 따라가도록 */
+function migrateBuiltInDoor(
+  door: ClinicDoor,
+  fallback?: ClinicDoor,
+): ClinicDoor {
+  if (!fallback || !door.builtIn) return door;
+  if (door.id !== "door-rules") return door;
+  if (door.href) return door;
+
+  const bodyLooksBlank =
+    !door.body ||
+    door.body.includes("비워") ||
+    door.body.includes("나중에 붙여");
+  const noteLooksBlank =
+    !door.note ||
+    door.note === "나중에 붙여 넣기" ||
+    door.note.includes("붙여");
+
+  return {
+    ...door,
+    href: fallback.href,
+    kind: fallback.kind,
+    body: bodyLooksBlank ? fallback.body : door.body,
+    note: noteLooksBlank ? fallback.note : door.note,
+  };
+}
+
 function normalizeRoom(raw: Partial<RoomCopy>, fallback: RoomCopy): RoomCopy {
   return {
     eyebrow: asString(raw.eyebrow, fallback.eyebrow),
@@ -353,7 +389,7 @@ export function normalizeAdminCopyStore(
     const normalized = normalizeDoor(item, defaultById.get(item.id));
     if (!normalized || seen.has(normalized.id)) continue;
     seen.add(normalized.id);
-    doors.push(normalized);
+    doors.push(migrateBuiltInDoor(normalized, defaultById.get(normalized.id)));
   }
   for (const door of defaults.doors) {
     if (!seen.has(door.id)) doors.push({ ...door });
