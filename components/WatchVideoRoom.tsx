@@ -14,7 +14,8 @@ import {
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
-  suggestNextEpisodeNumber,
+  suggestNextWatchSlot,
+  suggestWatchSlotAfterAdd,
   watchSlotLabel,
   writeWatchMediaStore,
   type WatchItem,
@@ -34,17 +35,34 @@ export function WatchVideoRoom() {
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
   const [editUrls, setEditUrls] = useState<Record<string, string>>({});
+  const [editSlots, setEditSlots] = useState<
+    Record<string, { episodeNumber: number; lang: WatchLang }>
+  >({});
   const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
     {},
   );
 
+  function syncEditors(list: WatchItem[]) {
+    setEditUrls(
+      Object.fromEntries(list.map((it) => [it.id, it.youtubeUrl])),
+    );
+    setEditSlots(
+      Object.fromEntries(
+        list.map((it) => [
+          it.id,
+          { episodeNumber: it.episodeNumber, lang: it.lang },
+        ]),
+      ),
+    );
+  }
+
   useEffect(() => {
     const store = readWatchMediaStore();
     setItems(store.items);
-    setEpisodeNumber(suggestNextEpisodeNumber(store.items));
-    setEditUrls(
-      Object.fromEntries(store.items.map((it) => [it.id, it.youtubeUrl])),
-    );
+    const nextSlot = suggestNextWatchSlot(store.items);
+    setEpisodeNumber(nextSlot.episodeNumber);
+    setLang(nextSlot.lang);
+    syncEditors(store.items);
     setReady(true);
   }, []);
 
@@ -52,9 +70,7 @@ export function WatchVideoRoom() {
     const ordered = sortWatchItemsForPlay(next);
     writeWatchMediaStore({ items: ordered });
     setItems(ordered);
-    setEditUrls(
-      Object.fromEntries(ordered.map((it) => [it.id, it.youtubeUrl])),
-    );
+    syncEditors(ordered);
   }
 
   function onPickFile(fileList: FileList | null) {
@@ -133,9 +149,47 @@ export function WatchVideoRoom() {
     setNote("");
     setPendingFile(null);
     setFileLabel("");
-    setLang("ko");
-    setEpisodeNumber(suggestNextEpisodeNumber(next));
+    // 한국어 넣었으면 같은 번호 영어가 다음 · 영어까지 넣었으면 다음 번호 한국어
+    const nextSlot = suggestWatchSlotAfterAdd(next, item);
+    setEpisodeNumber(nextSlot.episodeNumber);
+    setLang(nextSlot.lang);
     setFormKey((k) => k + 1);
+  }
+
+  function onLangChange(nextLang: WatchLang) {
+    setLang(nextLang);
+    if (nextLang === "en") {
+      // 영어면: 한국어만 있는 편 번호를 우선 (같은 짝)
+      const slot = suggestNextWatchSlot(items);
+      if (slot.lang === "en") {
+        setEpisodeNumber(slot.episodeNumber);
+      }
+    }
+  }
+
+  function onSaveSlot(id: string, nextNumber: number, nextLang: WatchLang) {
+    const target = items.find((it) => it.id === id);
+    if (!target) return;
+    const num = Math.floor(Number(nextNumber));
+    if (!Number.isFinite(num) || num < 1) {
+      setMessage("편 번호는 1 이상으로 적어 주세요.");
+      return;
+    }
+    const clash = findWatchSlot(items, num, nextLang);
+    if (clash && clash.id !== id) {
+      setMessage(
+        `이미 ${num}-${nextLang} 자리가 있어요. 다른 번호·언어로 바꿔 주세요.`,
+      );
+      return;
+    }
+    persist(
+      items.map((it) =>
+        it.id === id ? { ...it, episodeNumber: num, lang: nextLang } : it,
+      ),
+    );
+    setMessage(
+      `「${target.title}」 자리를 ${num}-${nextLang}(으)로 바꿨어요.`,
+    );
   }
 
   function onSaveYoutube(id: string) {
@@ -164,7 +218,9 @@ export function WatchVideoRoom() {
     await deleteMediaPreview(id);
     const next = items.filter((it) => it.id !== id);
     persist(next);
-    setEpisodeNumber(suggestNextEpisodeNumber(next));
+    const nextSlot = suggestNextWatchSlot(next);
+    setEpisodeNumber(nextSlot.episodeNumber);
+    setLang(nextSlot.lang);
     setMessage(
       `「${target.title}」(${watchSlotLabel(target)})을(를) 목록에서 빼 두었어요.`,
     );
@@ -178,9 +234,11 @@ export function WatchVideoRoom() {
     <div className="admin-wrap">
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          거실 「영상보기」에는 여기 넣은 영상만 나와요. 재생 순서는{" "}
-          <strong>1-ko → 1-en → 2-ko → 2-en</strong> 이에요. 영어가 없으면 다음
-          번호로 넘어가요. 나중에 넣은 영상은 뒤쪽 번호로 가요.
+          거실 「영상보기」에는 여기 넣은 영상만 나와요. 같은 편은{" "}
+          <strong>번호가 같고</strong> 언어만 달라요. 예:{" "}
+          <strong>1-ko → 1-en → 2-ko → 2-en</strong>. 한국어를 넣으면 다음 칸은
+          같은 번호 영어로 맞춰 줘요. 영어가 없으면 재생은 다음 번호로
+          넘어가요.
         </p>
 
         <label>
@@ -220,7 +278,7 @@ export function WatchVideoRoom() {
             언어
             <select
               value={lang}
-              onChange={(e) => setLang(e.target.value as WatchLang)}
+              onChange={(e) => onLangChange(e.target.value as WatchLang)}
             >
               <option value="ko">한국어 (ko)</option>
               <option value="en">영어 (en)</option>
@@ -229,6 +287,9 @@ export function WatchVideoRoom() {
         </div>
         <p className="tiny muted">
           지금 넣을 자리 · {episodeNumber}-{lang}
+          {lang === "en"
+            ? " (같은 편 한국어와 짝)"
+            : " (다음 영어는 같은 번호로 이어져요)"}
         </p>
 
         <label>
@@ -338,6 +399,68 @@ export function WatchVideoRoom() {
                         onClick={() => onSaveYoutube(item.id)}
                       >
                         유튜브 주소 저장
+                      </button>
+                      <div className="form-row">
+                        <label>
+                          편 번호
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={
+                              editSlots[item.id]?.episodeNumber ??
+                              item.episodeNumber
+                            }
+                            onChange={(e) =>
+                              setEditSlots((prev) => ({
+                                ...prev,
+                                [item.id]: {
+                                  episodeNumber:
+                                    Number(e.target.value) || 1,
+                                  lang:
+                                    prev[item.id]?.lang ?? item.lang,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+                        <label>
+                          언어
+                          <select
+                            value={editSlots[item.id]?.lang ?? item.lang}
+                            onChange={(e) =>
+                              setEditSlots((prev) => ({
+                                ...prev,
+                                [item.id]: {
+                                  episodeNumber:
+                                    prev[item.id]?.episodeNumber ??
+                                    item.episodeNumber,
+                                  lang: e.target.value as WatchLang,
+                                },
+                              }))
+                            }
+                          >
+                            <option value="ko">한국어 (ko)</option>
+                            <option value="en">영어 (en)</option>
+                          </select>
+                        </label>
+                      </div>
+                      <button
+                        type="button"
+                        className="btn btn-soft"
+                        onClick={() => {
+                          const slotEdit = editSlots[item.id] ?? {
+                            episodeNumber: item.episodeNumber,
+                            lang: item.lang,
+                          };
+                          onSaveSlot(
+                            item.id,
+                            slotEdit.episodeNumber,
+                            slotEdit.lang,
+                          );
+                        }}
+                      >
+                        번호·언어 저장
                       </button>
                     </div>
                   </div>
