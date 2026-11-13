@@ -461,13 +461,33 @@ span.btn.is-disabled {
   font-size: 0.82rem;
 }
 
-.ep-meta strong {
+.ep-meta strong,
+.ep-title {
   font-family: var(--font-display);
   font-size: 1.05rem;
 }
 
+/* 로비 영상보기: 긴 제목은 2줄까지만 */
+.ep-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 .ep-meta p {
   margin: 4px 0 0;
+}
+
+.ep-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
 }
 
 .pair-row {
