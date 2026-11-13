@@ -32,9 +32,6 @@ export default async function AdminUnreleasedEnPage() {
         <Link className="btn btn-soft" href="/admin/youtube-connect">
           유튜브 숏츠 연결
         </Link>
-        <Link className="btn btn-soft" href="/admin/public">
-          공개 영상실
-        </Link>
         <Link className="btn btn-soft" href="/admin">
           관리자실
         </Link>

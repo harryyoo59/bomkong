@@ -45,29 +45,30 @@ export const ROOM_KEYS = [
   "kongi-photos",
   "rules",
   "logos",
-  "source",
-  "cookie",
   "unreleased",
   "unreleased-ko",
   "unreleased-en",
-  "public",
   "watch",
   "mailbox",
 ] as const;
 
 export type RoomKey = (typeof ROOM_KEYS)[number];
 
+/** 더 이상 쓰지 않는 진료실 칸 (예전에 저장된 것도 목록에서 뺌) */
+const REMOVED_DOOR_IDS = new Set([
+  "door-source",
+  "door-cookie",
+  "door-public",
+]);
+
 export const ROOM_LABELS: Record<RoomKey, string> = {
   "bomi-photos": "봄이 사진 보관",
   "kongi-photos": "콩이 사진 보관",
   rules: "영상제작 규칙",
   logos: "로고 관리",
-  source: "소스 보관실",
-  cookie: "쿠키완료실",
   unreleased: "미공개 영상실",
   "unreleased-ko": "미공개 영상실 · 한국어",
   "unreleased-en": "미공개 영상실 · 영어",
-  public: "공개 영상실",
   watch: "영상보기",
   mailbox: "손님 의견",
 };
@@ -78,7 +79,7 @@ export const DEFAULT_CLINIC: ClinicHeaderCopy = {
   eyebrow: "관리자실 · 진료실",
   title: "관리자실을 칸으로 나눴어요",
   intro:
-    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·소스 보관실·쿠키완료실·미공개 영상실·공개 영상실·영상보기·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
+    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·미공개 영상실·영상보기·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
   logoutLabel: "나가기",
   homeLinkLabel: "거실로 돌아가기",
   editOpenLabel: "글 고치기",
@@ -153,45 +154,12 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     builtIn: true,
   },
   {
-    id: "door-source",
-    number: "5",
-    title: "소스 보관실",
-    body: "쿠키 영상에 쓸 사진·동영상을 모아 둬요.",
-    note: "제작 전 자료",
-    href: "/admin/source",
-    kind: "link",
-    groupId: "",
-    builtIn: true,
-  },
-  {
-    id: "door-cookie",
-    number: "6",
-    title: "쿠키완료실",
-    body: "쓴 소스를 옮겨 두고, 영상 제목을 붙여 보관해요.",
-    note: "재사용 방지",
-    href: "/admin/cookie",
-    kind: "link",
-    groupId: "",
-    builtIn: true,
-  },
-  {
     id: "door-unreleased",
     number: "7",
     title: "미공개 영상실",
     body: "만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 둬요. 한국어·영어를 따로 열어요.",
     note: "한국어 · 영어",
     href: "/admin/unreleased",
-    kind: "link",
-    groupId: "",
-    builtIn: true,
-  },
-  {
-    id: "door-public",
-    number: "8",
-    title: "공개 영상실",
-    body: "유튜브에 공개한 뒤의 원본과 제목을 모아 둬요.",
-    note: "공개한 원본",
-    href: "/admin/public",
     kind: "link",
     groupId: "",
     builtIn: true,
@@ -247,19 +215,6 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
       "공식 로고에 일련번호를 붙여 모아 두는 방이에요. 번호를 정하고, 나중에 고쳐도 돼요.",
     empty: "아직 넣어 둔 로고가 없어요.",
   },
-  source: {
-    eyebrow: "관리자실 · 5번 칸",
-    title: "소스 보관실",
-    intro: "앞으로 쿠키 영상에 쓸 사진·동영상을 모아 두는 방이에요.",
-    empty: "아직 넣어 둔 사진·동영상이 없어요.",
-  },
-  cookie: {
-    eyebrow: "관리자실 · 6번 칸",
-    title: "쿠키완료실",
-    intro:
-      "쿠키 영상에 이미 쓴 소스를 옮겨 두는 방이에요. 같은 자료를 다시 쓰지 않도록 영상 제목과 함께 보관해요.",
-    empty: "아직 옮긴 자료가 없어요.",
-  },
   unreleased: {
     eyebrow: "관리자실 · 7번 칸",
     title: "미공개 영상실",
@@ -280,12 +235,6 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     intro:
       "영어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.",
     empty: "아직 넣어 둔 영어 미공개 영상이 없어요.",
-  },
-  public: {
-    eyebrow: "관리자실 · 8번 칸",
-    title: "공개 영상실",
-    intro: "유튜브에 공개한 뒤의 원본과 제목을 모아 두는 방이에요.",
-    empty: "아직 넣어 둔 공개 영상이 없어요.",
   },
   watch: {
     eyebrow: "관리자실 · 9번 칸",
@@ -401,10 +350,19 @@ export function normalizeAdminCopyStore(
   if (!raw) return defaults;
 
   const clinicRaw = (raw.clinic ?? {}) as Partial<ClinicHeaderCopy>;
+  let clinicIntro = asString(clinicRaw.intro, defaults.clinic.intro);
+  // 지운 방 이름이 예전 안내 글에 남아 있으면 새 안내로 맞춤
+  if (
+    clinicIntro.includes("소스 보관실") ||
+    clinicIntro.includes("쿠키완료실") ||
+    clinicIntro.includes("공개 영상실")
+  ) {
+    clinicIntro = defaults.clinic.intro;
+  }
   const clinic: ClinicHeaderCopy = {
     eyebrow: asString(clinicRaw.eyebrow, defaults.clinic.eyebrow),
     title: asString(clinicRaw.title, defaults.clinic.title),
-    intro: asString(clinicRaw.intro, defaults.clinic.intro),
+    intro: clinicIntro,
     logoutLabel: asString(clinicRaw.logoutLabel, defaults.clinic.logoutLabel),
     homeLinkLabel: asString(
       clinicRaw.homeLinkLabel,
@@ -427,6 +385,7 @@ export function normalizeAdminCopyStore(
   for (const item of doorsRaw) {
     const normalized = normalizeDoor(item, defaultById.get(item.id));
     if (!normalized || seen.has(normalized.id)) continue;
+    if (REMOVED_DOOR_IDS.has(normalized.id)) continue;
     seen.add(normalized.id);
     doors.push(migrateBuiltInDoor(normalized, defaultById.get(normalized.id)));
   }

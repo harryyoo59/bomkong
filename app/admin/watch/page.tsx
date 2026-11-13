@@ -23,9 +23,6 @@ export default async function AdminWatchPage() {
         <WatchVideoRoom />
       </section>
       <div className="vault-nav-row">
-        <Link className="btn btn-soft" href="/admin/public">
-          공개 영상실
-        </Link>
         <Link className="btn btn-soft" href="/admin">
           관리자실
         </Link>
