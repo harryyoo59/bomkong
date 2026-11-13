@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
+  buildYoutubePlayQueueUrl,
   extractYoutubeVideoId,
   readWatchMediaStore,
   watchSlotLabel,
@@ -61,7 +61,10 @@ export function WatchLobbyList() {
     <>
       <ul className="ep-list">
         {ordered.map(({ item, isResume }) => {
-          const canPlay = Boolean(extractYoutubeVideoId(item.youtubeUrl));
+          const queueUrl = buildYoutubePlayQueueUrl(items, item.id);
+          const canPlay = Boolean(
+            queueUrl && extractYoutubeVideoId(item.youtubeUrl),
+          );
           const slot = watchSlotLabel(item);
           return (
             <li
@@ -95,14 +98,16 @@ export function WatchLobbyList() {
                 ) : null}
               </div>
               <div className="ep-actions">
-                {canPlay ? (
-                  <Link
+                {canPlay && queueUrl ? (
+                  <a
                     className="btn btn-primary"
-                    href={`/watch/${encodeURIComponent(item.id)}`}
+                    href={queueUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     onClick={() => markOpened(item.id)}
                   >
-                    보기
-                  </Link>
+                    유튜브에서 보기
+                  </a>
                 ) : (
                   <span
                     className="btn btn-soft is-disabled"
