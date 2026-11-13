@@ -77,7 +77,10 @@ export function WatchLobbyList() {
                 <div className="ep-head">
                   <span className="ep-num">{slot}</span>
                   {isResume ? (
-                    <span className="badge badge-resume">이어볼 영상</span>
+                    <span className="resume-mark" aria-label="이어볼 영상">
+                      <span className="resume-signal" aria-hidden="true" />
+                      <span className="badge badge-resume">이어볼 영상</span>
+                    </span>
                   ) : (
                     <span className="badge badge-free">
                       {item.lang === "en" ? "영어" : "한국어"}
