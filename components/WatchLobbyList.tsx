@@ -58,16 +58,6 @@ export function WatchLobbyList() {
 
   return (
     <>
-      {resumeId ? (
-        <p className="muted tiny watch-resume-hint" role="status">
-          지난번에 본 영상부터 이어서 나와요. 한 편이 끝나면 같은 번호 영어, 없으면
-          다음 번호로 가요. 끝까지 가면 첫 영상부터 다시예요.
-        </p>
-      ) : (
-        <p className="muted tiny watch-resume-hint" role="status">
-          순서: 1-ko → 1-en → 2-ko → 2-en … 영어가 없으면 다음 번호로 가요.
-        </p>
-      )}
       <ul className="ep-list">
         {ordered.map(({ item, isResume }) => {
           const youtubeHref = resolveYoutubeWatchUrl(item.youtubeUrl);
