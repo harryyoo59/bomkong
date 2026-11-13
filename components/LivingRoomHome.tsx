@@ -15,6 +15,7 @@ import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
 import {
   buildYoutubePlayQueueUrl,
   getWatchItemById,
+  openYoutubePlayQueue,
   readWatchMediaStore,
 } from "@/lib/watch-media";
 import {
@@ -363,7 +364,7 @@ export function LivingRoomHome({
         watchItem.id,
       );
       if (queueUrl) {
-        window.open(queueUrl, "_blank", "noopener,noreferrer");
+        openYoutubePlayQueue(queueUrl);
         return;
       }
     }
