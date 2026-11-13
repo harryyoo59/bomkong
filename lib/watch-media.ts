@@ -118,13 +118,13 @@ export function suggestWatchSlotAfterAdd(
   return suggestNextWatchSlot(items);
 }
 
-/** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */
-export function resolveYoutubeWatchUrl(raw: string): string | null {
+/** 유튜브 영상 아이디만 뽑음. 못 찾으면 null */
+export function extractYoutubeVideoId(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
   if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
-    return `https://www.youtube.com/watch?v=${trimmed}`;
+    return trimmed;
   }
 
   try {
@@ -137,7 +137,7 @@ export function resolveYoutubeWatchUrl(raw: string): string | null {
     if (host === "youtu.be") {
       const id = u.pathname.split("/").filter(Boolean)[0];
       if (id && /^[a-zA-Z0-9_-]{6,}$/.test(id)) {
-        return `https://www.youtube.com/watch?v=${id}`;
+        return id;
       }
     }
 
@@ -149,19 +149,30 @@ export function resolveYoutubeWatchUrl(raw: string): string | null {
     ) {
       const v = u.searchParams.get("v");
       if (v && /^[a-zA-Z0-9_-]{6,}$/.test(v)) {
-        return `https://www.youtube.com/watch?v=${v}`;
+        return v;
       }
       const pathMatch = u.pathname.match(
         /\/(?:shorts|embed|live|v)\/([a-zA-Z0-9_-]+)/,
       );
-      if (pathMatch?.[1]) {
-        return `https://www.youtube.com/watch?v=${pathMatch[1]}`;
+      if (pathMatch?.[1] && /^[a-zA-Z0-9_-]{6,}$/.test(pathMatch[1])) {
+        return pathMatch[1];
       }
     }
   } catch {
-    /* 아래 예외 처리 */
+    /* ignore */
   }
 
+  return null;
+}
+
+/** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */
+export function resolveYoutubeWatchUrl(raw: string): string | null {
+  const id = extractYoutubeVideoId(raw);
+  if (id) {
+    return `https://www.youtube.com/watch?v=${id}`;
+  }
+
+  const trimmed = raw.trim();
   if (
     /^https?:\/\//i.test(trimmed) &&
     /youtu\.?be/i.test(trimmed)

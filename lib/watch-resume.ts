@@ -1,4 +1,5 @@
 import {
+  extractYoutubeVideoId,
   sortWatchItemsForPlay,
   type WatchItem,
 } from "@/lib/watch-media";
@@ -131,4 +132,25 @@ export function nextWatchItemAfter(
   if (nextNumber) return nextNumber;
 
   return ordered[0] ?? null;
+}
+
+/**
+ * 유튜브 주소가 있는 다음 영상.
+ * 주소 없는 칸은 건너뛰고, 한 바퀴 돌아 자기 자신만 남으면 null.
+ */
+export function nextPlayableWatchItemAfter(
+  items: WatchItem[],
+  currentId: string,
+): WatchItem | null {
+  const ordered = sortWatchItemsForPlay(items);
+  if (ordered.length <= 1) return null;
+
+  let cursor = currentId;
+  for (let step = 0; step < ordered.length; step += 1) {
+    const next = nextWatchItemAfter(ordered, cursor);
+    if (!next || next.id === currentId) return null;
+    if (extractYoutubeVideoId(next.youtubeUrl)) return next;
+    cursor = next.id;
+  }
+  return null;
 }

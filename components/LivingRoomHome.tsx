@@ -12,10 +12,7 @@ import {
 } from "react";
 import { GuardianGate } from "@/components/GuardianGate";
 import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
-import {
-  getWatchItemById,
-  resolveYoutubeWatchUrl,
-} from "@/lib/watch-media";
+import { getWatchItemById } from "@/lib/watch-media";
 import {
   clearWatchProgress,
   readWatchProgress,
@@ -355,11 +352,9 @@ export function LivingRoomHome({
   const onResume = () => {
     if (!progress) return;
     const watchItem = getWatchItemById(progress.episodeId);
-    const youtubeHref = watchItem
-      ? resolveYoutubeWatchUrl(watchItem.youtubeUrl)
-      : null;
-    if (youtubeHref) {
-      window.open(youtubeHref, "_blank", "noopener,noreferrer");
+    if (watchItem) {
+      // 사이트 안에서 이어서 보고, 끝나면 다음 편으로 자동 연결
+      router.push(`/watch/${encodeURIComponent(watchItem.id)}`);
       return;
     }
     router.push(watchHref(progress, true));
