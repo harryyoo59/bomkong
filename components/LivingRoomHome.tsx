@@ -248,86 +248,90 @@ export function LivingRoomHome({
     });
   }, [progress, reduceMotion]);
 
-  // 로비 스토리: 미리 만든 6살 봄이 / 4살 콩이 목소리로 한 문장씩 (자막 없음)
-  useEffect(() => {
-    const token = ++speakTokenRef.current;
-    const stopStoryVoice = () => {
-      const a = storyAudioRef.current;
-      if (a) {
-        a.onended = null;
-        a.onerror = null;
-        a.pause();
-        a.removeAttribute("src");
+  const stopStoryVoiceNow = useCallback(() => {
+    speakTokenRef.current += 1;
+    const a = storyAudioRef.current;
+    if (a) {
+      a.onended = null;
+      a.onerror = null;
+      a.pause();
+      a.removeAttribute("src");
+      try {
         a.load();
-        storyAudioRef.current = null;
+      } catch {
+        /* ignore */
       }
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-      }
-    };
-
-    if (!playing || reduceMotion || guardianFor) {
-      stopStoryVoice();
-      return () => {
-        speakTokenRef.current += 1;
-        stopStoryVoice();
-      };
+      storyAudioRef.current = null;
     }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+  }, []);
 
-    const advance = () => {
-      if (speakTokenRef.current !== token) return;
-      setBeatIndex((i) => (i + 1) % beatCount);
-    };
-
-    stopStoryVoice();
-
-    const audio = new Audio(beat.audioSrc);
-    audio.preload = "auto";
-    storyAudioRef.current = audio;
-    audio.onended = () => {
-      if (speakTokenRef.current !== token) return;
-      setTimeout(advance, 220);
-    };
-    audio.onerror = () => {
-      if (speakTokenRef.current !== token) return;
-      // 파일이 안 되면 예전처럼 말하기로 잠깐 대체
-      if (!("speechSynthesis" in window)) {
-        setTimeout(advance, 700);
-        return;
-      }
-      const utter = new SpeechSynthesisUtterance(beat.speak);
-      utter.lang = "ko-KR";
-      utter.pitch = beat.speaker === "kongi" ? 1.35 : 1.9;
-      utter.rate = beat.speaker === "kongi" ? 0.95 : 1.1;
-      utter.onend = () => {
+  // 버튼 누른 직후(사용자 제스처)에서 재생해야 폰에서 소리가 남
+  const playStoryFrom = useCallback(
+    (startIndex: number) => {
+      const token = ++speakTokenRef.current;
+      const playOne = (index: number) => {
         if (speakTokenRef.current !== token) return;
-        setTimeout(advance, 220);
-      };
-      utter.onerror = () => {
-        if (speakTokenRef.current !== token) return;
-        setTimeout(advance, 700);
-      };
-      window.speechSynthesis.speak(utter);
-    };
-    void audio.play().catch(() => {
-      if (speakTokenRef.current !== token) return;
-      setTimeout(advance, 700);
-    });
+        const nextBeat = LIVING_ROOM_BEATS[index] ?? LIVING_ROOM_BEATS[0];
+        setBeatIndex(index);
 
-    return () => {
-      speakTokenRef.current += 1;
-      stopStoryVoice();
-    };
-  }, [
-    playing,
-    reduceMotion,
-    guardianFor,
-    beatIndex,
-    beat.audioSrc,
-    beat.speak,
-    beat.speaker,
-    beatCount,
-  ]);
+        const advance = () => {
+          if (speakTokenRef.current !== token) return;
+          playOne((index + 1) % beatCount);
+        };
+
+        const speakFallback = () => {
+          if (speakTokenRef.current !== token) return;
+          if (!("speechSynthesis" in window)) {
+            setTimeout(advance, 700);
+            return;
+          }
+          const utter = new SpeechSynthesisUtterance(nextBeat.speak);
+          utter.lang = "ko-KR";
+          // 최후 수단: 그래도 아이처럼 높게
+          utter.pitch = nextBeat.speaker === "kongi" ? 1.4 : 2;
+          utter.rate = nextBeat.speaker === "kongi" ? 0.96 : 1.12;
+          utter.onend = () => {
+            if (speakTokenRef.current !== token) return;
+            setTimeout(advance, 220);
+          };
+          utter.onerror = () => {
+            if (speakTokenRef.current !== token) return;
+            setTimeout(advance, 700);
+          };
+          window.speechSynthesis.speak(utter);
+        };
+
+        const prev = storyAudioRef.current;
+        if (prev) {
+          prev.onended = null;
+          prev.onerror = null;
+          prev.pause();
+        }
+
+        const audio = new Audio(nextBeat.audioSrc);
+        audio.preload = "auto";
+        storyAudioRef.current = audio;
+        audio.onended = () => {
+          if (speakTokenRef.current !== token) return;
+          setTimeout(advance, 220);
+        };
+        audio.onerror = () => speakFallback();
+        void audio.play().catch(() => speakFallback());
+      };
+
+      playOne(startIndex);
+    },
+    [beatCount],
+  );
+
+  useEffect(() => {
+    if (!playing || reduceMotion || guardianFor) {
+      stopStoryVoiceNow();
+    }
+  }, [playing, reduceMotion, guardianFor, stopStoryVoiceNow]);
 
   const storyClass = (target: LivingStoryTarget) =>
     storyTarget === target ? " is-story-lit" : "";
@@ -368,24 +372,8 @@ export function LivingRoomHome({
     router.push(firstWatchHref || "/episodes");
   };
 
-  const stopStoryVoiceNow = () => {
-    const a = storyAudioRef.current;
-    if (a) {
-      a.onended = null;
-      a.onerror = null;
-      a.pause();
-      a.removeAttribute("src");
-      a.load();
-      storyAudioRef.current = null;
-    }
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
-  };
-
   const togglePlay = () => {
     const v = roomVideoRef.current;
-    stopStoryVoiceNow();
     if (reduceMotion) {
       setReduceMotion(false);
       if (v) {
@@ -394,27 +382,25 @@ export function LivingRoomHome({
         v.volume = 0;
         void v.play().catch(() => setPlaying(false));
       }
-      setBeatIndex(0);
       setPlaying(true);
+      // 재생 버튼 누른 직후라서 폰에서도 아이 목소리가 바로 남
+      playStoryFrom(0);
       return;
     }
-    setPlaying((p) => {
-      const next = !p;
-      if (v) {
-        if (next) {
-          v.muted = true;
-          v.defaultMuted = true;
-          v.volume = 0;
-          void v.play().catch(() => setPlaying(false));
-          setBeatIndex(0);
-        } else {
-          v.pause();
-        }
-      } else if (next) {
-        setBeatIndex(0);
-      }
-      return next;
-    });
+    if (playing) {
+      if (v) v.pause();
+      setPlaying(false);
+      stopStoryVoiceNow();
+      return;
+    }
+    if (v) {
+      v.muted = true;
+      v.defaultMuted = true;
+      v.volume = 0;
+      void v.play().catch(() => setPlaying(false));
+    }
+    setPlaying(true);
+    playStoryFrom(0);
   };
 
   const leaveSite = () => {
