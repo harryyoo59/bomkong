@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
+  extractYoutubeVideoId,
   readWatchMediaStore,
-  resolveYoutubeWatchUrl,
   watchSlotLabel,
   type WatchItem,
 } from "@/lib/watch-media";
@@ -60,7 +61,7 @@ export function WatchLobbyList() {
     <>
       <ul className="ep-list">
         {ordered.map(({ item, isResume }) => {
-          const youtubeHref = resolveYoutubeWatchUrl(item.youtubeUrl);
+          const canPlay = Boolean(extractYoutubeVideoId(item.youtubeUrl));
           const slot = watchSlotLabel(item);
           return (
             <li
@@ -87,23 +88,21 @@ export function WatchLobbyList() {
                     {item.note}
                   </p>
                 ) : null}
-                {!youtubeHref ? (
+                {!canPlay ? (
                   <p className="muted tiny" role="status">
                     유튜브 주소 없음
                   </p>
                 ) : null}
               </div>
               <div className="ep-actions">
-                {youtubeHref ? (
-                  <a
+                {canPlay ? (
+                  <Link
                     className="btn btn-primary"
-                    href={youtubeHref}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    href={`/watch/${encodeURIComponent(item.id)}`}
                     onClick={() => markOpened(item.id)}
                   >
-                    유튜브에서 보기
-                  </a>
+                    보기
+                  </Link>
                 ) : (
                   <span
                     className="btn btn-soft is-disabled"

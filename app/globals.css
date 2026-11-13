@@ -531,6 +531,29 @@ span.btn.is-disabled {
   gap: 14px;
 }
 
+.watch-player-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.yt-embed-wrap {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #102028;
+  box-shadow: var(--shadow);
+}
+
+.yt-embed-host,
+.yt-embed-host iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 0;
+  background: #102028;
+}
+
 .lang-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
