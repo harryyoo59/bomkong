@@ -290,9 +290,9 @@ export function LivingRoomHome({
           }
           const utter = new SpeechSynthesisUtterance(nextBeat.speak);
           utter.lang = "ko-KR";
-          // 최후 수단: 그래도 아이처럼 높게
-          utter.pitch = nextBeat.speaker === "kongi" ? 1.4 : 2;
-          utter.rate = nextBeat.speaker === "kongi" ? 0.96 : 1.12;
+          // 최후 수단: 살짝만 밝게 (과하면 이상해짐)
+          utter.pitch = nextBeat.speaker === "kongi" ? 1.15 : 1.35;
+          utter.rate = nextBeat.speaker === "kongi" ? 1.0 : 1.08;
           utter.onend = () => {
             if (speakTokenRef.current !== token) return;
             setTimeout(advance, 220);
