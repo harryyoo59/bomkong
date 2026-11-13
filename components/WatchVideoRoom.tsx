@@ -14,6 +14,7 @@ import {
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
+  sortWatchItemsNewestFirst,
   suggestNextWatchSlot,
   suggestWatchSlotAfterAdd,
   watchSlotLabel,
@@ -234,6 +235,9 @@ export function WatchVideoRoom() {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
 
+  // 관리자 화면만 최신이 위 · 아이 재생 순서는 그대로 1-ko → 1-en …
+  const adminList = sortWatchItemsNewestFirst(items);
+
   return (
     <div className="admin-wrap">
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
@@ -333,14 +337,14 @@ export function WatchVideoRoom() {
       <section>
         <h2 className="section-title">거실에 보이는 영상</h2>
         <p className="muted tiny">
-          이 기기에만 기억해요. 비어 있으면 거실에도 빈 화면이 나와요. 위에서부터
-          1-ko → 1-en → 2-ko 순으로 이어져요.
+          이 기기에만 기억해요. 여기는 나중에 넣은 영상이 위에 나와요. 아이들이
+          보는 재생 순서는 그대로 1-ko → 1-en → 2-ko → 2-en 이에요.
         </p>
-        {items.length === 0 ? (
+        {adminList.length === 0 ? (
           <AdminEmptyText roomKey="watch" />
         ) : (
           <ul className="admin-ep-list">
-            {items.map((item) => {
+            {adminList.map((item) => {
               const resolved = resolveYoutubeWatchUrl(item.youtubeUrl);
               const slot = watchSlotLabel(item);
               return (
