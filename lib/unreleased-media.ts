@@ -84,7 +84,15 @@ export function writeUnreleasedMediaStore(
   store: UnreleasedMediaStore,
 ): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEYS[lang], JSON.stringify(store));
+  try {
+    window.localStorage.setItem(STORAGE_KEYS[lang], JSON.stringify(store));
+  } catch (err) {
+    const reason =
+      err instanceof Error && /quota/i.test(err.message)
+        ? "이 기기 저장 공간이 가득 찼어요. 목록을 조금 비운 뒤 다시 해 주세요."
+        : "이 기기에 목록을 저장하지 못했어요. 시크릿(개인) 모드인지 확인해 주세요.";
+    throw new Error(reason);
+  }
 }
 
 export function makeUnreleasedId(): string {

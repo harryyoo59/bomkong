@@ -702,6 +702,17 @@ span.btn.is-disabled {
   padding: 11px 12px;
   background: white;
   font-weight: 600;
+  /* 아이폰에서 입력칸이 작으면 확대·포커스가 꼬일 수 있어 16px 유지 */
+  font-size: 16px;
+  line-height: 1.35;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+.admin-form input:disabled,
+.admin-form select:disabled,
+.admin-form textarea:disabled {
+  opacity: 0.65;
 }
 
 /* Admin upload: two fields side-by-side (div.form-row). */
@@ -2073,6 +2084,10 @@ label.form-row textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 14px;
+}
+
+.unreleased-en-door {
+  outline: 2px solid rgba(47, 128, 237, 0.22);
 }
 
 .unreleased-lang-switch {

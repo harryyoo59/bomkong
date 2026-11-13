@@ -65,11 +65,31 @@ export function UnreleasedVideoRoom({ lang }: Props) {
   const [uploading, setUploading] = useState(false);
   const [uploadPct, setUploadPct] = useState(0);
   const [lastUploadUrl, setLastUploadUrl] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const isEnglish = lang === "en";
+  const titlePlaceholder = isEnglish
+    ? "예: Ball play at the park"
+    : "예: 공원에서 공 놀이";
+  const notePlaceholder = isEnglish
+    ? "예: Check captions before upload"
+    : "예: 올리기 전에 자막만 더 볼 것";
+  const videoAccept =
+    "video/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm";
 
   useEffect(() => {
     const store = readUnreleasedMediaStore(lang);
     setItems(store.items);
     setReady(true);
+    // 한국어↔영어 방 바꿀 때 입력칸·파일 선택을 비움 (이전 방 내용이 남지 않게)
+    setTitle("");
+    setNote("");
+    setPendingFile(null);
+    setFileLabel("");
+    setMessage("");
+    setMoveId(null);
+    setShortsId(null);
+    setFormKey((k) => k + 1);
   }, [lang]);
 
   useEffect(() => {
@@ -123,17 +143,25 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     const file = fileList[0];
     setPendingFile(file);
     setFileLabel(file.name);
+    setMessage("");
   }
 
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
+    if (adding) return;
     if (!pendingFile) {
-      setMessage("완성된 동영상 파일을 먼저 골라 주세요.");
+      setMessage(
+        isEnglish
+          ? "Pick the finished English video file first."
+          : "완성된 동영상 파일을 먼저 골라 주세요.",
+      );
       return;
     }
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      setMessage("영상 제목을 적어 주세요.");
+      setMessage(
+        isEnglish ? "Please enter a video title." : "영상 제목을 적어 주세요.",
+      );
       return;
     }
     const item: UnreleasedItem = {
@@ -144,27 +172,44 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       addedAt: new Date().toISOString(),
       youtubeStatus: "not_uploaded",
     };
+    setAdding(true);
     let previewOk = true;
     try {
-      await saveMediaPreview(item.id, pendingFile, "video");
-    } catch {
-      previewOk = false;
+      try {
+        await saveMediaPreview(item.id, pendingFile, "video");
+      } catch {
+        previewOk = false;
+      }
+      persist([item, ...items]);
+      setPreviewTicks((prev) => ({
+        ...prev,
+        [item.id]: (prev[item.id] ?? 0) + 1,
+      }));
+      setMessage(
+        previewOk
+          ? isEnglish
+            ? `Saved “${item.title}” in Unreleased (English). Preview is on the side.`
+            : `「${item.title}」을(를) 미공개 영상실(${langLabel})에 넣었어요. 옆에 미리보기가 보여요.`
+          : isEnglish
+            ? `Added to the list, but preview failed. Use “Attach preview file” again.`
+            : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
+      );
+      setTitle("");
+      setNote("");
+      setPendingFile(null);
+      setFileLabel("");
+      setFormKey((k) => k + 1);
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : isEnglish
+            ? "Could not save. Please try again."
+            : "저장하지 못했어요. 다시 해 주세요.",
+      );
+    } finally {
+      setAdding(false);
     }
-    persist([item, ...items]);
-    setPreviewTicks((prev) => ({
-      ...prev,
-      [item.id]: (prev[item.id] ?? 0) + 1,
-    }));
-    setMessage(
-      previewOk
-        ? `「${item.title}」을(를) 미공개 영상실(${langLabel})에 넣었어요. 옆에 미리보기가 보여요.`
-        : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
-    );
-    setTitle("");
-    setNote("");
-    setPendingFile(null);
-    setFileLabel("");
-    setFormKey((k) => k + 1);
   }
 
   async function onRemove(id: string) {
@@ -336,47 +381,70 @@ export function UnreleasedVideoRoom({ lang }: Props) {
         </Link>
       </div>
 
-      <form key={formKey} className="admin-form" onSubmit={onAdd}>
+      <form key={`${lang}-${formKey}`} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          {langLabel} 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린
-          영상을 모아 두는 방이에요. 파일을 고르면 옆에 작은 미리보기가 이
-          기기에만 저장돼요. 예전에 이름만 넣은 항목은 「미리보기 파일
-          넣기」로 다시 넣어 주세요. 한국어·영어 목록은 서로 섞이지 않아요.
+          {isEnglish
+            ? "English-market videos that are finished but not on YouTube yet. Pick a file, type a title (English OK), then save. Korean and English lists stay separate."
+            : "한국어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요. 파일을 고르면 옆에 작은 미리보기가 이 기기에만 저장돼요. 예전에 이름만 넣은 항목은 「미리보기 파일 넣기」로 다시 넣어 주세요. 한국어·영어 목록은 서로 섞이지 않아요."}
         </p>
 
         <label>
-          완성된 동영상 고르기
+          {isEnglish ? "Pick finished video" : "완성된 동영상 고르기"}
           <input
             type="file"
-            accept="video/*"
+            accept={videoAccept}
             onChange={(e) => onPickFile(e.target.files)}
+            disabled={adding}
           />
           <span className="file-note">
-            {fileLabel ? `선택: ${fileLabel}` : "아직 안 고름"}
+            {fileLabel
+              ? isEnglish
+                ? `Selected: ${fileLabel}`
+                : `선택: ${fileLabel}`
+              : isEnglish
+                ? "No file yet"
+                : "아직 안 고름"}
           </span>
         </label>
 
         <label>
-          영상 제목
+          {isEnglish ? "Video title" : "영상 제목"}
           <input
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="예: 공원에서 공 놀이"
+            placeholder={titlePlaceholder}
+            lang={isEnglish ? "en" : "ko"}
+            autoCapitalize="sentences"
+            autoCorrect="on"
+            enterKeyHint="done"
             required
+            disabled={adding}
           />
         </label>
 
         <label>
-          짧은 메모 (선택)
+          {isEnglish ? "Short note (optional)" : "짧은 메모 (선택)"}
           <input
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="예: 올리기 전에 자막만 더 볼 것"
+            placeholder={notePlaceholder}
+            lang={isEnglish ? "en" : "ko"}
+            disabled={adding}
           />
         </label>
 
-        <button type="submit" className="btn btn-primary btn-wide">
-          미공개({langLabel})에 넣기
+        <button
+          type="submit"
+          className="btn btn-primary btn-wide"
+          disabled={adding}
+        >
+          {adding
+            ? isEnglish
+              ? "Saving…"
+              : "넣는 중…"
+            : isEnglish
+              ? "Add to Unreleased (English)"
+              : `미공개(${langLabel})에 넣기`}
         </button>
       </form>
 
@@ -448,7 +516,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                     <AdminPreviewAttach
                       itemId={item.id}
                       kindHint="video"
-                      accept="video/*"
+                      accept={videoAccept}
                       onMessage={setMessage}
                       onAttached={() =>
                         setPreviewTicks((prev) => ({
@@ -487,7 +555,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                       영상 파일이 없을 때만 · 다시 고르기
                       <input
                         type="file"
-                        accept="video/*"
+                        accept={videoAccept}
                         disabled={uploading}
                         onChange={(e) => {
                           const f = e.target.files?.[0] || null;
