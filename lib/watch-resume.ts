@@ -1,4 +1,7 @@
-import type { WatchItem } from "@/lib/watch-media";
+import {
+  sortWatchItemsForPlay,
+  type WatchItem,
+} from "@/lib/watch-media";
 
 /**
  * 거실 「영상보기」이어보기 자리 — 관리자 9번 목록 기준.
@@ -55,54 +58,77 @@ export function clearWatchResume(): void {
   }
 }
 
-/** 목록에서 이어볼 자리(마지막으로 연 영상)의 원래 순서 번호. 없으면 0 */
+/** 목록에서 이어볼 자리(마지막으로 연 영상)의 재생 순서 번호. 없으면 0 */
 export function findWatchResumeIndex(
   items: WatchItem[],
   lastOpenedId: string | null | undefined,
 ): number {
   if (!lastOpenedId || items.length === 0) return 0;
-  const index = items.findIndex((it) => it.id === lastOpenedId);
+  const ordered = sortWatchItemsForPlay(items);
+  const index = ordered.findIndex((it) => it.id === lastOpenedId);
   return index >= 0 ? index : 0;
 }
 
 /**
  * 이어보기용 순서: 마지막으로 연 영상부터 → 나머지 → 끝나면 첫 영상부터(한 바퀴).
- * 원래 방 순번(originalIndex)은 관리자 9번 목록 그대로.
+ * 기본 재생 순서는 1-ko → 1-en → 2-ko → 2-en …
  */
 export function orderWatchItemsForResume(
   items: WatchItem[],
   lastOpenedId: string | null | undefined,
-): { item: WatchItem; originalIndex: number; isResume: boolean }[] {
-  if (items.length === 0) return [];
+): { item: WatchItem; playIndex: number; isResume: boolean }[] {
+  const ordered = sortWatchItemsForPlay(items);
+  if (ordered.length === 0) return [];
   const foundIndex =
     lastOpenedId && lastOpenedId.trim()
-      ? items.findIndex((it) => it.id === lastOpenedId)
+      ? ordered.findIndex((it) => it.id === lastOpenedId)
       : -1;
   const start = foundIndex >= 0 ? foundIndex : 0;
   const hasResume = foundIndex >= 0;
-  const ordered: {
+  const rotated: {
     item: WatchItem;
-    originalIndex: number;
+    playIndex: number;
     isResume: boolean;
   }[] = [];
-  for (let offset = 0; offset < items.length; offset += 1) {
-    const originalIndex = (start + offset) % items.length;
-    ordered.push({
-      item: items[originalIndex],
-      originalIndex,
+  for (let offset = 0; offset < ordered.length; offset += 1) {
+    const playIndex = (start + offset) % ordered.length;
+    rotated.push({
+      item: ordered[playIndex],
+      playIndex,
       isResume: offset === 0 && hasResume,
     });
   }
-  return ordered;
+  return rotated;
 }
 
-/** 지금 영상 다음(없으면 첫 영상). 목록이 비면 null */
+/**
+ * 지금 영상 다음:
+ * - 한국어면 같은 번호 영어(있으면)
+ * - 영어 없거나 영어를 봤으면 다음 번호(있으면 그 번호의 한국어부터)
+ * - 끝이면 첫 영상으로
+ */
 export function nextWatchItemAfter(
   items: WatchItem[],
   currentId: string,
 ): WatchItem | null {
-  if (items.length === 0) return null;
-  const index = items.findIndex((it) => it.id === currentId);
-  if (index < 0) return items[0] ?? null;
-  return items[(index + 1) % items.length] ?? null;
+  const ordered = sortWatchItemsForPlay(items);
+  if (ordered.length === 0) return null;
+  const index = ordered.findIndex((it) => it.id === currentId);
+  if (index < 0) return ordered[0] ?? null;
+
+  const current = ordered[index];
+  if (current.lang === "ko") {
+    const sameEn = ordered.find(
+      (it) =>
+        it.episodeNumber === current.episodeNumber && it.lang === "en",
+    );
+    if (sameEn) return sameEn;
+  }
+
+  const nextNumber = ordered.find(
+    (it) => it.episodeNumber > current.episodeNumber,
+  );
+  if (nextNumber) return nextNumber;
+
+  return ordered[0] ?? null;
 }
