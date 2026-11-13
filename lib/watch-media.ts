@@ -43,9 +43,18 @@ export function compareWatchPlayOrder(a: WatchItem, b: WatchItem): number {
   return a.lang === "ko" ? -1 : 1;
 }
 
-/** 재생·목록 공통 순서: 1-ko → 1-en → 2-ko → 2-en … */
+/** 재생·손님 목록 순서: 1-ko → 1-en → 2-ko → 2-en … */
 export function sortWatchItemsForPlay(items: WatchItem[]): WatchItem[] {
   return [...items].sort(compareWatchPlayOrder);
+}
+
+/** 관리자 목록용: 나중에 넣은 것이 위로 (스크롤 줄이기) */
+export function sortWatchItemsNewestFirst(items: WatchItem[]): WatchItem[] {
+  return [...items].sort((a, b) => {
+    const byTime = b.addedAt.localeCompare(a.addedAt);
+    if (byTime !== 0) return byTime;
+    return b.id.localeCompare(a.id);
+  });
 }
 
 export function findWatchSlot(
