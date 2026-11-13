@@ -28,7 +28,8 @@ export function WatchVideoRoom() {
   const [title, setTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [note, setNote] = useState("");
-  const [episodeNumber, setEpisodeNumber] = useState(1);
+  /** 글자로 둬서 지울 때 빈칸이 되게 함 (숫자면 지우자마자 1로 고정됨) */
+  const [episodeNumberText, setEpisodeNumberText] = useState("1");
   const [lang, setLang] = useState<WatchLang>("ko");
   const [fileLabel, setFileLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -36,7 +37,7 @@ export function WatchVideoRoom() {
   const [formKey, setFormKey] = useState(0);
   const [editUrls, setEditUrls] = useState<Record<string, string>>({});
   const [editSlots, setEditSlots] = useState<
-    Record<string, { episodeNumber: number; lang: WatchLang }>
+    Record<string, { episodeNumberText: string; lang: WatchLang }>
   >({});
   const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
     {},
@@ -50,7 +51,10 @@ export function WatchVideoRoom() {
       Object.fromEntries(
         list.map((it) => [
           it.id,
-          { episodeNumber: it.episodeNumber, lang: it.lang },
+          {
+            episodeNumberText: String(it.episodeNumber),
+            lang: it.lang,
+          },
         ]),
       ),
     );
@@ -60,7 +64,7 @@ export function WatchVideoRoom() {
     const store = readWatchMediaStore();
     setItems(store.items);
     const nextSlot = suggestNextWatchSlot(store.items);
-    setEpisodeNumber(nextSlot.episodeNumber);
+    setEpisodeNumberText(String(nextSlot.episodeNumber));
     setLang(nextSlot.lang);
     syncEditors(store.items);
     setReady(true);
@@ -91,7 +95,7 @@ export function WatchVideoRoom() {
       setMessage("영상 제목을 적어 주세요.");
       return;
     }
-    const num = Math.floor(Number(episodeNumber));
+    const num = Math.floor(Number(episodeNumberText.trim()));
     if (!Number.isFinite(num) || num < 1) {
       setMessage("편 번호는 1 이상으로 적어 주세요.");
       return;
@@ -151,7 +155,7 @@ export function WatchVideoRoom() {
     setFileLabel("");
     // 한국어 넣었으면 같은 번호 영어가 다음 · 영어까지 넣었으면 다음 번호 한국어
     const nextSlot = suggestWatchSlotAfterAdd(next, item);
-    setEpisodeNumber(nextSlot.episodeNumber);
+    setEpisodeNumberText(String(nextSlot.episodeNumber));
     setLang(nextSlot.lang);
     setFormKey((k) => k + 1);
   }
@@ -162,15 +166,15 @@ export function WatchVideoRoom() {
       // 영어면: 한국어만 있는 편 번호를 우선 (같은 짝)
       const slot = suggestNextWatchSlot(items);
       if (slot.lang === "en") {
-        setEpisodeNumber(slot.episodeNumber);
+        setEpisodeNumberText(String(slot.episodeNumber));
       }
     }
   }
 
-  function onSaveSlot(id: string, nextNumber: number, nextLang: WatchLang) {
+  function onSaveSlot(id: string, nextNumberText: string, nextLang: WatchLang) {
     const target = items.find((it) => it.id === id);
     if (!target) return;
-    const num = Math.floor(Number(nextNumber));
+    const num = Math.floor(Number(nextNumberText.trim()));
     if (!Number.isFinite(num) || num < 1) {
       setMessage("편 번호는 1 이상으로 적어 주세요.");
       return;
@@ -219,7 +223,7 @@ export function WatchVideoRoom() {
     const next = items.filter((it) => it.id !== id);
     persist(next);
     const nextSlot = suggestNextWatchSlot(next);
-    setEpisodeNumber(nextSlot.episodeNumber);
+    setEpisodeNumberText(String(nextSlot.episodeNumber));
     setLang(nextSlot.lang);
     setMessage(
       `「${target.title}」(${watchSlotLabel(target)})을(를) 목록에서 빼 두었어요.`,
@@ -269,8 +273,9 @@ export function WatchVideoRoom() {
               type="number"
               min={1}
               step={1}
-              value={episodeNumber}
-              onChange={(e) => setEpisodeNumber(Number(e.target.value) || 1)}
+              value={episodeNumberText}
+              onChange={(e) => setEpisodeNumberText(e.target.value)}
+              inputMode="numeric"
               required
             />
           </label>
@@ -286,7 +291,10 @@ export function WatchVideoRoom() {
           </label>
         </div>
         <p className="tiny muted">
-          지금 넣을 자리 · {episodeNumber}-{lang}
+          지금 넣을 자리 ·{" "}
+          {episodeNumberText.trim()
+            ? `${episodeNumberText.trim()}-${lang}`
+            : `(번호 입력)-${lang}`}
           {lang === "en"
             ? " (같은 편 한국어와 짝)"
             : " (다음 영어는 같은 번호로 이어져요)"}
@@ -408,20 +416,20 @@ export function WatchVideoRoom() {
                             min={1}
                             step={1}
                             value={
-                              editSlots[item.id]?.episodeNumber ??
-                              item.episodeNumber
+                              editSlots[item.id]?.episodeNumberText ??
+                              String(item.episodeNumber)
                             }
                             onChange={(e) =>
                               setEditSlots((prev) => ({
                                 ...prev,
                                 [item.id]: {
-                                  episodeNumber:
-                                    Number(e.target.value) || 1,
+                                  episodeNumberText: e.target.value,
                                   lang:
                                     prev[item.id]?.lang ?? item.lang,
                                 },
                               }))
                             }
+                            inputMode="numeric"
                           />
                         </label>
                         <label>
@@ -432,9 +440,9 @@ export function WatchVideoRoom() {
                               setEditSlots((prev) => ({
                                 ...prev,
                                 [item.id]: {
-                                  episodeNumber:
-                                    prev[item.id]?.episodeNumber ??
-                                    item.episodeNumber,
+                                  episodeNumberText:
+                                    prev[item.id]?.episodeNumberText ??
+                                    String(item.episodeNumber),
                                   lang: e.target.value as WatchLang,
                                 },
                               }))
@@ -450,12 +458,12 @@ export function WatchVideoRoom() {
                         className="btn btn-soft"
                         onClick={() => {
                           const slotEdit = editSlots[item.id] ?? {
-                            episodeNumber: item.episodeNumber,
+                            episodeNumberText: String(item.episodeNumber),
                             lang: item.lang,
                           };
                           onSaveSlot(
                             item.id,
-                            slotEdit.episodeNumber,
+                            slotEdit.episodeNumberText,
                             slotEdit.lang,
                           );
                         }}
