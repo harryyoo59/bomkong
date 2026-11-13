@@ -87,11 +87,6 @@ export function WatchLobbyList() {
                 <strong className="ep-title" title={item.title}>
                   {item.title}
                 </strong>
-                {item.note ? (
-                  <p className="muted tiny ep-note" title={item.note}>
-                    {item.note}
-                  </p>
-                ) : null}
                 {!canPlay ? (
                   <p className="muted tiny" role="status">
                     유튜브 주소 없음

@@ -352,8 +352,13 @@ export function readWatchMediaStore(): WatchMediaStore {
           )
           .filter((it): it is WatchItem => Boolean(it))
       : [];
-    const ensured = ensureWatchPlaySlots(items);
-    if (slotsChanged(items, ensured)) {
+    const slotted = ensureWatchPlaySlots(items);
+    const notesCleared = slotted.some((it) => Boolean(it.note));
+    // 짧은 메모는 더 이상 쓰지 않음 · 예전 값도 비움
+    const ensured = notesCleared
+      ? slotted.map((it) => (it.note ? { ...it, note: "" } : it))
+      : slotted;
+    if (slotsChanged(items, ensured) || notesCleared) {
       writeWatchMediaStore({ items: ensured });
     }
     return { items: ensured };
