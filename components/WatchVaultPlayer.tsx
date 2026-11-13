@@ -79,9 +79,6 @@ export function WatchVaultPlayer({
       <section className="panel watch-empty-panel" aria-live="polite">
         <p className="eyebrow">영상보기 · {watchSlotLabel(item)}</p>
         <h1 className="section-title ep-title">{item.title}</h1>
-        {item.note ? (
-          <p className="muted tiny ep-note">{item.note}</p>
-        ) : null}
         {queueUrl ? (
           <>
             <p className="muted">
