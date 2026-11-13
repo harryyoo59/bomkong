@@ -1644,13 +1644,13 @@ label.form-row textarea {
   border: 0;
 }
 
-/* 소파 바깥 등받이 · 영상에 구운 Cham Zone 로고 자리 (떠 있는 이미지 없음) */
+/* 소파 옆 수건 위 · 영상에 구운 Cham Zone 로고 자리 (떠 있는 이미지 없음) */
 .hotspot-sofa-cz {
   position: absolute;
-  left: 79.25%;
-  top: 85.42%;
-  width: 12.15%;
-  height: 13.12%;
+  left: 65.09%;
+  top: 86.67%;
+  width: 7.43%;
+  height: 7.5%;
   display: block;
   border: none;
   padding: 0;
