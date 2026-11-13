@@ -435,11 +435,77 @@ span.btn.is-disabled {
   border-color: #e09a3a;
   background: #fff8ee;
   box-shadow: 0 0 0 2px rgba(224, 154, 58, 0.22);
+  animation: resume-row-blink 1.2s ease-in-out infinite;
+}
+
+.resume-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resume-signal {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e07020;
+  box-shadow: 0 0 0 0 rgba(224, 112, 32, 0.55);
+  animation: resume-dot-blink 1s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 .badge-resume {
   background: #ffe2b8;
   color: #8a4b00;
+  animation: resume-badge-blink 1.2s ease-in-out infinite;
+}
+
+@keyframes resume-row-blink {
+  0%,
+  100% {
+    background: #fff8ee;
+    box-shadow: 0 0 0 2px rgba(224, 154, 58, 0.22);
+  }
+  50% {
+    background: #ffe6c2;
+    box-shadow: 0 0 0 4px rgba(224, 154, 58, 0.55);
+  }
+}
+
+@keyframes resume-dot-blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(224, 112, 32, 0.55);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.25);
+    box-shadow: 0 0 0 8px rgba(224, 112, 32, 0);
+  }
+}
+
+@keyframes resume-badge-blink {
+  0%,
+  100% {
+    background: #ffe2b8;
+  }
+  50% {
+    background: #ffd08a;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ep-row.is-resume,
+  .resume-signal,
+  .badge-resume {
+    animation: none;
+  }
+
+  .resume-signal {
+    opacity: 1;
+  }
 }
 
 .watch-resume-hint {
