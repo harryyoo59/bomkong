@@ -12,7 +12,11 @@ import {
 } from "react";
 import { GuardianGate } from "@/components/GuardianGate";
 import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
-import { getWatchItemById } from "@/lib/watch-media";
+import {
+  buildYoutubePlayQueueUrl,
+  getWatchItemById,
+  readWatchMediaStore,
+} from "@/lib/watch-media";
 import {
   clearWatchProgress,
   readWatchProgress,
@@ -353,9 +357,15 @@ export function LivingRoomHome({
     if (!progress) return;
     const watchItem = getWatchItemById(progress.episodeId);
     if (watchItem) {
-      // 사이트 안에서 이어서 보고, 끝나면 다음 편으로 자동 연결
-      router.push(`/watch/${encodeURIComponent(watchItem.id)}`);
-      return;
+      // 유튜브에서 큰 화면·조회수 · 다음 편까지 이어서
+      const queueUrl = buildYoutubePlayQueueUrl(
+        readWatchMediaStore().items,
+        watchItem.id,
+      );
+      if (queueUrl) {
+        window.open(queueUrl, "_blank", "noopener,noreferrer");
+        return;
+      }
     }
     router.push(watchHref(progress, true));
   };

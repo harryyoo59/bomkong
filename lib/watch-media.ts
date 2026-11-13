@@ -165,6 +165,43 @@ export function extractYoutubeVideoId(raw: string): string | null {
   return null;
 }
 
+/**
+ * 지금 영상부터 재생 순서대로 유튜브 아이디 목록.
+ * 1-ko → 1-en → 2-ko … (주소 없는 칸은 건너뜀)
+ */
+export function collectPlayableYoutubeIdsFrom(
+  items: WatchItem[],
+  startId: string,
+): string[] {
+  const ordered = sortWatchItemsForPlay(items);
+  const start = ordered.findIndex((it) => it.id === startId);
+  if (start < 0) return [];
+
+  const ids: string[] = [];
+  for (let offset = 0; offset < ordered.length; offset += 1) {
+    const it = ordered[(start + offset) % ordered.length];
+    const videoId = extractYoutubeVideoId(it.youtubeUrl);
+    if (videoId) ids.push(videoId);
+  }
+  return ids;
+}
+
+/**
+ * 유튜브에서 지금 편부터 순서대로 이어서 보는 주소.
+ * 조회수·큰 화면용으로 유튜브를 열 때 씀.
+ */
+export function buildYoutubePlayQueueUrl(
+  items: WatchItem[],
+  startId: string,
+): string | null {
+  const ids = collectPlayableYoutubeIdsFrom(items, startId);
+  if (ids.length === 0) return null;
+  if (ids.length === 1) {
+    return `https://www.youtube.com/watch?v=${ids[0]}`;
+  }
+  return `https://www.youtube.com/watch_videos?video_ids=${ids.join(",")}`;
+}
+
 /** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */
 export function resolveYoutubeWatchUrl(raw: string): string | null {
   const id = extractYoutubeVideoId(raw);
