@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
+  watchSlotLabel,
   type WatchItem,
 } from "@/lib/watch-media";
 import {
@@ -59,12 +60,18 @@ export function WatchLobbyList() {
     <>
       {resumeId ? (
         <p className="muted tiny watch-resume-hint" role="status">
-          지난번에 본 영상부터 이어서 나와요. 끝까지 가면 첫 영상부터 다시예요.
+          지난번에 본 영상부터 이어서 나와요. 한 편이 끝나면 같은 번호 영어, 없으면
+          다음 번호로 가요. 끝까지 가면 첫 영상부터 다시예요.
         </p>
-      ) : null}
+      ) : (
+        <p className="muted tiny watch-resume-hint" role="status">
+          순서: 1-ko → 1-en → 2-ko → 2-en … 영어가 없으면 다음 번호로 가요.
+        </p>
+      )}
       <ul className="ep-list">
-        {ordered.map(({ item, originalIndex, isResume }) => {
+        {ordered.map(({ item, isResume }) => {
           const youtubeHref = resolveYoutubeWatchUrl(item.youtubeUrl);
+          const slot = watchSlotLabel(item);
           return (
             <li
               key={item.id}
@@ -73,11 +80,13 @@ export function WatchLobbyList() {
             >
               <div className="ep-meta">
                 <div className="ep-head">
-                  <span className="ep-num">{originalIndex + 1}번</span>
+                  <span className="ep-num">{slot}</span>
                   {isResume ? (
                     <span className="badge badge-resume">이어볼 영상</span>
                   ) : (
-                    <span className="badge badge-free">영상보기</span>
+                    <span className="badge badge-free">
+                      {item.lang === "en" ? "영어" : "한국어"}
+                    </span>
                   )}
                 </div>
                 <strong>{item.title}</strong>

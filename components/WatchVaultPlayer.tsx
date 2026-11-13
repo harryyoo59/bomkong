@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import {
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
+  sortWatchItemsForPlay,
+  watchSlotLabel,
   type WatchItem,
 } from "@/lib/watch-media";
 import {
@@ -24,21 +26,21 @@ export function WatchVaultPlayer({
 
   useEffect(() => {
     const store = readWatchMediaStore();
-    const found = store.items.find((it) => it.id === id) ?? null;
+    const ordered = sortWatchItemsForPlay(store.items);
+    const found = ordered.find((it) => it.id === id) ?? null;
     setItem(found);
     if (!found) {
       setNextItem(null);
       setWrapsToFirst(false);
       return;
     }
-    const index = store.items.findIndex((it) => it.id === id);
-    const next = nextWatchItemAfter(store.items, id);
+    const next = nextWatchItemAfter(ordered, id);
     setNextItem(next);
     setWrapsToFirst(
-      store.items.length > 1 &&
-        index === store.items.length - 1 &&
+      ordered.length > 1 &&
         Boolean(next) &&
-        next?.id === store.items[0]?.id,
+        next?.id === ordered[0]?.id &&
+        found.id !== ordered[0]?.id,
     );
   }, [id]);
 
@@ -73,7 +75,7 @@ export function WatchVaultPlayer({
   return (
     <>
       <section className="panel watch-empty-panel" aria-live="polite">
-        <p className="eyebrow">영상보기 방</p>
+        <p className="eyebrow">영상보기 방 · {watchSlotLabel(item)}</p>
         <h1 className="section-title">{item.title}</h1>
         {item.note ? <p className="muted">{item.note}</p> : null}
         {youtubeHref ? (
@@ -122,12 +124,13 @@ export function WatchVaultPlayer({
                 rel="noopener noreferrer"
                 onClick={() => markOpened(nextItem.id)}
               >
-                {nextItem.title} (유튜브)
+                {watchSlotLabel(nextItem)} · {nextItem.title} (유튜브)
               </a>
             </p>
           ) : (
             <p className="muted">
-              다음 「{nextItem.title}」 · 유튜브 주소 없음
+              다음 {watchSlotLabel(nextItem)} 「{nextItem.title}」 · 유튜브 주소
+              없음
             </p>
           )
         ) : (

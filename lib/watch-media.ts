@@ -1,5 +1,7 @@
 /** 영상보기 보관실(관리자실 9번) — 거실 「영상보기」전용. 이 기기 브라우저에만 기억 */
 
+export type WatchLang = "ko" | "en";
+
 export type WatchItem = {
   id: string;
   /** 파일 이름 (관리용 미리보기 · 자리만) */
@@ -10,6 +12,10 @@ export type WatchItem = {
   youtubeUrl: string;
   note: string;
   addedAt: string;
+  /** 편 번호 (1, 2, 3…) — 나중에 넣은 편이 큰 번호 */
+  episodeNumber: number;
+  /** 같은 편의 한국어(ko) / 영어(en) */
+  lang: WatchLang;
 };
 
 export type WatchMediaStore = {
@@ -21,6 +27,45 @@ const STORAGE_KEY = "bomkong_watch_video_v1";
 export const EMPTY_WATCH_STORE: WatchMediaStore = {
   items: [],
 };
+
+/** 화면·목록에 쓸 자리 이름 예: 1-ko, 2-en */
+export function watchSlotLabel(
+  item: Pick<WatchItem, "episodeNumber" | "lang">,
+): string {
+  return `${item.episodeNumber}-${item.lang}`;
+}
+
+export function compareWatchPlayOrder(a: WatchItem, b: WatchItem): number {
+  if (a.episodeNumber !== b.episodeNumber) {
+    return a.episodeNumber - b.episodeNumber;
+  }
+  if (a.lang === b.lang) return a.id.localeCompare(b.id);
+  return a.lang === "ko" ? -1 : 1;
+}
+
+/** 재생·목록 공통 순서: 1-ko → 1-en → 2-ko → 2-en … */
+export function sortWatchItemsForPlay(items: WatchItem[]): WatchItem[] {
+  return [...items].sort(compareWatchPlayOrder);
+}
+
+export function findWatchSlot(
+  items: WatchItem[],
+  episodeNumber: number,
+  lang: WatchLang,
+): WatchItem | undefined {
+  return items.find(
+    (it) => it.episodeNumber === episodeNumber && it.lang === lang,
+  );
+}
+
+/** 새로 넣을 때 쓸 다음 편 번호(한국어 기준 최대+1) */
+export function suggestNextEpisodeNumber(items: WatchItem[]): number {
+  const max = items.reduce(
+    (acc, it) => (it.episodeNumber > acc ? it.episodeNumber : acc),
+    0,
+  );
+  return max + 1;
+}
 
 /** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */
 export function resolveYoutubeWatchUrl(raw: string): string | null {
@@ -76,12 +121,29 @@ export function resolveYoutubeWatchUrl(raw: string): string | null {
   return null;
 }
 
-function normalizeItem(raw: Partial<WatchItem>): WatchItem | null {
+function parseLang(raw: unknown): WatchLang | null {
+  if (raw === "ko" || raw === "en") return raw;
+  return null;
+}
+
+function parseEpisodeNumber(raw: unknown): number {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
+    return Math.floor(raw);
+  }
+  if (typeof raw === "string" && raw.trim()) {
+    const n = Number(raw.trim());
+    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  }
+  return 0;
+}
+
+function normalizeItem(raw: Partial<WatchItem> & Record<string, unknown>): WatchItem | null {
   if (!raw || typeof raw.id !== "string" || typeof raw.name !== "string") {
     return null;
   }
   const title = typeof raw.title === "string" ? raw.title.trim() : "";
   if (!title) return null;
+  const lang = parseLang(raw.lang) ?? "ko";
   return {
     id: raw.id,
     name: raw.name,
@@ -91,7 +153,83 @@ function normalizeItem(raw: Partial<WatchItem>): WatchItem | null {
     note: typeof raw.note === "string" ? raw.note : "",
     addedAt:
       typeof raw.addedAt === "string" ? raw.addedAt : new Date().toISOString(),
+    episodeNumber: parseEpisodeNumber(raw.episodeNumber),
+    lang,
   };
+}
+
+/**
+ * 예전 목록(번호 없음 · 최근 것이 앞) → 먼저 넣은 것부터 1-ko, 2-ko…
+ * 이미 번호가 있는 항목은 그대로 두고, 없는 것만 뒤에 번호를 붙임.
+ */
+export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
+  const stamped = items.map((it) => ({
+    ...it,
+    lang: it.lang === "en" ? ("en" as const) : ("ko" as const),
+    episodeNumber:
+      Number.isFinite(it.episodeNumber) && it.episodeNumber >= 1
+        ? Math.floor(it.episodeNumber)
+        : 0,
+  }));
+
+  const missing = stamped.filter((it) => it.episodeNumber < 1);
+  if (missing.length === 0) {
+    return sortWatchItemsForPlay(stamped);
+  }
+
+  if (missing.length === stamped.length) {
+    const chronological = [...stamped].sort((a, b) => {
+      const byTime = a.addedAt.localeCompare(b.addedAt);
+      return byTime !== 0 ? byTime : a.id.localeCompare(b.id);
+    });
+    return sortWatchItemsForPlay(
+      chronological.map((it, index) => ({
+        ...it,
+        episodeNumber: index + 1,
+        lang: "ko" as const,
+      })),
+    );
+  }
+
+  let next =
+    stamped.reduce(
+      (acc, it) => (it.episodeNumber > acc ? it.episodeNumber : acc),
+      0,
+    ) + 1;
+  const assigned = new Map<string, number>();
+  const missingChrono = [...missing].sort((a, b) => {
+    const byTime = a.addedAt.localeCompare(b.addedAt);
+    return byTime !== 0 ? byTime : a.id.localeCompare(b.id);
+  });
+  for (const it of missingChrono) {
+    assigned.set(it.id, next);
+    next += 1;
+  }
+
+  return sortWatchItemsForPlay(
+    stamped.map((it) =>
+      it.episodeNumber >= 1
+        ? it
+        : {
+            ...it,
+            episodeNumber: assigned.get(it.id) ?? 1,
+            lang: "ko" as const,
+          },
+    ),
+  );
+}
+
+function slotsChanged(before: WatchItem[], after: WatchItem[]): boolean {
+  if (before.length !== after.length) return true;
+  const afterById = new Map(after.map((it) => [it.id, it]));
+  for (const it of before) {
+    const next = afterById.get(it.id);
+    if (!next) return true;
+    if (next.episodeNumber !== it.episodeNumber || next.lang !== it.lang) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function readWatchMediaStore(): WatchMediaStore {
@@ -102,10 +240,16 @@ export function readWatchMediaStore(): WatchMediaStore {
     const parsed = JSON.parse(raw) as Partial<WatchMediaStore>;
     const items = Array.isArray(parsed.items)
       ? parsed.items
-          .map((it) => normalizeItem(it as Partial<WatchItem>))
+          .map((it) =>
+            normalizeItem(it as Partial<WatchItem> & Record<string, unknown>),
+          )
           .filter((it): it is WatchItem => Boolean(it))
       : [];
-    return { items };
+    const ensured = ensureWatchPlaySlots(items);
+    if (slotsChanged(items, ensured)) {
+      writeWatchMediaStore({ items: ensured });
+    }
+    return { items: ensured };
   } catch {
     return EMPTY_WATCH_STORE;
   }
@@ -113,7 +257,10 @@ export function readWatchMediaStore(): WatchMediaStore {
 
 export function writeWatchMediaStore(store: WatchMediaStore): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
+  window.localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ items: sortWatchItemsForPlay(store.items) }),
+  );
 }
 
 export function makeWatchId(): string {

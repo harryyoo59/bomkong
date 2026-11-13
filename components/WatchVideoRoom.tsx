@@ -9,11 +9,16 @@ import {
   saveMediaPreview,
 } from "@/lib/media-preview-store";
 import {
+  findWatchSlot,
   makeWatchId,
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
+  sortWatchItemsForPlay,
+  suggestNextEpisodeNumber,
+  watchSlotLabel,
   writeWatchMediaStore,
   type WatchItem,
+  type WatchLang,
 } from "@/lib/watch-media";
 
 export function WatchVideoRoom() {
@@ -22,6 +27,8 @@ export function WatchVideoRoom() {
   const [title, setTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [note, setNote] = useState("");
+  const [episodeNumber, setEpisodeNumber] = useState(1);
+  const [lang, setLang] = useState<WatchLang>("ko");
   const [fileLabel, setFileLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
@@ -34,6 +41,7 @@ export function WatchVideoRoom() {
   useEffect(() => {
     const store = readWatchMediaStore();
     setItems(store.items);
+    setEpisodeNumber(suggestNextEpisodeNumber(store.items));
     setEditUrls(
       Object.fromEntries(store.items.map((it) => [it.id, it.youtubeUrl])),
     );
@@ -41,10 +49,11 @@ export function WatchVideoRoom() {
   }, []);
 
   function persist(next: WatchItem[]) {
-    writeWatchMediaStore({ items: next });
-    setItems(next);
+    const ordered = sortWatchItemsForPlay(next);
+    writeWatchMediaStore({ items: ordered });
+    setItems(ordered);
     setEditUrls(
-      Object.fromEntries(next.map((it) => [it.id, it.youtubeUrl])),
+      Object.fromEntries(ordered.map((it) => [it.id, it.youtubeUrl])),
     );
   }
 
@@ -66,6 +75,17 @@ export function WatchVideoRoom() {
       setMessage("영상 제목을 적어 주세요.");
       return;
     }
+    const num = Math.floor(Number(episodeNumber));
+    if (!Number.isFinite(num) || num < 1) {
+      setMessage("편 번호는 1 이상으로 적어 주세요.");
+      return;
+    }
+    if (findWatchSlot(items, num, lang)) {
+      setMessage(
+        `이미 ${num}-${lang} 자리가 있어요. 번호를 바꾸거나 다른 언어를 골라 주세요.`,
+      );
+      return;
+    }
     const resolved = resolveYoutubeWatchUrl(youtubeUrl);
     if (!resolved) {
       setMessage(
@@ -80,6 +100,8 @@ export function WatchVideoRoom() {
       youtubeUrl: youtubeUrl.trim(),
       note: note.trim(),
       addedAt: new Date().toISOString(),
+      episodeNumber: num,
+      lang,
     };
     let previewOk = true;
     if (pendingFile) {
@@ -89,25 +111,30 @@ export function WatchVideoRoom() {
         previewOk = false;
       }
     }
-    persist([item, ...items]);
+    // 나중에 넣은 것은 뒤로 — 번호 순으로 정렬해 저장
+    const next = sortWatchItemsForPlay([...items, item]);
+    persist(next);
     if (pendingFile) {
       setPreviewTicks((prev) => ({
         ...prev,
         [item.id]: (prev[item.id] ?? 0) + 1,
       }));
     }
+    const slot = watchSlotLabel(item);
     setMessage(
       pendingFile
         ? previewOk
-          ? `「${item.title}」을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요. 옆에 관리용 미리보기도 있어요.`
-          : `유튜브 주소와 제목은 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`
-        : `「${item.title}」을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요.`,
+          ? `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요. 옆에 관리용 미리보기도 있어요.`
+          : `유튜브 주소와 제목은 넣었어요(${slot}). 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`
+        : `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요.`,
     );
     setTitle("");
     setYoutubeUrl("");
     setNote("");
     setPendingFile(null);
     setFileLabel("");
+    setLang("ko");
+    setEpisodeNumber(suggestNextEpisodeNumber(next));
     setFormKey((k) => k + 1);
   }
 
@@ -135,8 +162,12 @@ export function WatchVideoRoom() {
     const target = items.find((it) => it.id === id);
     if (!target) return;
     await deleteMediaPreview(id);
-    persist(items.filter((it) => it.id !== id));
-    setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
+    const next = items.filter((it) => it.id !== id);
+    persist(next);
+    setEpisodeNumber(suggestNextEpisodeNumber(next));
+    setMessage(
+      `「${target.title}」(${watchSlotLabel(target)})을(를) 목록에서 빼 두었어요.`,
+    );
   }
 
   if (!ready) {
@@ -147,8 +178,9 @@ export function WatchVideoRoom() {
     <div className="admin-wrap">
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          거실에서 아이들이 「영상보기」를 누르면 여기 넣은 영상만 나와요.
-          누르면 유튜브로 가서 조회수가 올라가요. 파일은 관리자 미리보기용이에요.
+          거실 「영상보기」에는 여기 넣은 영상만 나와요. 재생 순서는{" "}
+          <strong>1-ko → 1-en → 2-ko → 2-en</strong> 이에요. 영어가 없으면 다음
+          번호로 넘어가요. 나중에 넣은 영상은 뒤쪽 번호로 가요.
         </p>
 
         <label>
@@ -171,6 +203,33 @@ export function WatchVideoRoom() {
             required
           />
         </label>
+
+        <div className="form-row">
+          <label>
+            편 번호
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={episodeNumber}
+              onChange={(e) => setEpisodeNumber(Number(e.target.value) || 1)}
+              required
+            />
+          </label>
+          <label>
+            언어
+            <select
+              value={lang}
+              onChange={(e) => setLang(e.target.value as WatchLang)}
+            >
+              <option value="ko">한국어 (ko)</option>
+              <option value="en">영어 (en)</option>
+            </select>
+          </label>
+        </div>
+        <p className="tiny muted">
+          지금 넣을 자리 · {episodeNumber}-{lang}
+        </p>
 
         <label>
           동영상 미리보기 (선택 · 관리용)
@@ -205,7 +264,8 @@ export function WatchVideoRoom() {
       <section>
         <h2 className="section-title">거실에 보이는 영상</h2>
         <p className="muted tiny">
-          이 기기에만 기억해요. 비어 있으면 거실에도 빈 화면이 나와요.
+          이 기기에만 기억해요. 비어 있으면 거실에도 빈 화면이 나와요. 위에서부터
+          1-ko → 1-en → 2-ko 순으로 이어져요.
         </p>
         {items.length === 0 ? (
           <AdminEmptyText roomKey="watch" />
@@ -213,6 +273,7 @@ export function WatchVideoRoom() {
           <ul className="admin-ep-list">
             {items.map((item) => {
               const resolved = resolveYoutubeWatchUrl(item.youtubeUrl);
+              const slot = watchSlotLabel(item);
               return (
                 <li key={item.id} className="admin-ep-item">
                   <div className="admin-ep-main">
@@ -223,6 +284,7 @@ export function WatchVideoRoom() {
                       refreshToken={previewTicks[item.id] ?? 0}
                     />
                     <div>
+                      <p className="tiny muted">{slot}</p>
                       <strong>{item.title}</strong>
                       {item.name ? (
                         <p className="tiny muted">파일 · {item.name}</p>
@@ -280,7 +342,7 @@ export function WatchVideoRoom() {
                     </div>
                   </div>
                   <div className="vault-action-row">
-                    <span className="pair-chip pair-ok">거실 영상보기</span>
+                    <span className="pair-chip pair-ok">{slot}</span>
                     <button
                       type="button"
                       className="btn btn-soft"
