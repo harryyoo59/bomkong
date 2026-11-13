@@ -189,6 +189,7 @@ export function collectPlayableYoutubeIdsFrom(
 /**
  * 유튜브에서 지금 편부터 순서대로 이어서 보는 주소.
  * 조회수·큰 화면용으로 유튜브를 열 때 씀.
+ * (유튜브 「다음 동영상 자동재생」이 켜져 있어야 다음 편이 이어짐)
  */
 export function buildYoutubePlayQueueUrl(
   items: WatchItem[],
@@ -199,7 +200,14 @@ export function buildYoutubePlayQueueUrl(
   if (ids.length === 1) {
     return `https://www.youtube.com/watch?v=${ids[0]}`;
   }
+  // 임시 재생 목록 → 같은 화면으로 열어야 목록이 유지됨
   return `https://www.youtube.com/watch_videos?video_ids=${ids.join(",")}`;
+}
+
+/** 유튜브 이어보기는 새 창이 아니라 같은 화면으로 열어야 다음 편이 붙음 */
+export function openYoutubePlayQueue(url: string): void {
+  if (typeof window === "undefined") return;
+  window.location.assign(url);
 }
 
 /** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */

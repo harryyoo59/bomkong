@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   buildYoutubePlayQueueUrl,
+  openYoutubePlayQueue,
   readWatchMediaStore,
   sortWatchItemsForPlay,
   watchSlotLabel,
@@ -49,9 +50,9 @@ export function WatchVaultPlayer({
         found.id !== ordered[0]?.id,
     );
 
-    // 유튜브로 바로 열기 (조회수·큰 화면 · 다음 편 이어서)
+    // 유튜브로 바로 열기 (조회수·큰 화면 · 다음 편 이어서 · 같은 화면)
     if (url) {
-      window.location.assign(url);
+      openYoutubePlayQueue(url);
     }
   }, [id]);
 
@@ -84,15 +85,18 @@ export function WatchVaultPlayer({
         {queueUrl ? (
           <>
             <p className="muted">
-              유튜브로 열고 있어요. 이 편이 끝나면 다음 편도 이어서 나와요.
+              유튜브로 열고 있어요. 「다음 동영상 자동재생」을 켜 두면 다음 편도
+              이어서 나와요.
             </p>
             <p>
               <a
                 className="btn btn-primary btn-wide"
                 href={queueUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => writeWatchResume(item.id)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  writeWatchResume(item.id);
+                  openYoutubePlayQueue(queueUrl);
+                }}
               >
                 유튜브에서 이어서 보기
               </a>

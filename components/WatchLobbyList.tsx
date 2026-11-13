@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   buildYoutubePlayQueueUrl,
   extractYoutubeVideoId,
+  openYoutubePlayQueue,
   readWatchMediaStore,
   watchSlotLabel,
   type WatchItem,
@@ -102,9 +103,11 @@ export function WatchLobbyList() {
                   <a
                     className="btn btn-primary"
                     href={queueUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={() => markOpened(item.id)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      markOpened(item.id);
+                      openYoutubePlayQueue(queueUrl);
+                    }}
                   >
                     유튜브에서 보기
                   </a>
@@ -122,6 +125,9 @@ export function WatchLobbyList() {
           );
         })}
       </ul>
+      <p className="muted tiny" role="note">
+        유튜브에서 「다음 동영상 자동재생」을 켜 두면 다음 편도 이어서 나와요.
+      </p>
     </>
   );
 }
