@@ -68,8 +68,8 @@ export const LIVING_ROOM_BEATS: LivingStoryBeat[] = [
     id: "sofa",
     target: "sofa",
     speaker: "bomi",
-    speak: "소파에 있는 표시를 누르면 우리 회사 홈페이지로 가요.",
-    audioSrc: "/living-room/story/sofa.mp3?v=5",
+    speak: "소파 옆 수건 위 표시를 누르면 우리 회사 홈페이지로 가요.",
+    audioSrc: "/living-room/story/sofa.mp3?v=6",
   },
   {
     id: "door",

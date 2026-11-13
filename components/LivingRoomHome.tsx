@@ -552,7 +552,7 @@ export function LivingRoomHome({
             <span className="visually-hidden">의견 보내기</span>
           </Link>
 
-          {/* 소파 등받이 직물 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
+          {/* 소파 옆 수건 위 로고(영상에 구움) — 떠 있는 그림 없이 투명 클릭만 */}
           <a
             href={COMPANY_HOME}
             className={`hotspot hotspot-sofa-cz${storyClass("sofa")}`}
