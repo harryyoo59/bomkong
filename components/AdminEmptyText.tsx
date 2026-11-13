@@ -1,14 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getRoomCopy,
-  readAdminCopyStore,
-  type RoomKey,
-} from "@/lib/admin-copy";
+import { getRoomCopy, readAdminCopyStore } from "@/lib/admin-copy";
 
 type Props = {
-  roomKey: RoomKey;
+  roomKey: string;
   className?: string;
 };
 

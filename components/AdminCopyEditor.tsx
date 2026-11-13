@@ -252,7 +252,7 @@ export function AdminCopyEditor({ store, onChange }: Props) {
                       }),
                     })
                   }
-                  placeholder="예: /admin/source"
+                  placeholder="예: /admin/watch"
                 />
               </label>
               <label>
