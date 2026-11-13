@@ -28,7 +28,6 @@ export function WatchVideoRoom() {
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
-  const [note, setNote] = useState("");
   /** 글자로 둬서 지울 때 빈칸이 되게 함 (숫자면 지우자마자 1로 고정됨) */
   const [episodeNumberText, setEpisodeNumberText] = useState("1");
   const [lang, setLang] = useState<WatchLang>("ko");
@@ -119,7 +118,7 @@ export function WatchVideoRoom() {
       name: pendingFile?.name ?? "",
       title: trimmedTitle,
       youtubeUrl: youtubeUrl.trim(),
-      note: note.trim(),
+      note: "",
       addedAt: new Date().toISOString(),
       episodeNumber: num,
       lang,
@@ -151,7 +150,6 @@ export function WatchVideoRoom() {
     );
     setTitle("");
     setYoutubeUrl("");
-    setNote("");
     setPendingFile(null);
     setFileLabel("");
     // 한국어 넣었으면 같은 번호 영어가 다음 · 영어까지 넣었으면 다음 번호 한국어
@@ -318,15 +316,6 @@ export function WatchVideoRoom() {
           </span>
         </label>
 
-        <label>
-          짧은 메모 (선택)
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="예: 거실에 먼저 보여 줄 영상"
-          />
-        </label>
-
         <button type="submit" className="btn btn-primary btn-wide">
           영상보기 방에 넣기
         </button>
@@ -369,9 +358,6 @@ export function WatchVideoRoom() {
                       ) : (
                         <p className="tiny muted">유튜브 주소 없음</p>
                       )}
-                      {item.note ? (
-                        <p className="tiny muted">{item.note}</p>
-                      ) : null}
                       <p className="tiny muted">
                         넣은 날{" "}
                         {new Date(item.addedAt).toLocaleString("ko-KR", {
