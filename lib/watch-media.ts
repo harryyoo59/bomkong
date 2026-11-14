@@ -78,6 +78,7 @@ export function suggestNextEpisodeNumber(items: WatchItem[]): number {
 
 /**
  * 다음에 넣을 자리 추천.
+ * - 영어만 있는 편이 있으면 → 그 번호의 한국어 (영어 먼저 넣어도 짝을 맞춤)
  * - 한국어만 있는 편이 있으면 → 그 번호의 영어 (1-ko 다음엔 1-en)
  * - 없으면 → 새 번호의 한국어
  */
@@ -93,6 +94,14 @@ export function suggestNextWatchSlot(items: WatchItem[]): {
   for (const n of numbers) {
     const hasKo = Boolean(findWatchSlot(ordered, n, "ko"));
     const hasEn = Boolean(findWatchSlot(ordered, n, "en"));
+    if (hasEn && !hasKo) {
+      return { episodeNumber: n, lang: "ko" };
+    }
+  }
+
+  for (const n of numbers) {
+    const hasKo = Boolean(findWatchSlot(ordered, n, "ko"));
+    const hasEn = Boolean(findWatchSlot(ordered, n, "en"));
     if (hasKo && !hasEn) {
       return { episodeNumber: n, lang: "en" };
     }
@@ -104,7 +113,7 @@ export function suggestNextWatchSlot(items: WatchItem[]): {
   };
 }
 
-/** 방금 넣은 항목 다음에 무엇을 넣을지 (같은 편 영어 우선) */
+/** 방금 넣은 항목 다음에 무엇을 넣을지 (같은 편 짝 맞추기) */
 export function suggestWatchSlotAfterAdd(
   items: WatchItem[],
   justAdded: Pick<WatchItem, "episodeNumber" | "lang">,
@@ -115,7 +124,57 @@ export function suggestWatchSlotAfterAdd(
   ) {
     return { episodeNumber: justAdded.episodeNumber, lang: "en" };
   }
+  if (
+    justAdded.lang === "en" &&
+    !findWatchSlot(items, justAdded.episodeNumber, "ko")
+  ) {
+    return { episodeNumber: justAdded.episodeNumber, lang: "ko" };
+  }
   return suggestNextWatchSlot(items);
+}
+
+/**
+ * 영어만 있는 편 바로 다음 번호에 한국어만 있으면 같은 편으로 맞춤.
+ * (영어를 먼저 넣으면 예전에 1-en · 2-ko로 갈라지던 것 → 1-ko · 1-en)
+ * 그러면 로비·재생은 항상 한국어 → 영어 순이 됨.
+ */
+export function repairSplitLanguagePairs(items: WatchItem[]): WatchItem[] {
+  let next = items.map((it) => ({ ...it }));
+  let changed = true;
+
+  while (changed) {
+    changed = false;
+    const ordered = sortWatchItemsForPlay(next);
+    const numbers = [
+      ...new Set(ordered.map((it) => it.episodeNumber)),
+    ].sort((a, b) => a - b);
+
+    for (const n of numbers) {
+      const hasKo = Boolean(findWatchSlot(next, n, "ko"));
+      const hasEn = Boolean(findWatchSlot(next, n, "en"));
+      if (!(hasEn && !hasKo)) continue;
+
+      const orphanKoNum = numbers.find((m) => {
+        if (m <= n) return false;
+        return (
+          Boolean(findWatchSlot(next, m, "ko")) &&
+          !Boolean(findWatchSlot(next, m, "en"))
+        );
+      });
+      // 바로 다음 번호만 자동으로 붙임 (멀리 떨어진 편은 건드리지 않음)
+      if (orphanKoNum !== n + 1) continue;
+
+      next = next.map((it) =>
+        it.episodeNumber === orphanKoNum && it.lang === "ko"
+          ? { ...it, episodeNumber: n }
+          : it,
+      );
+      changed = true;
+      break;
+    }
+  }
+
+  return sortWatchItemsForPlay(next);
 }
 
 /** 유튜브 영상 아이디만 뽑음. 못 찾으면 null */
@@ -281,7 +340,7 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
 
   const missing = stamped.filter((it) => it.episodeNumber < 1);
   if (missing.length === 0) {
-    return sortWatchItemsForPlay(stamped);
+    return repairSplitLanguagePairs(stamped);
   }
 
   if (missing.length === stamped.length) {
@@ -313,7 +372,7 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
     next += 1;
   }
 
-  return sortWatchItemsForPlay(
+  return repairSplitLanguagePairs(
     stamped.map((it) =>
       it.episodeNumber >= 1
         ? it

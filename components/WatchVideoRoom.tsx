@@ -161,12 +161,27 @@ export function WatchVideoRoom() {
 
   function onLangChange(nextLang: WatchLang) {
     setLang(nextLang);
-    if (nextLang === "en") {
-      // 영어면: 한국어만 있는 편 번호를 우선 (같은 짝)
-      const slot = suggestNextWatchSlot(items);
-      if (slot.lang === "en") {
-        setEpisodeNumberText(String(slot.episodeNumber));
+    // 언어를 바꾸면: 짝이 비어 있는 편 번호를 우선 맞춤
+    const numbers = [
+      ...new Set(items.map((it) => it.episodeNumber)),
+    ].sort((a, b) => a - b);
+    for (const n of numbers) {
+      const hasThis = items.some(
+        (it) => it.episodeNumber === n && it.lang === nextLang,
+      );
+      if (hasThis) continue;
+      const other = nextLang === "ko" ? "en" : "ko";
+      const hasOther = items.some(
+        (it) => it.episodeNumber === n && it.lang === other,
+      );
+      if (hasOther) {
+        setEpisodeNumberText(String(n));
+        return;
       }
+    }
+    const slot = suggestNextWatchSlot(items);
+    if (slot.lang === nextLang) {
+      setEpisodeNumberText(String(slot.episodeNumber));
     }
   }
 
@@ -242,9 +257,9 @@ export function WatchVideoRoom() {
         <p className="form-hint">
           거실 「영상보기」에는 여기 넣은 영상만 나와요. 같은 편은{" "}
           <strong>번호가 같고</strong> 언어만 달라요. 예:{" "}
-          <strong>1-ko → 1-en → 2-ko → 2-en</strong>. 한국어를 넣으면 다음 칸은
-          같은 번호 영어로 맞춰 줘요. 영어가 없으면 재생은 다음 번호로
-          넘어가요.
+          <strong>1-ko → 1-en → 2-ko → 2-en</strong>. 영어를 먼저 넣어도
+          로비·재생은 항상 한국어 다음 영어예요. 한쪽만 있으면 같은 번호
+          짝을 먼저 맞춰 주세요.
         </p>
 
         <label>
@@ -327,7 +342,8 @@ export function WatchVideoRoom() {
         <h2 className="section-title">거실에 보이는 영상</h2>
         <p className="muted tiny">
           이 기기에만 기억해요. 여기는 나중에 넣은 영상이 위에 나와요. 아이들이
-          보는 재생 순서는 그대로 1-ko → 1-en → 2-ko → 2-en 이에요.
+          보는 재생 순서는 항상 1-ko → 1-en → 2-ko → 2-en 이에요. 영어를
+          먼저 넣었어도 로비에서는 한국어가 먼저 나와요.
         </p>
         {adminList.length === 0 ? (
           <AdminEmptyText roomKey="watch" />
