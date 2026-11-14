@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
+import { AdminMediaPreview } from "@/components/AdminMediaPreview";
+import {
+  copyPngPromiseToClipboard,
+  pngFromBlob,
+  pngFromImageUrl,
+} from "@/lib/copy-image-clipboard";
 import {
   formatSerial,
   makeLogoId,
@@ -11,25 +17,30 @@ import {
   writeLogoCatalog,
   type LogoItem,
 } from "@/lib/logo-catalog";
+import {
+  deleteMediaPreview,
+  getMediaPreview,
+  saveMediaPreview,
+} from "@/lib/media-preview-store";
 
 export function LogoManageRoom() {
   const [items, setItems] = useState<LogoItem[]>([]);
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState("");
   const [blurb, setBlurb] = useState("");
-  const [note, setNote] = useState("");
   const [serialText, setSerialText] = useState("5");
   const [fileLabel, setFileLabel] = useState("");
-  const [pendingFile, setPendingFile] = useState<{ name: string } | null>(
-    null,
-  );
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
+  const [saving, setSaving] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [editSerialText, setEditSerialText] = useState("");
   const [editTitle, setEditTitle] = useState("");
   const [editBlurb, setEditBlurb] = useState("");
-  const [editNote, setEditNote] = useState("");
+  const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
+    {},
+  );
 
   useEffect(() => {
     const store = readLogoCatalog();
@@ -51,8 +62,18 @@ export function LogoManageRoom() {
       return;
     }
     const file = fileList[0];
-    setPendingFile({ name: file.name });
+    if (
+      !file.type.startsWith("image/") &&
+      !/\.(png|jpe?g|gif|webp|heic|bmp|avif|svg)$/i.test(file.name)
+    ) {
+      setMessage("로고 그림 파일만 넣을 수 있어요.");
+      setPendingFile(null);
+      setFileLabel("");
+      return;
+    }
+    setPendingFile(file);
     setFileLabel(file.name);
+    setMessage("");
   }
 
   function parseSerial(text: string): number | null {
@@ -61,8 +82,9 @@ export function LogoManageRoom() {
     return Math.floor(n);
   }
 
-  function onAdd(e: React.FormEvent) {
+  async function onAdd(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
       setMessage("로고 이름을 적어 주세요.");
@@ -85,22 +107,42 @@ export function LogoManageRoom() {
       title: trimmedTitle,
       blurb: blurb.trim(),
       name: pendingFile?.name ?? "이름 없음",
-      note: note.trim(),
+      note: "",
       addedAt: new Date().toISOString(),
       builtIn: false,
     };
-    const next = [...items, item];
-    persist(next);
-    setMessage(
-      `일련번호 ${formatSerial(serial)} 「${item.title}」을(를) 로고 목록에 넣었어요.`,
-    );
-    setTitle("");
-    setBlurb("");
-    setNote("");
-    setPendingFile(null);
-    setFileLabel("");
-    setSerialText(String(suggestNextSerial(next)));
-    setFormKey((k) => k + 1);
+
+    setSaving(true);
+    try {
+      if (pendingFile) {
+        try {
+          await saveMediaPreview(item.id, pendingFile, "photo");
+        } catch {
+          setMessage(
+            `「${item.title}」은(는) 목록에 넣었어요. 그림 보기는 저장하지 못했어요.`,
+          );
+        }
+      }
+      const next = [...items, item];
+      persist(next);
+      if (pendingFile) {
+        setPreviewTicks((prev) => ({
+          ...prev,
+          [item.id]: (prev[item.id] ?? 0) + 1,
+        }));
+      }
+      setMessage(
+        `일련번호 ${formatSerial(serial)} 「${item.title}」을(를) 로고 목록에 넣었어요.`,
+      );
+      setTitle("");
+      setBlurb("");
+      setPendingFile(null);
+      setFileLabel("");
+      setSerialText(String(suggestNextSerial(next)));
+      setFormKey((k) => k + 1);
+    } finally {
+      setSaving(false);
+    }
   }
 
   function startEdit(item: LogoItem) {
@@ -108,7 +150,6 @@ export function LogoManageRoom() {
     setEditSerialText(String(item.serial));
     setEditTitle(item.title);
     setEditBlurb(item.blurb);
-    setEditNote(item.note);
     setMessage("");
   }
 
@@ -117,7 +158,6 @@ export function LogoManageRoom() {
     setEditSerialText("");
     setEditTitle("");
     setEditBlurb("");
-    setEditNote("");
   }
 
   function confirmEdit(e: React.FormEvent) {
@@ -146,7 +186,6 @@ export function LogoManageRoom() {
             serial,
             title: trimmedTitle,
             blurb: editBlurb.trim(),
-            note: editNote.trim(),
           }
         : it,
     );
@@ -157,16 +196,42 @@ export function LogoManageRoom() {
     cancelEdit();
   }
 
-  function onRemove(id: string) {
+  async function onRemove(id: string) {
     const target = items.find((it) => it.id === id);
     if (!target) return;
     if (target.builtIn) {
       setMessage("사이트에 미리 넣어 둔 공식 로고는 목록에서 빼지 않아요.");
       return;
     }
+    await deleteMediaPreview(id);
     persist(items.filter((it) => it.id !== id));
     setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
     if (editId === id) cancelEdit();
+  }
+
+  async function onCopy(item: LogoItem) {
+    const fileName = item.name || item.title || "logo";
+    const pngPromise = (async () => {
+      if (item.src) {
+        return pngFromImageUrl(item.src);
+      }
+      const record = await getMediaPreview(item.id);
+      if (!record?.blob) {
+        throw new Error("로고 그림이 없어요. 파일을 다시 넣어 주세요.");
+      }
+      return pngFromBlob(record.blob);
+    })();
+
+    try {
+      await copyPngPromiseToClipboard(pngPromise, fileName);
+      setMessage("로고를 복사했어요. AI 채팅에 붙여 넣으면 돼요.");
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "로고를 복사하지 못했어요. 다시 해 주세요.",
+      );
+    }
   }
 
   if (!ready) {
@@ -178,8 +243,8 @@ export function LogoManageRoom() {
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
           공식 로고에 <strong>일련번호</strong>를 붙여 관리하는 방이에요.
-          앞으로 넣는 로고에도 번호를 정해 주세요. 파일은 이름만 이 기기에
-          기억해요. 인터넷 저장소는 아직 없어요.
+          목록에서는 로고 그림과 설명이 바로 보여요. 「복사하기」로 AI에게 붙여
+          넣을 수 있어요.
         </p>
 
         <label>
@@ -224,23 +289,21 @@ export function LogoManageRoom() {
             type="file"
             accept="image/*"
             onChange={(e) => onPickFile(e.target.files)}
+            disabled={saving}
           />
           <span className="file-note">
-            {fileLabel ? `선택: ${fileLabel}` : "아직 안 고름 · 이름만 기억해요"}
+            {fileLabel
+              ? `선택: ${fileLabel}`
+              : "아직 안 고름 · 고르면 목록에 그림으로 보여요"}
           </span>
         </label>
 
-        <label>
-          짧은 메모 (선택)
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="예: 모자용 · 밝은 배경만"
-          />
-        </label>
-
-        <button type="submit" className="btn btn-primary btn-wide">
-          로고 목록에 넣기
+        <button
+          type="submit"
+          className="btn btn-primary btn-wide"
+          disabled={saving}
+        >
+          {saving ? "넣는 중…" : "로고 목록에 넣기"}
         </button>
       </form>
 
@@ -249,36 +312,44 @@ export function LogoManageRoom() {
       <section>
         <h2 className="section-title">로고 목록 · 일련번호</h2>
         <p className="muted tiny">
-          번호 순서대로 보여 줘요. 이 기기에만 기억해요. 새로고침해도 남아
-          있어요.
+          번호 순서대로 보여 줘요. 로고 그림 아래 설명이 나와요. 「복사하기」로
+          AI에 붙여 넣을 수 있어요.
         </p>
         {items.length === 0 ? (
           <AdminEmptyText roomKey="logos" />
         ) : (
-          <ul className="admin-ep-list">
+          <ul className="logo-manage-gallery">
             {items.map((item) => (
-              <li key={item.id} className="admin-ep-item">
-                <div>
-                  <p className="logo-serial-line">
-                    일련번호 · {formatSerial(item.serial)}
-                  </p>
-                  <strong>{item.title}</strong>
-                  {item.blurb ? (
-                    <p className="tiny muted">{item.blurb}</p>
-                  ) : null}
-                  <p className="tiny muted">파일 · {item.name}</p>
-                  {item.note ? (
-                    <p className="tiny muted">{item.note}</p>
-                  ) : null}
-                  <p className="tiny muted">
-                    {item.builtIn ? "공식 로고(사이트에 있음)" : "새로 넣은 로고"}
-                    {" · "}
-                    {new Date(item.addedAt).toLocaleString("ko-KR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
+              <li key={item.id} className="logo-manage-tile">
+                <p className="logo-serial-line">
+                  일련번호 · {formatSerial(item.serial)}
+                </p>
+                <div className="logo-manage-visual">
+                  {item.src ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={item.src}
+                      alt={item.title}
+                      className="logo-manage-image"
+                    />
+                  ) : (
+                    <AdminMediaPreview
+                      itemId={item.id}
+                      kindHint="photo"
+                      label={item.title}
+                      refreshToken={previewTicks[item.id] ?? 0}
+                    />
+                  )}
                 </div>
+                <strong className="logo-manage-title">{item.title}</strong>
+                {item.blurb ? (
+                  <p className="tiny muted logo-manage-blurb">{item.blurb}</p>
+                ) : (
+                  <p className="tiny muted logo-manage-blurb">설명 없음</p>
+                )}
+                <p className="tiny muted">
+                  {item.builtIn ? "공식 로고(사이트에 있음)" : "새로 넣은 로고"}
+                </p>
 
                 {editId === item.id ? (
                   <form
@@ -313,13 +384,6 @@ export function LogoManageRoom() {
                         onChange={(e) => setEditBlurb(e.target.value)}
                       />
                     </label>
-                    <label>
-                      짧은 메모 (선택)
-                      <input
-                        value={editNote}
-                        onChange={(e) => setEditNote(e.target.value)}
-                      />
-                    </label>
                     <div className="vault-action-row">
                       <button type="submit" className="btn btn-primary">
                         저장
@@ -334,13 +398,17 @@ export function LogoManageRoom() {
                     </div>
                   </form>
                 ) : (
-                  <div className="vault-action-row">
-                    <span className="pair-chip">
-                      번호 {formatSerial(item.serial)}
-                    </span>
+                  <div className="character-photo-actions">
                     <button
                       type="button"
-                      className="btn btn-soft"
+                      className="btn btn-primary btn-wide"
+                      onClick={() => void onCopy(item)}
+                    >
+                      복사하기
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-soft btn-wide"
                       onClick={() => startEdit(item)}
                     >
                       번호·내용 고치기
@@ -348,8 +416,8 @@ export function LogoManageRoom() {
                     {!item.builtIn ? (
                       <button
                         type="button"
-                        className="btn btn-soft"
-                        onClick={() => onRemove(item.id)}
+                        className="btn btn-soft btn-wide"
+                        onClick={() => void onRemove(item.id)}
                       >
                         목록에서 빼기
                       </button>
