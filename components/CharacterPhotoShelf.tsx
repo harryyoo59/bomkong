@@ -29,7 +29,7 @@ function isImageFile(file: File): boolean {
   );
 }
 
-/** AI 채팅에 붙여 넣을 수 있게 사진을 클립보드로 복사 */
+/** AI 채팅에 붙여 넣을 수 있게 사진을 PNG로 만듦 */
 async function blobToPng(blob: Blob): Promise<Blob> {
   if (blob.type === "image/png") return blob;
   const url = URL.createObjectURL(blob);
@@ -43,6 +43,9 @@ async function blobToPng(blob: Blob): Promise<Blob> {
     const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth || img.width;
     canvas.height = img.naturalHeight || img.height;
+    if (canvas.width < 1 || canvas.height < 1) {
+      throw new Error("사진을 복사하지 못했어요.");
+    }
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("사진을 복사하지 못했어요.");
     ctx.drawImage(img, 0, 0);
@@ -56,22 +59,76 @@ async function blobToPng(blob: Blob): Promise<Blob> {
   }
 }
 
-async function copyPhotoToClipboard(itemId: string): Promise<void> {
+async function preparePngBlob(itemId: string): Promise<Blob> {
   const record = await getMediaPreview(itemId);
   if (!record?.blob) {
-    throw new Error("사진이 없어요. 다시 넣어 주세요.");
+    throw new Error("사진이 없어요. 갤러리에 사진을 다시 넣어 주세요.");
   }
-  if (
-    typeof navigator === "undefined" ||
-    !navigator.clipboard ||
-    typeof ClipboardItem === "undefined"
-  ) {
-    throw new Error("이 기기에서는 복사를 못 해요. 다른 브라우저로 해 보세요.");
+  return blobToPng(record.blob);
+}
+
+async function downloadPngFallback(
+  itemId: string,
+  fileName: string,
+): Promise<void> {
+  const png = await preparePngBlob(itemId);
+  const url = URL.createObjectURL(png);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName.replace(/\.[^.]+$/, "") + ".png" || "photo.png";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
-  const png = await blobToPng(record.blob);
-  await navigator.clipboard.write([
-    new ClipboardItem({ "image/png": png }),
-  ]);
+}
+
+/**
+ * 사진 복사.
+ * 사파리 등은 클릭 직후에 clipboard.write를 바로 호출해야 함.
+ * (먼저 await 하면 막힘 → ClipboardItem에 Promise를 넣음)
+ */
+function copyPhotoToClipboard(itemId: string, fileName: string): Promise<void> {
+  const canWriteImage =
+    typeof navigator !== "undefined" &&
+    Boolean(navigator.clipboard?.write) &&
+    typeof ClipboardItem !== "undefined" &&
+    !/firefox/i.test(navigator.userAgent || "");
+
+  const pngPromise = preparePngBlob(itemId);
+
+  if (!canWriteImage) {
+    return downloadPngFallback(itemId, fileName).then(() => {
+      throw new Error(
+        "이 기기에서는 복사가 안 돼서 사진 파일로 받아 두었어요. AI에 그 파일을 넣어 주세요.",
+      );
+    });
+  }
+
+  // 클릭 제스처 안에서 바로 write 호출 (사파리 필수)
+  return navigator.clipboard
+    .write([
+      new ClipboardItem({
+        "image/png": pngPromise,
+      }),
+    ])
+    .catch(async () => {
+      // 일부 브라우저는 Promise 값을 못 받아서, 만든 뒤 한 번 더 시도
+      try {
+        const png = await pngPromise;
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": png }),
+        ]);
+      } catch {
+        await downloadPngFallback(itemId, fileName);
+        throw new Error(
+          "복사가 안 돼서 사진 파일로 받아 두었어요. AI에 그 파일을 넣어 주세요.",
+        );
+      }
+    });
 }
 
 export function CharacterPhotoShelf({ shelf }: Props) {
@@ -189,9 +246,9 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     setMessage(`사진을 갤러리에서 빼 두었어요.`);
   }
 
-  async function onCopy(id: string) {
+  async function onCopy(id: string, fileName: string) {
     try {
-      await copyPhotoToClipboard(id);
+      await copyPhotoToClipboard(id, fileName);
       setMessage("사진을 복사했어요. AI 채팅에 붙여 넣으면 돼요.");
     } catch (err) {
       setMessage(
@@ -270,7 +327,7 @@ export function CharacterPhotoShelf({ shelf }: Props) {
                   <button
                     type="button"
                     className="btn btn-primary btn-wide"
-                    onClick={() => void onCopy(item.id)}
+                    onClick={() => void onCopy(item.id, item.name)}
                   >
                     복사하기
                   </button>
