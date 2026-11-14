@@ -87,6 +87,20 @@ export function suggestNextEpisodeNumber(items: WatchItem[]): number {
   return max + 1;
 }
 
+/** 지정한 언어로 비어 있는 편 번호(구멍 채우기 → 없으면 새 번호) */
+export function suggestNextEpisodeNumberForLang(
+  items: WatchItem[],
+  lang: WatchLang,
+): number {
+  const numbers = [
+    ...new Set(items.map((it) => it.episodeNumber)),
+  ].sort((a, b) => a - b);
+  for (const n of numbers) {
+    if (!findWatchSlot(items, n, lang)) return n;
+  }
+  return suggestNextEpisodeNumber(items);
+}
+
 /**
  * 다음에 넣을 자리 추천.
  * - 영어만 있는 편이 있으면 → 그 번호의 한국어 (영어 먼저 넣어도 짝을 맞춤)

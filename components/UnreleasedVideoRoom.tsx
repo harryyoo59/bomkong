@@ -7,14 +7,10 @@ import { AdminMediaPreview } from "@/components/AdminMediaPreview";
 import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import {
   deleteMediaPreview,
+  getMediaPreview,
   moveMediaPreview,
   saveMediaPreview,
 } from "@/lib/media-preview-store";
-import {
-  makePublicId,
-  readPublicMediaStore,
-  writePublicMediaStore,
-} from "@/lib/public-media";
 import {
   makeUnreleasedId,
   readUnreleasedMediaStore,
@@ -23,16 +19,34 @@ import {
   type UnreleasedItem,
   type UnreleasedLang,
 } from "@/lib/unreleased-media";
-import { resolveYoutubeWatchUrl } from "@/lib/watch-media";
+import {
+  makeWatchId,
+  readWatchMediaStore,
+  sortWatchItemsForPlay,
+  suggestNextEpisodeNumberForLang,
+  watchSlotLabel,
+  writeWatchMediaStore,
+  type WatchLang,
+} from "@/lib/watch-media";
 
-/** 한국어·영어 채널 — 숏츠 올리러 갈 때 */
-const KOREAN_YOUTUBE_CHANNEL =
-  "https://www.youtube.com/@%EB%B4%84%EC%9D%B4%EC%BD%A9%EC%9D%B4BomKong";
-const ENGLISH_YOUTUBE_CHANNEL = "https://www.youtube.com/@bomkong-En";
+/** 유튜브 올리기 화면 — 세로 영상이면 숏츠·초안으로 이어짐 */
+const YOUTUBE_SHORTS_UPLOAD = "https://www.youtube.com/upload";
 
 type Props = {
   lang: UnreleasedLang;
 };
+
+function downloadBlob(blob: Blob, fileName: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName || "short.mp4";
+  a.rel = "noopener";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
 
 export function UnreleasedVideoRoom({ lang }: Props) {
   const langLabel = UNRELEASED_LANG_LABELS[lang];
@@ -44,20 +58,14 @@ export function UnreleasedVideoRoom({ lang }: Props) {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [formKey, setFormKey] = useState(0);
-  const [moveId, setMoveId] = useState<string | null>(null);
-  const [moveYoutubeUrl, setMoveYoutubeUrl] = useState("");
   const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
     {},
   );
   const [adding, setAdding] = useState(false);
+  const [sendingId, setSendingId] = useState<string | null>(null);
 
   const isEnglish = lang === "en";
-  const youtubeChannelUrl = isEnglish
-    ? ENGLISH_YOUTUBE_CHANNEL
-    : KOREAN_YOUTUBE_CHANNEL;
-  const youtubeChannelLinkLabel = isEnglish
-    ? "영어 채널에서 숏츠 올리기"
-    : "한국어 채널에서 숏츠 올리기";
+  const watchLang: WatchLang = lang;
   const titlePlaceholder = isEnglish
     ? "예: Ball play at the park"
     : "예: 공원에서 공 놀이";
@@ -73,7 +81,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     setPendingFile(null);
     setFileLabel("");
     setMessage("");
-    setMoveId(null);
+    setSendingId(null);
     setFormKey((k) => k + 1);
   }, [lang]);
 
@@ -167,60 +175,72 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
   }
 
-  function startMove(id: string, youtubeUrl = "") {
-    setMoveId(id);
-    setMoveYoutubeUrl(youtubeUrl);
-    setMessage("");
-  }
-
-  function cancelMove() {
-    setMoveId(null);
-    setMoveYoutubeUrl("");
-  }
-
-  async function confirmMove(e: React.FormEvent) {
-    e.preventDefault();
-    if (!moveId) return;
-    const target = items.find((it) => it.id === moveId);
+  /** 원본 → 영상보기, 파일 받아서 유튜브 숏츠 올리기(초안) 화면으로 */
+  async function sendToShortsDraft(id: string) {
+    if (sendingId) return;
+    const target = items.find((it) => it.id === id);
     if (!target) {
-      setMessage("옮길 영상을 찾지 못했어요.");
-      cancelMove();
+      setMessage("영상을 찾지 못했어요.");
       return;
     }
 
-    const resolved = resolveYoutubeWatchUrl(moveYoutubeUrl);
-    if (!resolved) {
-      setMessage(
-        "유튜브 숏츠 주소를 붙여 넣어 주세요. 예: https://youtube.com/shorts/……",
+    setSendingId(id);
+    setMessage(
+      isEnglish
+        ? `Moving “${target.title}” to Watch, then opening YouTube Shorts upload…`
+        : `「${target.title}」원본을 영상보기로 옮기고, 유튜브 숏츠 올리기 화면으로 가요…`,
+    );
+
+    try {
+      const preview = await getMediaPreview(target.id);
+      if (preview?.blob) {
+        downloadBlob(preview.blob, target.name || `${target.title}.mp4`);
+      }
+
+      const watchStore = readWatchMediaStore();
+      const episodeNumber = suggestNextEpisodeNumberForLang(
+        watchStore.items,
+        watchLang,
       );
-      return;
-    }
-
-    const publicId = makePublicId();
-    const nextUnreleased = items.filter((it) => it.id !== moveId);
-    const publicStore = readPublicMediaStore();
-    const nextPublic = [
-      {
-        id: publicId,
+      const watchId = makeWatchId();
+      const watchItem = {
+        id: watchId,
         name: target.name,
         title: target.title,
-        youtubeUrl: moveYoutubeUrl.trim(),
+        youtubeUrl: "",
         note: "",
         addedAt: new Date().toISOString(),
-        youtubeStatus: "public" as const,
-        fromUnreleasedId: target.id,
-      },
-      ...publicStore.items,
-    ];
+        episodeNumber,
+        lang: watchLang,
+      };
+      const nextWatch = sortWatchItemsForPlay([
+        ...watchStore.items,
+        watchItem,
+      ]);
+      writeWatchMediaStore({ items: nextWatch });
+      await moveMediaPreview(target.id, watchId);
 
-    await moveMediaPreview(target.id, publicId);
-    writeUnreleasedMediaStore(lang, { items: nextUnreleased });
-    writePublicMediaStore({ items: nextPublic });
-    setItems(nextUnreleased);
-    cancelMove();
-    // 주소 넣고 바로 그 유튜브(숏츠)로 이동
-    if (typeof window !== "undefined") {
-      window.location.assign(resolved);
+      const nextUnreleased = items.filter((it) => it.id !== id);
+      writeUnreleasedMediaStore(lang, { items: nextUnreleased });
+      setItems(nextUnreleased);
+
+      const slot = watchSlotLabel(watchItem);
+      setMessage(
+        preview?.blob
+          ? `「${target.title}」을(를) 영상보기(${slot})로 옮겼어요. 받은 파일을 유튜브 숏츠 초안에 붙여 주세요.`
+          : `「${target.title}」을(를) 영상보기(${slot})로 옮겼어요. 미리보기 파일이 없어 다운로드는 못 했어요. 유튜브에서 같은 파일을 골라 올려 주세요.`,
+      );
+
+      window.setTimeout(() => {
+        window.location.assign(YOUTUBE_SHORTS_UPLOAD);
+      }, 500);
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "옮기지 못했어요. 잠시 후 다시 해 주세요.",
+      );
+      setSendingId(null);
     }
   }
 
@@ -306,8 +326,9 @@ export function UnreleasedVideoRoom({ lang }: Props) {
           아직 유튜브에 안 올린 영상 · {langLabel}
         </h2>
         <p className="muted tiny">
-          유튜브에서 숏츠로 올린 뒤 <strong>숏츠 주소</strong>를 붙여 넣으면,
-          공개 영상실로 옮기고 <strong>그 유튜브로 바로 가요</strong>.
+          「숏츠 초안으로 가기」를 누르면 <strong>원본은 영상보기</strong>로
+          옮기고, <strong>파일은 받아서</strong> 유튜브 숏츠 올리기(초안)
+          화면으로 가요. 받은 파일을 거기에 붙이면 잊어버리지 않아요.
         </p>
         {items.length === 0 ? (
           <AdminEmptyText roomKey={roomKey} />
@@ -347,69 +368,27 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                   </div>
                 </div>
 
-                {moveId === item.id ? (
-                  <form
-                    className="admin-form vault-move-form"
-                    onSubmit={confirmMove}
+                <div className="vault-action-row">
+                  <span className="pair-chip">아직 유튜브 전</span>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={Boolean(sendingId)}
+                    onClick={() => sendToShortsDraft(item.id)}
                   >
-                    <p className="tiny muted">
-                      「{item.title}」 · 숏츠 주소를 넣으면 공개 영상실에
-                      저장하고, 그 유튜브로 바로 이동합니다.
-                    </p>
-                    <p className="tiny muted">
-                      아직 안 올렸으면{" "}
-                      <a
-                        href={youtubeChannelUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        {youtubeChannelLinkLabel}
-                      </a>
-                      로 먼저 올린 뒤, 주소를 복사해 오세요.
-                    </p>
-                    <label>
-                      숏츠 주소 붙여 넣기
-                      <input
-                        value={moveYoutubeUrl}
-                        onChange={(e) => setMoveYoutubeUrl(e.target.value)}
-                        placeholder="예: https://youtube.com/shorts/…"
-                        inputMode="url"
-                        autoFocus
-                        required
-                      />
-                    </label>
-                    <div className="vault-action-row">
-                      <button type="submit" className="btn btn-primary">
-                        주소 넣고 유튜브로 가기
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-soft"
-                        onClick={cancelMove}
-                      >
-                        취소
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <div className="vault-action-row">
-                    <span className="pair-chip">아직 유튜브 전</span>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => startMove(item.id)}
-                    >
-                      숏츠 주소 넣고 유튜브로 가기
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-soft"
-                      onClick={() => onRemove(item.id)}
-                    >
-                      목록에서 빼기
-                    </button>
-                  </div>
-                )}
+                    {sendingId === item.id
+                      ? "옮기는 중…"
+                      : "숏츠 초안으로 가기 · 원본은 영상보기로"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-soft"
+                    disabled={Boolean(sendingId)}
+                    onClick={() => onRemove(item.id)}
+                  >
+                    목록에서 빼기
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
