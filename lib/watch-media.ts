@@ -48,6 +48,17 @@ export function sortWatchItemsForPlay(items: WatchItem[]): WatchItem[] {
   return [...items].sort(compareWatchPlayOrder);
 }
 
+/** 관리자 목록용: 번호 큰 것이 위, 1번은 맨 아래. 같은 번호는 한국어 → 영어 */
+export function sortWatchItemsNumberDesc(items: WatchItem[]): WatchItem[] {
+  return [...items].sort((a, b) => {
+    if (a.episodeNumber !== b.episodeNumber) {
+      return b.episodeNumber - a.episodeNumber;
+    }
+    if (a.lang === b.lang) return a.id.localeCompare(b.id);
+    return a.lang === "ko" ? -1 : 1;
+  });
+}
+
 /** 관리자 목록용: 나중에 넣은 것이 위로 (스크롤 줄이기) */
 export function sortWatchItemsNewestFirst(items: WatchItem[]): WatchItem[] {
   return [...items].sort((a, b) => {
