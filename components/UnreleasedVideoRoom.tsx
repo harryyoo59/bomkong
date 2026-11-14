@@ -25,6 +25,10 @@ import {
 } from "@/lib/unreleased-media";
 import { resolveYoutubeWatchUrl } from "@/lib/watch-media";
 
+/** 한국어 채널 — 숏츠 올리러 갈 때 */
+const KOREAN_YOUTUBE_CHANNEL =
+  "https://www.youtube.com/@%EB%B4%84%EC%9D%B4%EC%BD%A9%EC%9D%B4BomKong";
+
 type Props = {
   lang: UnreleasedLang;
 };
@@ -206,10 +210,11 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     writeUnreleasedMediaStore(lang, { items: nextUnreleased });
     writePublicMediaStore({ items: nextPublic });
     setItems(nextUnreleased);
-    setMessage(
-      `「${target.title}」을(를) 공개 영상실로 옮겼어요. 숏츠 주소도 같이 넣었어요.`,
-    );
     cancelMove();
+    // 주소 넣고 바로 그 유튜브(숏츠)로 이동
+    if (typeof window !== "undefined") {
+      window.location.assign(resolved);
+    }
   }
 
   if (!ready) {
@@ -294,9 +299,8 @@ export function UnreleasedVideoRoom({ lang }: Props) {
           아직 유튜브에 안 올린 영상 · {langLabel}
         </h2>
         <p className="muted tiny">
-          유튜브 앱·사이트에서 숏츠로 올린 뒤, 여기에는{" "}
-          <strong>숏츠 주소만 붙여 넣으면</strong> 돼요. 「숏츠 주소 붙여 넣고
-          옮기기」를 눌러 주세요.
+          유튜브에서 숏츠로 올린 뒤 <strong>숏츠 주소</strong>를 붙여 넣으면,
+          공개 영상실로 옮기고 <strong>그 유튜브로 바로 가요</strong>.
         </p>
         {items.length === 0 ? (
           <AdminEmptyText roomKey={roomKey} />
@@ -342,8 +346,19 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                     onSubmit={confirmMove}
                   >
                     <p className="tiny muted">
-                      유튜브에서 숏츠로 올린 뒤, 주소를 붙여 넣으면 「
-                      {item.title}」이(가) 공개 영상실로 옮겨져요.
+                      「{item.title}」 · 숏츠 주소를 넣으면 공개 영상실에
+                      저장하고, 그 유튜브로 바로 이동합니다.
+                    </p>
+                    <p className="tiny muted">
+                      아직 안 올렸으면{" "}
+                      <a
+                        href={KOREAN_YOUTUBE_CHANNEL}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        한국어 채널에서 숏츠 올리기
+                      </a>
+                      로 먼저 올린 뒤, 주소를 복사해 오세요.
                     </p>
                     <label>
                       숏츠 주소 붙여 넣기
@@ -358,7 +373,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                     </label>
                     <div className="vault-action-row">
                       <button type="submit" className="btn btn-primary">
-                        주소 넣고 옮기기
+                        주소 넣고 유튜브로 가기
                       </button>
                       <button
                         type="button"
@@ -377,7 +392,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                       className="btn btn-primary"
                       onClick={() => startMove(item.id)}
                     >
-                      숏츠 주소 붙여 넣고 옮기기
+                      숏츠 주소 넣고 유튜브로 가기
                     </button>
                     <button
                       type="button"
