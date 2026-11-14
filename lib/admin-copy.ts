@@ -179,7 +179,7 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   },
   {
     id: "door-unreleased",
-    number: "7",
+    number: "5",
     title: "미공개 영상실",
     body: "만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 둬요. 한국어·영어를 따로 열어요.",
     note: "한국어 · 영어",
@@ -190,7 +190,7 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   },
   {
     id: "door-watch",
-    number: "9",
+    number: "6",
     title: "영상보기",
     body: "거실에서 아이들이 보는 영상을 모아 둬요.",
     note: "거실 영상보기",
@@ -249,28 +249,28 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     empty: "아직 넣어 둔 로고가 없어요.",
   },
   unreleased: {
-    eyebrow: "관리자실 · 7번 칸",
+    eyebrow: "관리자실 · 5번 칸",
     title: "미공개 영상실",
     intro:
       "한국어용·영어용 미공개 영상을 따로 모아 둬요. 아래 문 중 하나를 눌러 들어가세요.",
     empty: "",
   },
   "unreleased-ko": {
-    eyebrow: "관리자실 · 7번 칸 · 한국어",
+    eyebrow: "관리자실 · 5번 칸 · 한국어",
     title: "미공개 영상실 · 한국어",
     intro:
       "한국어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.",
     empty: "아직 넣어 둔 한국어 미공개 영상이 없어요.",
   },
   "unreleased-en": {
-    eyebrow: "관리자실 · 7번 칸 · 영어",
+    eyebrow: "관리자실 · 5번 칸 · 영어",
     title: "미공개 영상실 · 영어",
     intro:
       "영어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요.",
     empty: "아직 넣어 둔 영어 미공개 영상이 없어요.",
   },
   watch: {
-    eyebrow: "관리자실 · 9번 칸",
+    eyebrow: "관리자실 · 6번 칸",
     title: "영상보기",
     intro: "",
     empty: "아직 넣어 둔 영상이 없어요. 넣으면 거실 영상보기에 나와요.",
@@ -324,6 +324,14 @@ function migrateBuiltInDoor(
   fallback?: ClinicDoor,
 ): ClinicDoor {
   if (!fallback || !door.builtIn) return door;
+
+  // 미공개·영상보기 칸 번호: 예전 7·9 → 5·6
+  if (
+    (door.id === "door-unreleased" || door.id === "door-watch") &&
+    door.number !== fallback.number
+  ) {
+    door = { ...door, number: fallback.number };
+  }
 
   if (door.id === "door-rules") {
     if (door.href) return door;
@@ -434,13 +442,22 @@ export function normalizeAdminCopyStore(
     "거실 「영상보기」에 보여줄 영상만 모아 두는 방이에요. 편 번호와 언어(ko/en)를 넣고, 재생은 1-ko → 1-en → 2-ko → 2-en 순이에요. 영어가 없으면 다음 번호로 가요. 나중에 넣은 영상은 뒤로 가요.";
   for (const key of ROOM_KEYS) {
     const fallback = defaults.rooms[key];
-    const room = normalizeRoom(raw.rooms?.[key] ?? {}, fallback);
+    let room = normalizeRoom(raw.rooms?.[key] ?? {}, fallback);
     // 영상보기: 예전 긴 안내 글은 비움 (사장님용 설명이 필요 없음)
     if (key === "watch" && room.intro.trim() === oldWatchIntro) {
-      rooms[key] = { ...room, intro: "" };
-    } else {
-      rooms[key] = room;
+      room = { ...room, intro: "" };
     }
+    // 미공개·영상보기: 예전 7·9번 눈썹 글 → 5·6번
+    if (
+      (key === "unreleased" ||
+        key === "unreleased-ko" ||
+        key === "unreleased-en" ||
+        key === "watch") &&
+      (room.eyebrow.includes("7번") || room.eyebrow.includes("9번"))
+    ) {
+      room = { ...room, eyebrow: fallback.eyebrow };
+    }
+    rooms[key] = room;
   }
   if (raw.rooms) {
     for (const [key, value] of Object.entries(raw.rooms)) {

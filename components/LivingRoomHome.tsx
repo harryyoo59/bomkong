@@ -231,7 +231,7 @@ export function LivingRoomHome({
       setPromptVisible(false);
       return;
     }
-    // 이어보기는 영상보기 방(9번)에 있는 것만. 예전 샘플·다른 방 기록은 무시.
+    // 이어보기는 영상보기 방(6번)에 있는 것만. 예전 샘플·다른 방 기록은 무시.
     const inWatchRoom = Boolean(getWatchItemById(saved.episodeId));
     if (!inWatchRoom) {
       clearWatchProgress();

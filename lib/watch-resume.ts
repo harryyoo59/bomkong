@@ -5,7 +5,7 @@ import {
 } from "@/lib/watch-media";
 
 /**
- * 거실 「영상보기」이어보기 자리 — 관리자 9번 목록 기준.
+ * 거실 「영상보기」이어보기 자리 — 관리자 6번 목록 기준.
  * 유튜브를 연 영상을 이 기기 브라우저에만 기억해요.
  */
 export const WATCH_RESUME_KEY = "bomkong_watch_resume_v1";

@@ -105,7 +105,7 @@ export function WatchVaultPlayer({
               유튜브 주소 없음
             </p>
             <p className="muted tiny">
-              사장님이 관리자실 9번 영상보기 방에 유튜브 주소를 넣어 주시면
+              사장님이 관리자실 6번 영상보기 방에 유튜브 주소를 넣어 주시면
               여기서 열 수 있어요.
             </p>
           </>
