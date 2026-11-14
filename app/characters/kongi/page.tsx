@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { CharacterCopyButton } from "@/components/CharacterCopyButton";
 import { SiteShell } from "@/components/SiteShell";
 
 const SHEETS = [
@@ -59,6 +60,7 @@ export default function KongiCharacterPage() {
         <p className="eyebrow">캐릭터 소개</p>
         <h1 className="character-name">콩이</h1>
         <p className="muted">얼굴의 완전 기본 베이스는 아래 시트예요.</p>
+        <CharacterCopyButton name="콩이" sections={SECTIONS} />
       </section>
 
       <section className="panel">
