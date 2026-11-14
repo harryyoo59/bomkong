@@ -1062,6 +1062,13 @@ label.form-row textarea {
   gap: 6px;
 }
 
+.character-copy-box {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 @media (min-width: 720px) {
   .character-photo-gallery {
     grid-template-columns: repeat(3, minmax(0, 1fr));
