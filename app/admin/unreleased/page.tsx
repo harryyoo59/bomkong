@@ -23,9 +23,6 @@ export default async function AdminUnreleasedHubPage() {
         <UnreleasedLangChooser />
       </section>
       <div className="vault-nav-row">
-        <Link className="btn btn-soft" href="/admin/youtube-connect">
-          유튜브 숏츠 연결
-        </Link>
         <Link className="btn btn-soft" href="/admin">
           관리자실
         </Link>
