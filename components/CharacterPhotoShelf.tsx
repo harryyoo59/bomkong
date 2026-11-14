@@ -5,6 +5,7 @@ import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
 import {
   deleteMediaPreview,
+  getMediaPreview,
   saveMediaPreview,
 } from "@/lib/media-preview-store";
 import {
@@ -26,6 +27,51 @@ function isImageFile(file: File): boolean {
     file.type.startsWith("image/") ||
     /\.(png|jpe?g|gif|webp|heic|bmp|avif)$/i.test(file.name)
   );
+}
+
+/** AI 채팅에 붙여 넣을 수 있게 사진을 클립보드로 복사 */
+async function blobToPng(blob: Blob): Promise<Blob> {
+  if (blob.type === "image/png") return blob;
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("사진을 읽지 못했어요."));
+      el.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth || img.width;
+    canvas.height = img.naturalHeight || img.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("사진을 복사하지 못했어요.");
+    ctx.drawImage(img, 0, 0);
+    const png = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), "image/png");
+    });
+    if (!png) throw new Error("사진을 복사하지 못했어요.");
+    return png;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function copyPhotoToClipboard(itemId: string): Promise<void> {
+  const record = await getMediaPreview(itemId);
+  if (!record?.blob) {
+    throw new Error("사진이 없어요. 다시 넣어 주세요.");
+  }
+  if (
+    typeof navigator === "undefined" ||
+    !navigator.clipboard ||
+    typeof ClipboardItem === "undefined"
+  ) {
+    throw new Error("이 기기에서는 복사를 못 해요. 다른 브라우저로 해 보세요.");
+  }
+  const png = await blobToPng(record.blob);
+  await navigator.clipboard.write([
+    new ClipboardItem({ "image/png": png }),
+  ]);
 }
 
 export function CharacterPhotoShelf({ shelf }: Props) {
@@ -143,6 +189,19 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     setMessage(`사진을 갤러리에서 빼 두었어요.`);
   }
 
+  async function onCopy(id: string) {
+    try {
+      await copyPhotoToClipboard(id);
+      setMessage("사진을 복사했어요. AI 채팅에 붙여 넣으면 돼요.");
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "사진을 복사하지 못했어요. 다시 해 주세요.",
+      );
+    }
+  }
+
   if (!ready) {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
@@ -189,7 +248,8 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       <section>
         <h2 className="section-title">사진 갤러리</h2>
         <p className="muted tiny">
-          {who} 칸 아래 사진 보관이에요. 영상규칙에만 쓰는 자료예요.
+          {who} 칸 아래 사진 보관이에요. 「복사하기」로 사진을 복사한 뒤 AI에게
+          붙여 넣으면 돼요.
         </p>
         {items.length === 0 ? (
           <AdminEmptyText roomKey={characterPhotoRoomKey(shelf)} />
@@ -206,13 +266,22 @@ export function CharacterPhotoShelf({ shelf }: Props) {
                 <p className="tiny muted character-photo-caption" title={item.name}>
                   {item.name}
                 </p>
-                <button
-                  type="button"
-                  className="btn btn-soft btn-wide"
-                  onClick={() => void onRemove(item.id)}
-                >
-                  빼기
-                </button>
+                <div className="character-photo-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-wide"
+                    onClick={() => void onCopy(item.id)}
+                  >
+                    복사하기
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-soft btn-wide"
+                    onClick={() => void onRemove(item.id)}
+                  >
+                    빼기
+                  </button>
+                </div>
               </li>
             ))}
           </ul>
