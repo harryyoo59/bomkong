@@ -1900,7 +1900,15 @@ label.form-row textarea {
   }
 }
 
-/* Door whole — plaque baked in video (no web label). */
+/* Door whole — plaque baked in video (no web label). Five knocks = admin. */
+.hotspot-door-form {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
 .hotspot-door {
   position: absolute;
   left: 81.96%;
@@ -1908,10 +1916,22 @@ label.form-row textarea {
   width: 15.92%;
   height: 71.88%;
   display: block;
+  margin: 0;
+  padding: 0;
+  border: none;
   border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
   z-index: 3;
+  pointer-events: auto;
   text-decoration: none;
   color: inherit;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.hotspot-door:disabled {
+  cursor: wait;
 }
 
 .living-chrome {

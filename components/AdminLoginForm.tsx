@@ -1,42 +1,18 @@
 "use client";
 
-import { useActionState } from "react";
-import { loginAdmin, type LoginState } from "@/app/admin/actions";
+import Link from "next/link";
 
-const initial: LoginState = {};
-
-export function AdminLoginForm({ nextPath }: { nextPath: string }) {
-  const [state, action, pending] = useActionState(loginAdmin, initial);
-
+/** 비밀글 대신 거실 문 다섯 번으로 들어가요. */
+export function AdminLoginForm() {
   return (
-    <form action={action} className="admin-login-form">
-      <input type="hidden" name="next" value={nextPath} />
-      <label className="field-label" htmlFor="admin-password">
-        비밀글
-      </label>
-      <input
-        id="admin-password"
-        name="password"
-        type="text"
-        inputMode="text"
-        autoComplete="off"
-        className="field-input"
-        placeholder="여기에 비밀글을 입력해요"
-        required
-        disabled={pending}
-      />
-      {state.error ? (
-        <p className="form-error" role="alert">
-          {state.error}
-        </p>
-      ) : null}
-      <button
-        type="submit"
-        className="btn btn-primary btn-wide"
-        disabled={pending}
-      >
-        {pending ? "확인 중…" : "들어가기"}
-      </button>
-    </form>
+    <div className="admin-login-form">
+      <p className="muted">
+        거실에서 「관리자실」 문을 <strong>다섯 번</strong> 빠르게 누르면
+        들어가요. 비밀글은 쓰지 않아요.
+      </p>
+      <Link className="btn btn-primary btn-wide" href="/">
+        거실로 가서 문 누르기
+      </Link>
+    </div>
   );
 }

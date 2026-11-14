@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { enterAdminByKnock } from "@/app/admin/actions";
 import { GuardianGate } from "@/components/GuardianGate";
 import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
 import {
@@ -28,6 +29,10 @@ import {
   LIVING_ROOM_BEATS,
   type LivingStoryTarget,
 } from "@/lib/living-room-story";
+
+/** 문 노크: 직전 노크와 이 시간 안이면 이어서 셈 */
+const DOOR_KNOCK_GAP_MS = 4000;
+const DOOR_KNOCKS_NEEDED = 5;
 
 export type LivingMenuId = "watch" | "subscribe" | "goods";
 
@@ -173,6 +178,7 @@ export function LivingRoomHome({
   const [progress, setProgress] = useState<WatchProgress | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
   const [beatIndex, setBeatIndex] = useState(0);
+  const [knockPending, setKnockPending] = useState(false);
   const captionId = useId();
   const youtubeUrl = youtubeChannelUrl?.trim() || null;
   const beat = LIVING_ROOM_BEATS[beatIndex] ?? LIVING_ROOM_BEATS[0];
@@ -180,6 +186,29 @@ export function LivingRoomHome({
   const beatCount = LIVING_ROOM_BEATS.length;
   const speakTokenRef = useRef(0);
   const storyAudioRef = useRef<HTMLAudioElement | null>(null);
+  const doorKnockFormRef = useRef<HTMLFormElement>(null);
+  const doorKnockRef = useRef<{ count: number; lastAt: number }>({
+    count: 0,
+    lastAt: 0,
+  });
+
+  const onAdminDoorKnock = useCallback(() => {
+    if (knockPending) return;
+    const now = Date.now();
+    const knock = doorKnockRef.current;
+    if (now - knock.lastAt > DOOR_KNOCK_GAP_MS) {
+      knock.count = 0;
+    }
+    knock.count += 1;
+    knock.lastAt = now;
+
+    if (knock.count < DOOR_KNOCKS_NEEDED) return;
+
+    knock.count = 0;
+    knock.lastAt = 0;
+    setKnockPending(true);
+    doorKnockFormRef.current?.requestSubmit();
+  }, [knockPending]);
 
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -569,15 +598,23 @@ export function LivingRoomHome({
             <span className="visually-hidden">회사 홈페이지로 가요</span>
           </a>
 
-          {/* 문 전체 → 관리자실. 명패는 영상에 구움(웹 글씨 없음). */}
-          <Link
-            href="/admin/login"
-            className={`hotspot hotspot-door${storyClass("door")}`}
-            aria-label="관리자실 입장"
-            title="관리자실"
+          {/* 문 전체 → 다섯 번 누르면 관리자실. 명패는 영상에 구움(웹 글씨 없음). */}
+          <form
+            ref={doorKnockFormRef}
+            action={enterAdminByKnock}
+            className="hotspot-door-form"
           >
-            <span className="visually-hidden">관리자실</span>
-          </Link>
+            <button
+              type="button"
+              className={`hotspot hotspot-door${storyClass("door")}`}
+              aria-label="관리자실 문 (다섯 번 누르면 들어가요)"
+              title="관리자실"
+              onClick={onAdminDoorKnock}
+              disabled={knockPending}
+            >
+              <span className="visually-hidden">관리자실</span>
+            </button>
+          </form>
         </div>
       </div>
 
