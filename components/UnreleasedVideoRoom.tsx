@@ -46,7 +46,6 @@ export function UnreleasedVideoRoom({ lang }: Props) {
   const [items, setItems] = useState<UnreleasedItem[]>([]);
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
   const [fileLabel, setFileLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
@@ -71,9 +70,6 @@ export function UnreleasedVideoRoom({ lang }: Props) {
   const titlePlaceholder = isEnglish
     ? "예: Ball play at the park"
     : "예: 공원에서 공 놀이";
-  const notePlaceholder = isEnglish
-    ? "예: Check captions before upload"
-    : "예: 올리기 전에 자막만 더 볼 것";
   const videoAccept =
     "video/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm";
 
@@ -83,7 +79,6 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     setReady(true);
     // 한국어↔영어 방 바꿀 때 입력칸·파일 선택을 비움 (이전 방 내용이 남지 않게)
     setTitle("");
-    setNote("");
     setPendingFile(null);
     setFileLabel("");
     setMessage("");
@@ -168,7 +163,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       id: makeUnreleasedId(),
       name: pendingFile.name,
       title: trimmedTitle,
-      note: note.trim(),
+      note: "",
       addedAt: new Date().toISOString(),
       youtubeStatus: "not_uploaded",
     };
@@ -195,7 +190,6 @@ export function UnreleasedVideoRoom({ lang }: Props) {
             : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
       );
       setTitle("");
-      setNote("");
       setPendingFile(null);
       setFileLabel("");
       setFormKey((k) => k + 1);
@@ -270,7 +264,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
         name: target.name,
         title: target.title,
         youtubeUrl: moveYoutubeUrl.trim(),
-        note: target.note,
+        note: "",
         addedAt: new Date().toISOString(),
         youtubeStatus: "public" as const,
         fromUnreleasedId: target.id,
@@ -325,7 +319,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
         file,
         title: target.title,
         privacyStatus: privacy,
-        note: target.note,
+        note: "",
         fileName,
         onProgress: (p) => {
           if (p.totalBytes <= 0) {
@@ -422,17 +416,6 @@ export function UnreleasedVideoRoom({ lang }: Props) {
           />
         </label>
 
-        <label>
-          {isEnglish ? "Short note (optional)" : "짧은 메모 (선택)"}
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder={notePlaceholder}
-            lang={isEnglish ? "en" : "ko"}
-            disabled={adding}
-          />
-        </label>
-
         <button
           type="submit"
           className="btn btn-primary btn-wide"
@@ -503,9 +486,6 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                   <div>
                     <strong>{item.title}</strong>
                     <p className="tiny muted">파일 · {item.name}</p>
-                    {item.note ? (
-                      <p className="tiny muted">{item.note}</p>
-                    ) : null}
                     <p className="tiny muted">
                       넣은 날{" "}
                       {new Date(item.addedAt).toLocaleString("ko-KR", {

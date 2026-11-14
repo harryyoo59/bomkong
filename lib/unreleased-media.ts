@@ -37,15 +37,48 @@ export const EMPTY_UNRELEASED_STORE: UnreleasedMediaStore = {
   items: [],
 };
 
+function normalizeItem(raw: Partial<UnreleasedItem>): UnreleasedItem | null {
+  if (!raw || typeof raw.id !== "string" || typeof raw.name !== "string") {
+    return null;
+  }
+  const title = typeof raw.title === "string" ? raw.title.trim() : "";
+  if (!title) return null;
+  return {
+    id: raw.id,
+    name: raw.name,
+    title,
+    // 짧은 메모는 더 이상 쓰지 않음 · 예전 값도 비움
+    note: "",
+    addedAt:
+      typeof raw.addedAt === "string" ? raw.addedAt : new Date().toISOString(),
+    youtubeStatus: "not_uploaded",
+  };
+}
+
 function readRawStore(key: string): UnreleasedMediaStore {
   if (typeof window === "undefined") return EMPTY_UNRELEASED_STORE;
   try {
     const raw = window.localStorage.getItem(key);
     if (!raw) return EMPTY_UNRELEASED_STORE;
     const parsed = JSON.parse(raw) as Partial<UnreleasedMediaStore>;
-    return {
-      items: Array.isArray(parsed.items) ? parsed.items : [],
-    };
+    const rawItems = Array.isArray(parsed.items) ? parsed.items : [];
+    const hadNotes = rawItems.some(
+      (it) =>
+        typeof (it as UnreleasedItem)?.note === "string" &&
+        Boolean((it as UnreleasedItem).note.trim()),
+    );
+    const items = rawItems
+      .map((it) => normalizeItem(it as Partial<UnreleasedItem>))
+      .filter((it): it is UnreleasedItem => Boolean(it));
+    const store = { items };
+    if (hadNotes) {
+      try {
+        window.localStorage.setItem(key, JSON.stringify(store));
+      } catch {
+        /* ignore write-back failure */
+      }
+    }
+    return store;
   } catch {
     return EMPTY_UNRELEASED_STORE;
   }
