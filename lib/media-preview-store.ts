@@ -43,6 +43,53 @@ function detectPreviewKind(file: File): PreviewKind {
   return "video";
 }
 
+/** 폰 원본 사진은 용량이 커서, 보관용으로 줄여 둠 (두 장째부터 막히는 일 줄임) */
+async function compressPhotoForStore(file: File): Promise<Blob> {
+  if (typeof document === "undefined") return file;
+  const mime = (file.type || "").toLowerCase();
+  // SVG 등은 그대로
+  if (mime.includes("svg")) return file;
+
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () => reject(new Error("사진을 읽지 못했어요."));
+      el.src = url;
+    });
+    const maxEdge = 1600;
+    const srcW = img.naturalWidth || img.width;
+    const srcH = img.naturalHeight || img.height;
+    if (srcW < 1 || srcH < 1) return file;
+
+    const scale = Math.min(1, maxEdge / Math.max(srcW, srcH));
+    const width = Math.max(1, Math.round(srcW * scale));
+    const height = Math.max(1, Math.round(srcH * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const quality = 0.82;
+    const outType =
+      mime === "image/png" || mime === "image/webp" ? mime : "image/jpeg";
+    const compressed = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), outType, quality);
+    });
+    if (!compressed) return file;
+    // 줄인 게 더 크면 원본 유지
+    if (compressed.size >= file.size && scale >= 0.999) return file;
+    return compressed;
+  } catch {
+    return file;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 /** 동영상에서 목록용 작은 그림 만들기 (실패해도 본문 저장은 계속) */
 async function makeVideoThumbBlob(file: File): Promise<Blob | undefined> {
   if (typeof document === "undefined") return undefined;
@@ -100,34 +147,65 @@ async function makeVideoThumbBlob(file: File): Promise<Blob | undefined> {
 
 export async function saveMediaPreview(
   id: string,
-  file: File,
+  file: Blob,
   kind?: PreviewKind,
+  fileName = "file",
 ): Promise<void> {
-  const resolvedKind = kind ?? detectPreviewKind(file);
+  const asFile =
+    file instanceof File
+      ? file
+      : new File([file], fileName, {
+          type: file.type || "application/octet-stream",
+        });
+  const resolvedKind = kind ?? detectPreviewKind(asFile);
+  let storeBlob: Blob = asFile;
   let thumbBlob: Blob | undefined;
+  let mimeType = asFile.type || "application/octet-stream";
+
   if (resolvedKind === "photo") {
-    thumbBlob = file;
+    storeBlob = await compressPhotoForStore(asFile);
+    mimeType = storeBlob.type || mimeType;
+    // 사진은 blob만 저장 (같은 파일을 thumb에 또 넣지 않음 → 용량·실패 줄임)
+    thumbBlob = undefined;
   } else {
-    thumbBlob = await makeVideoThumbBlob(file);
+    thumbBlob = await makeVideoThumbBlob(asFile);
   }
 
   const record: PreviewRecord = {
     id,
     kind: resolvedKind,
-    mimeType: file.type || "application/octet-stream",
-    blob: file,
+    mimeType,
+    blob: storeBlob,
     thumbBlob,
     updatedAt: new Date().toISOString(),
   };
   const db = await openDb();
-  await new Promise<void>((resolve, reject) => {
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    tx.objectStore(STORE_NAME).put(record);
-    tx.oncomplete = () => resolve();
-    tx.onerror = () =>
-      reject(tx.error ?? new Error("미리보기를 저장하지 못했어요."));
-  });
-  db.close();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      tx.objectStore(STORE_NAME).put(record);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () =>
+        reject(tx.error ?? new Error("미리보기를 저장하지 못했어요."));
+      tx.onabort = () =>
+        reject(tx.error ?? new Error("미리보기 저장이 취소됐어요."));
+    });
+  } catch (err) {
+    const name =
+      err && typeof err === "object" && "name" in err
+        ? String((err as { name?: string }).name)
+        : "";
+    if (name === "QuotaExceededError") {
+      throw new Error(
+        "이 기기에 사진 자리가 부족해요. 큰 사진을 빼거나, 이미 넣은 사진을 조금 지운 뒤 다시 해 주세요.",
+      );
+    }
+    throw err instanceof Error
+      ? err
+      : new Error("미리보기를 저장하지 못했어요.");
+  } finally {
+    db.close();
+  }
 }
 
 export async function getMediaPreview(
