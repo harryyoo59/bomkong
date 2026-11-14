@@ -43,6 +43,7 @@ export type AdminCopyStore = {
 export const ROOM_KEYS = [
   "bomi-photos",
   "kongi-photos",
+  "duo-photos",
   "rules",
   "logos",
   "unreleased",
@@ -64,6 +65,7 @@ const REMOVED_DOOR_IDS = new Set([
 export const ROOM_LABELS: Record<RoomKey, string> = {
   "bomi-photos": "봄이 사진 보관",
   "kongi-photos": "콩이 사진 보관",
+  "duo-photos": "봄이·콩이 사진 보관",
   rules: "영상제작 규칙",
   logos: "로고 관리",
   unreleased: "미공개 영상실",
@@ -79,7 +81,7 @@ export const DEFAULT_CLINIC: ClinicHeaderCopy = {
   eyebrow: "관리자실 · 진료실",
   title: "관리자실을 칸으로 나눴어요",
   intro:
-    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·영상규칙·로고·미공개 영상실·영상보기·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
+    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·둘이 함께·영상규칙·로고·미공개 영상실·영상보기·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
   logoutLabel: "나가기",
   homeLinkLabel: "거실로 돌아가기",
   editOpenLabel: "글 고치기",
@@ -102,7 +104,7 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     id: "door-bomi-photos",
     number: "·",
     title: "영상규칙에 쓸 사진 보관",
-    body: "봄이 칸 아래예요. 사진을 골라 넣을 수 있어요.",
+    body: "봄이 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/bomi-photos",
     kind: "photo",
@@ -124,11 +126,33 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     id: "door-kongi-photos",
     number: "·",
     title: "영상규칙에 쓸 사진 보관",
-    body: "콩이 칸 아래예요. 사진을 골라 넣을 수 있어요.",
+    body: "콩이 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/kongi-photos",
     kind: "photo",
     groupId: "kongi",
+    builtIn: true,
+  },
+  {
+    id: "door-duo",
+    number: "함",
+    title: "봄이·콩이",
+    body: "둘이 함께 있는 모습을 봐요.",
+    note: "",
+    href: "/characters/duo",
+    kind: "link",
+    groupId: "duo",
+    builtIn: true,
+  },
+  {
+    id: "door-duo-photos",
+    number: "·",
+    title: "영상규칙에 쓸 사진 보관",
+    body: "둘이 함께 있는 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
+    note: "사진 올리기 열림",
+    href: "/admin/duo-photos",
+    kind: "photo",
+    groupId: "duo",
     builtIn: true,
   },
   {
@@ -192,13 +216,22 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   "bomi-photos": {
     eyebrow: "관리자실 · 봄이 칸 아래",
     title: "영상규칙에 쓸 사진 보관",
-    intro: "봄이 영상규칙에 쓸 사진을 모아 두는 방이에요. 사진을 골라 넣을 수 있어요.",
+    intro:
+      "봄이 영상규칙에 쓸 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
   "kongi-photos": {
     eyebrow: "관리자실 · 콩이 칸 아래",
     title: "영상규칙에 쓸 사진 보관",
-    intro: "콩이 영상규칙에 쓸 사진을 모아 두는 방이에요. 사진을 골라 넣을 수 있어요.",
+    intro:
+      "콩이 영상규칙에 쓸 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
+    empty: "아직 넣어 둔 사진이 없어요.",
+  },
+  "duo-photos": {
+    eyebrow: "관리자실 · 봄이·콩이 함께 칸 아래",
+    title: "영상규칙에 쓸 사진 보관",
+    intro:
+      "둘이 함께 있는 영상규칙용 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
   rules: {
@@ -351,11 +384,15 @@ export function normalizeAdminCopyStore(
 
   const clinicRaw = (raw.clinic ?? {}) as Partial<ClinicHeaderCopy>;
   let clinicIntro = asString(clinicRaw.intro, defaults.clinic.intro);
-  // 지운 방 이름이 예전 안내 글에 남아 있으면 새 안내로 맞춤
+  const looksLikeOldDefaultIntro =
+    clinicIntro.includes("손님용 메뉴와 섞이지 않아요") &&
+    !clinicIntro.includes("둘이 함께");
+  // 지운 방 이름이 남아 있거나, 예전 기본 안내면 새 안내로 맞춤
   if (
     clinicIntro.includes("소스 보관실") ||
     clinicIntro.includes("쿠키완료실") ||
-    clinicIntro.includes("공개 영상실")
+    clinicIntro.includes("공개 영상실") ||
+    looksLikeOldDefaultIntro
   ) {
     clinicIntro = defaults.clinic.intro;
   }
