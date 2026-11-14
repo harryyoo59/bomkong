@@ -25,9 +25,10 @@ import {
 } from "@/lib/unreleased-media";
 import { resolveYoutubeWatchUrl } from "@/lib/watch-media";
 
-/** 한국어 채널 — 숏츠 올리러 갈 때 */
+/** 한국어·영어 채널 — 숏츠 올리러 갈 때 */
 const KOREAN_YOUTUBE_CHANNEL =
   "https://www.youtube.com/@%EB%B4%84%EC%9D%B4%EC%BD%A9%EC%9D%B4BomKong";
+const ENGLISH_YOUTUBE_CHANNEL = "https://www.youtube.com/@bomkong-En";
 
 type Props = {
   lang: UnreleasedLang;
@@ -51,6 +52,12 @@ export function UnreleasedVideoRoom({ lang }: Props) {
   const [adding, setAdding] = useState(false);
 
   const isEnglish = lang === "en";
+  const youtubeChannelUrl = isEnglish
+    ? ENGLISH_YOUTUBE_CHANNEL
+    : KOREAN_YOUTUBE_CHANNEL;
+  const youtubeChannelLinkLabel = isEnglish
+    ? "영어 채널에서 숏츠 올리기"
+    : "한국어 채널에서 숏츠 올리기";
   const titlePlaceholder = isEnglish
     ? "예: Ball play at the park"
     : "예: 공원에서 공 놀이";
@@ -352,11 +359,11 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                     <p className="tiny muted">
                       아직 안 올렸으면{" "}
                       <a
-                        href={KOREAN_YOUTUBE_CHANNEL}
+                        href={youtubeChannelUrl}
                         target="_blank"
                         rel="noreferrer"
                       >
-                        한국어 채널에서 숏츠 올리기
+                        {youtubeChannelLinkLabel}
                       </a>
                       로 먼저 올린 뒤, 주소를 복사해 오세요.
                     </p>
