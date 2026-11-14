@@ -14,6 +14,7 @@ import {
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
+  sortWatchItemsNumberDesc,
   suggestNextWatchSlot,
   suggestWatchSlotAfterAdd,
   watchSlotLabel,
@@ -247,8 +248,8 @@ export function WatchVideoRoom() {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
 
-  // 관리자 목록도 번호 순(1-ko → 1-en → 2-ko …) · 찾기 쉽게
-  const adminList = sortWatchItemsForPlay(items);
+  // 관리자 목록: 번호 큰 것이 위 · 1번은 맨 아래 (찾기 쉽게)
+  const adminList = sortWatchItemsNumberDesc(items);
 
   return (
     <div className="admin-wrap">
@@ -340,8 +341,8 @@ export function WatchVideoRoom() {
       <section>
         <h2 className="section-title">거실에 보이는 영상</h2>
         <p className="muted tiny">
-          이 기기에만 기억해요. 아래 목록은 번호 순(1-ko → 1-en → 2-ko → 2-en)으로
-          정렬해요. 입력 순서가 뒤죽박죽이어도 번호대로 보여요.
+          이 기기에만 기억해요. 아래 목록은 번호 큰 것이 위, 1번은 맨 아래예요.
+          같은 번호는 한국어 → 영어 순이에요.
         </p>
         {adminList.length === 0 ? (
           <AdminEmptyText roomKey="watch" />
