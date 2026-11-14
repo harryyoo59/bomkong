@@ -272,8 +272,7 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   watch: {
     eyebrow: "관리자실 · 9번 칸",
     title: "영상보기",
-    intro:
-      "거실 「영상보기」에 보여줄 영상만 모아 두는 방이에요. 편 번호와 언어(ko/en)를 넣고, 재생은 1-ko → 1-en → 2-ko → 2-en 순이에요. 영어가 없으면 다음 번호로 가요. 나중에 넣은 영상은 뒤로 가요.",
+    intro: "",
     empty: "아직 넣어 둔 영상이 없어요. 넣으면 거실 영상보기에 나와요.",
   },
   mailbox: {
@@ -431,9 +430,17 @@ export function normalizeAdminCopyStore(
   }
 
   const rooms: Record<string, RoomCopy> = {};
+  const oldWatchIntro =
+    "거실 「영상보기」에 보여줄 영상만 모아 두는 방이에요. 편 번호와 언어(ko/en)를 넣고, 재생은 1-ko → 1-en → 2-ko → 2-en 순이에요. 영어가 없으면 다음 번호로 가요. 나중에 넣은 영상은 뒤로 가요.";
   for (const key of ROOM_KEYS) {
     const fallback = defaults.rooms[key];
-    rooms[key] = normalizeRoom(raw.rooms?.[key] ?? {}, fallback);
+    const room = normalizeRoom(raw.rooms?.[key] ?? {}, fallback);
+    // 영상보기: 예전 긴 안내 글은 비움 (사장님용 설명이 필요 없음)
+    if (key === "watch" && room.intro.trim() === oldWatchIntro) {
+      rooms[key] = { ...room, intro: "" };
+    } else {
+      rooms[key] = room;
+    }
   }
   if (raw.rooms) {
     for (const [key, value] of Object.entries(raw.rooms)) {

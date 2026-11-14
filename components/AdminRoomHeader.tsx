@@ -27,7 +27,7 @@ export function AdminRoomHeader({ roomKey, variant = "panel" }: Props) {
     <>
       <p className="eyebrow">{copy.eyebrow}</p>
       <h1 className="section-title">{copy.title}</h1>
-      <p className="muted">{copy.intro}</p>
+      {copy.intro.trim() ? <p className="muted">{copy.intro}</p> : null}
     </>
   );
 

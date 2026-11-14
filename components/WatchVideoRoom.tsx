@@ -23,6 +23,25 @@ import {
   type WatchLang,
 } from "@/lib/watch-media";
 
+const KOREAN_YOUTUBE_CHANNEL =
+  "https://www.youtube.com/@%EB%B4%84%EC%9D%B4%EC%BD%A9%EC%9D%B4BomKong";
+const ENGLISH_YOUTUBE_CHANNEL = "https://www.youtube.com/@bomkong-En";
+
+const CHANNEL_ROWS = [
+  {
+    id: "ko",
+    label: "유튜브 한국어 채널",
+    url: KOREAN_YOUTUBE_CHANNEL,
+    displayUrl: "https://www.youtube.com/@봄이콩이BomKong",
+  },
+  {
+    id: "en",
+    label: "유튜브 영어 채널",
+    url: ENGLISH_YOUTUBE_CHANNEL,
+    displayUrl: "https://www.youtube.com/@bomkong-En",
+  },
+] as const;
+
 export function WatchVideoRoom() {
   const [items, setItems] = useState<WatchItem[]>([]);
   const [ready, setReady] = useState(false);
@@ -34,6 +53,8 @@ export function WatchVideoRoom() {
   const [fileLabel, setFileLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
+  const [copyMessage, setCopyMessage] = useState("");
+  const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [editUrls, setEditUrls] = useState<Record<string, string>>({});
   const [editSlots, setEditSlots] = useState<
@@ -244,6 +265,31 @@ export function WatchVideoRoom() {
     );
   }
 
+  async function onCopyChannel(id: string, url: string, label: string) {
+    if (copyBusyId) return;
+    setCopyBusyId(id);
+    try {
+      if (
+        typeof navigator === "undefined" ||
+        !navigator.clipboard?.writeText
+      ) {
+        throw new Error(
+          "이 기기에서는 복사를 못 해요. 다른 브라우저로 해 보세요.",
+        );
+      }
+      await navigator.clipboard.writeText(url);
+      setCopyMessage(`${label} 주소를 복사했어요.`);
+    } catch (err) {
+      setCopyMessage(
+        err instanceof Error
+          ? err.message
+          : "주소를 복사하지 못했어요. 다시 해 주세요.",
+      );
+    } finally {
+      setCopyBusyId(null);
+    }
+  }
+
   if (!ready) {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
@@ -253,15 +299,27 @@ export function WatchVideoRoom() {
 
   return (
     <div className="admin-wrap">
-      <form key={formKey} className="admin-form" onSubmit={onAdd}>
-        <p className="form-hint">
-          거실 「영상보기」에는 여기 넣은 영상만 나와요. 같은 편은{" "}
-          <strong>번호가 같고</strong> 언어만 달라요. 예:{" "}
-          <strong>1-ko → 1-en → 2-ko → 2-en</strong>. 영어를 먼저 넣어도
-          로비·재생은 항상 한국어 다음 영어예요. 한쪽만 있으면 같은 번호
-          짝을 먼저 맞춰 주세요.
-        </p>
+      <div className="watch-channel-box" aria-label="유튜브 채널 주소">
+        {CHANNEL_ROWS.map((row) => (
+          <div key={row.id} className="watch-channel-row">
+            <div className="watch-channel-main">
+              <strong>{row.label}</strong>
+              <p className="watch-channel-url">{row.displayUrl}</p>
+            </div>
+            <button
+              type="button"
+              className="btn btn-soft"
+              disabled={Boolean(copyBusyId)}
+              onClick={() => void onCopyChannel(row.id, row.url, row.label)}
+            >
+              {copyBusyId === row.id ? "복사 중…" : "복사하기"}
+            </button>
+          </div>
+        ))}
+        {copyMessage ? <p className="form-msg">{copyMessage}</p> : null}
+      </div>
 
+      <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <label>
           유튜브 주소 (또는 영상 아이디)
           <input
