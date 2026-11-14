@@ -188,43 +188,74 @@ export function CharacterPhotoShelf({ shelf }: Props) {
 
     setSaving(true);
     const added: CharacterPhotoItem[] = [];
-    let previewFail = 0;
+    const failNames: string[] = [];
 
     try {
+      // 아이폰 등은 첫 장 저장(await) 뒤 다음 파일이 비는 경우가 있어,
+      // 고른 사진을 먼저 전부 복사해 둠
+      const snapshots: { name: string; blob: Blob }[] = [];
       for (const file of pendingFiles) {
+        try {
+          const buffer = await file.arrayBuffer();
+          snapshots.push({
+            name: file.name,
+            blob: new Blob([buffer], {
+              type: file.type || "application/octet-stream",
+            }),
+          });
+        } catch {
+          failNames.push(file.name || "사진");
+        }
+      }
+
+      for (const snap of snapshots) {
         const item: CharacterPhotoItem = {
           id: makeCharacterPhotoId(shelf),
-          name: file.name,
+          name: snap.name,
           note: "",
           addedAt: new Date().toISOString(),
         };
         try {
-          await saveMediaPreview(item.id, file, "photo");
-        } catch {
-          previewFail += 1;
+          await saveMediaPreview(item.id, snap.blob, "photo", snap.name);
+          added.push(item);
+        } catch (err) {
+          failNames.push(snap.name || "사진");
+          if (
+            err instanceof Error &&
+            err.message.includes("자리가 부족")
+          ) {
+            setMessage(err.message);
+            break;
+          }
         }
-        added.push(item);
       }
 
-      const next = [...added, ...items];
-      persist(next);
-      setPreviewTicks((prev) => {
-        const copy = { ...prev };
-        for (const it of added) {
-          copy[it.id] = (copy[it.id] ?? 0) + 1;
-        }
-        return copy;
-      });
+      if (added.length > 0) {
+        const next = [...added, ...items];
+        persist(next);
+        setPreviewTicks((prev) => {
+          const copy = { ...prev };
+          for (const it of added) {
+            copy[it.id] = (copy[it.id] ?? 0) + 1;
+          }
+          return copy;
+        });
+      }
 
-      if (previewFail > 0) {
-        setMessage(
-          `${added.length}장은 목록에 넣었어요. 그중 ${previewFail}장은 사진 보기에 실패했어요.`,
-        );
-      } else {
+      if (added.length > 0 && failNames.length === 0) {
         setMessage(
           `${who} 사진 보관에 ${added.length}장을 갤러리에 넣었어요.`,
         );
+      } else if (added.length > 0 && failNames.length > 0) {
+        setMessage(
+          `${added.length}장은 넣었어요. ${failNames.length}장은 못 넣었어요. 다시 골라 주세요.`,
+        );
+      } else if (failNames.length > 0) {
+        setMessage(
+          "사진을 넣지 못했어요. 파일이 너무 크거나, 이 기기 자리가 부족할 수 있어요. 다시 해 주세요.",
+        );
       }
+
       setPendingFiles([]);
       setFormKey((k) => k + 1);
     } catch (err) {
