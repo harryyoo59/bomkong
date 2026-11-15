@@ -230,6 +230,27 @@ export async function getMediaPreview(
   }
 }
 
+/** 이 기기에 남아 있는 미리보기 전부 (목록 복구용) */
+export async function listAllMediaPreviews(): Promise<PreviewRecord[]> {
+  try {
+    const db = await openDb();
+    const rows = await new Promise<PreviewRecord[]>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const req = tx.objectStore(STORE_NAME).getAll();
+      req.onsuccess = () => {
+        const value = (req.result as PreviewRecord[] | undefined) ?? [];
+        resolve(value.filter((row) => Boolean(row?.id && row.blob)));
+      };
+      req.onerror = () =>
+        reject(req.error ?? new Error("미리보기 목록을 읽지 못했어요."));
+    });
+    db.close();
+    return rows;
+  } catch {
+    return [];
+  }
+}
+
 export async function deleteMediaPreview(id: string): Promise<void> {
   try {
     const db = await openDb();

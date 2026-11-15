@@ -115,7 +115,11 @@ export function WatchVideoRoom() {
         syncEditors(ordered);
         if (synced.length > 0) {
           setMessage(
-            "영상 목록을 인터넷에 맞춰 두었어요. 다른 사람도 같은 목록을 봐요.",
+            `영상 ${synced.length}개를 맞춰 두었어요. 제목·유튜브가 「복구한 영상」이면 아래에서 고쳐 주세요. 다른 사람도 같은 목록을 봐요.`,
+          );
+        } else {
+          setMessage(
+            "목록이 비어 있어요. 예전에 미리보기 파일이 남아 있으면 다시 열어 복구를 시도해 주세요.",
           );
         }
       } catch {
