@@ -2349,6 +2349,71 @@ label.form-row textarea {
   }
 }
 
+.watch-cleanup-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 250, 240, 0.98);
+  border: 1px solid rgba(255, 170, 90, 0.5);
+}
+
+.watch-cleanup-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.watch-cleanup-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.watch-cleanup-head .section-title {
+  margin: 0;
+}
+
+.watch-cleanup-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.watch-cleanup-preview {
+  width: 100%;
+}
+
+.watch-cleanup-preview .admin-media-preview {
+  width: 100%;
+}
+
+.watch-cleanup-preview .admin-media-preview-media {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #111;
+}
+
+.watch-cleanup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.watch-cleanup-actions .btn {
+  flex: 1 1 120px;
+}
+
 .watch-channel-box {
   display: flex;
   flex-direction: column;

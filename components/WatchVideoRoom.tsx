@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
 import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
+import { WatchTitleCleanup } from "@/components/WatchTitleCleanup";
 import {
   deleteMediaPreview,
   saveMediaPreview,
@@ -63,6 +64,7 @@ export function WatchVideoRoom() {
   const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
     {},
   );
+  const [cleanupMode, setCleanupMode] = useState(false);
 
   function syncEditors(list: WatchItem[]) {
     setEditTitles(Object.fromEntries(list.map((it) => [it.id, it.title])));
@@ -371,6 +373,18 @@ export function WatchVideoRoom() {
     }
   }
 
+  async function onCleanupSaveItem(next: WatchItem) {
+    const clash = findWatchSlot(items, next.episodeNumber, next.lang);
+    if (clash && clash.id !== next.id) {
+      throw new Error(
+        `이미 ${next.episodeNumber}-${next.lang} 자리가 있어요. 번호를 바꿔 주세요.`,
+      );
+    }
+    await persist(
+      items.map((it) => (it.id === next.id ? { ...it, ...next, note: "" } : it)),
+    );
+  }
+
   if (!ready) {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
@@ -378,8 +392,36 @@ export function WatchVideoRoom() {
   // 관리자 목록: 번호 큰 것이 위 · 1번은 맨 아래 (찾기 쉽게)
   const adminList = sortWatchItemsNumberDesc(items);
 
+  if (cleanupMode) {
+    return (
+      <div className="admin-wrap">
+        <WatchTitleCleanup
+          items={items}
+          previewTicks={previewTicks}
+          onSaveItem={onCleanupSaveItem}
+          onRemoveItem={onRemove}
+          onExit={() => setCleanupMode(false)}
+        />
+        {message ? <p className="form-msg">{message}</p> : null}
+      </div>
+    );
+  }
+
   return (
     <div className="admin-wrap">
+      <div className="watch-cleanup-banner">
+        <p className="tiny muted">
+          미리보기를 보며 제목·유튜브 주소를 하나씩 다시 적을 수 있어요.
+        </p>
+        <button
+          type="button"
+          className="btn btn-primary btn-wide"
+          onClick={() => setCleanupMode(true)}
+          disabled={items.length === 0}
+        >
+          제목 다시 쓰기
+        </button>
+      </div>
       <div className="watch-channel-box" aria-label="유튜브 채널 주소">
         {CHANNEL_ROWS.map((row) => (
           <div key={row.id} className="watch-channel-row">
