@@ -204,6 +204,8 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       try {
         watchItems = await syncWatchMediaWithServer({
           allowUploadLocal: true,
+          confirmChange: (msg) =>
+            typeof window !== "undefined" ? window.confirm(msg) : false,
         });
       } catch {
         /* 기기 목록으로 이어감 */

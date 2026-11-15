@@ -655,25 +655,53 @@ export async function rebuildWatchMediaFromPreviews(): Promise<WatchItem[]> {
   return ordered;
 }
 
+function watchListSignature(items: WatchItem[]): string {
+  return sortWatchItemsForPlay(items)
+    .map(
+      (it) =>
+        `${it.id}|${it.episodeNumber}|${it.lang}|${it.title}|${it.youtubeUrl}`,
+    )
+    .join("\n");
+}
+
+async function askConfirm(
+  ask: ((message: string) => boolean | Promise<boolean>) | undefined,
+  message: string,
+): Promise<boolean> {
+  if (!ask) return false;
+  return Boolean(await ask(message));
+}
+
 /**
- * 손님·관리자 공통: 인터넷·기기·백업·미리보기를 안전하게 맞춤.
- * 빈 인터넷 목록이 기기 목록을 지우지 않음.
+ * 손님·관리자 공통: 인터넷·기기·백업을 맞춤.
+ * 기기 목록을 바꾸거나 인터넷에 올리려면 반드시 확인을 받음. (맘대로 덮어쓰기 금지)
  */
 export async function syncWatchMediaWithServer(options?: {
   allowUploadLocal?: boolean;
+  /** 목록을 바꾸기 전 확인. 없으면 덮어쓰지 않음 */
+  confirmChange?: (message: string) => boolean | Promise<boolean>;
 }): Promise<WatchItem[]> {
   const allowUploadLocal = options?.allowUploadLocal === true;
+  const confirmChange = options?.confirmChange;
   let local = readWatchMediaStore().items;
 
-  // 지금이 비었으면 백업 → 미리보기 순으로 살림
+  // 지금이 비었으면 백업만 조용히 살림 (덮어쓰기 아님)
   if (local.length === 0) {
     local = restoreWatchMediaFromBackup();
   }
+
+  // 미리보기로 목록 다시 만들기 = 큰 변경 → 확인 필수
   if (local.length === 0 && allowUploadLocal) {
-    try {
-      local = await rebuildWatchMediaFromPreviews();
-    } catch {
-      /* ignore */
+    const ok = await askConfirm(
+      confirmChange,
+      "목록이 비어 있어요. 이 기기에 남은 미리보기 파일로 칸을 다시 만들까요? (제목은 「복구한 영상」으로 시작할 수 있어요)",
+    );
+    if (ok) {
+      try {
+        local = await rebuildWatchMediaFromPreviews();
+      } catch {
+        /* ignore */
+      }
     }
   }
 
@@ -684,36 +712,77 @@ export async function syncWatchMediaWithServer(options?: {
     return sortWatchItemsForPlay(local);
   }
 
-  // 기기에만 있고 인터넷이 비면 → 인터넷으로 올림 (관리자) / 기기를 지킴 (손님)
+  // 기기에만 있고 인터넷이 비면 → 올릴지 확인 (관리자)
   if (local.length > 0 && remote.length === 0) {
     if (allowUploadLocal) {
-      try {
-        return await pushWatchMediaToServer(local);
-      } catch {
-        writeWatchMediaStore({ items: local });
-        return sortWatchItemsForPlay(local);
+      const ok = await askConfirm(
+        confirmChange,
+        `이 기기에 영상 ${local.length}개가 있어요. 인터넷에도 같은 목록으로 올릴까요?`,
+      );
+      if (ok) {
+        try {
+          return await pushWatchMediaToServer(local);
+        } catch {
+          writeWatchMediaStore({ items: local });
+          return sortWatchItemsForPlay(local);
+        }
       }
     }
     writeWatchMediaStore({ items: local });
     return sortWatchItemsForPlay(local);
   }
 
-  // 인터넷에 있으면 그게 기준. 다만 기기에만 있는 id는 관리자일 때 합침
-  if (remote.length > 0) {
-    if (allowUploadLocal && local.length > 0) {
+  // 인터넷에만 있고 기기가 비면 → 받아올지 확인 (관리자) / 손님은 인터넷 목록 사용
+  if (remote.length > 0 && local.length === 0) {
+    if (allowUploadLocal) {
+      const ok = await askConfirm(
+        confirmChange,
+        `인터넷에 영상 ${remote.length}개가 있어요. 이 기기 목록으로 받아올까요?`,
+      );
+      if (!ok) return [];
+    }
+    writeWatchMediaStore({ items: remote });
+    return remote;
+  }
+
+  // 둘 다 있으면: 다르면 덮어쓰기 전에 확인
+  if (remote.length > 0 && local.length > 0) {
+    const same = watchListSignature(local) === watchListSignature(remote);
+    if (same) {
+      writeWatchMediaStore({ items: remote });
+      return remote;
+    }
+
+    if (allowUploadLocal) {
       const remoteIds = new Set(remote.map((it) => it.id));
       const onlyLocal = local.filter((it) => !remoteIds.has(it.id));
       if (onlyLocal.length > 0) {
-        const merged = sortWatchItemsForPlay([...remote, ...onlyLocal]);
-        try {
-          return await pushWatchMediaToServer(merged);
-        } catch {
-          writeWatchMediaStore({ items: merged });
-          return merged;
+        const ok = await askConfirm(
+          confirmChange,
+          `인터넷 목록과 이 기기 목록이 달라요. 합쳐서 인터넷에 저장할까요? (이 기기에만 있는 ${onlyLocal.length}칸 포함)`,
+        );
+        if (ok) {
+          const merged = sortWatchItemsForPlay([...remote, ...onlyLocal]);
+          try {
+            return await pushWatchMediaToServer(merged);
+          } catch {
+            writeWatchMediaStore({ items: local });
+            return sortWatchItemsForPlay(local);
+          }
         }
+        return sortWatchItemsForPlay(local);
       }
+
+      const ok = await askConfirm(
+        confirmChange,
+        `인터넷 목록(${remote.length}개)과 이 기기 목록(${local.length}개)이 달라요. 인터넷 목록으로 이 기기를 덮어쓸까요?`,
+      );
+      if (!ok) return sortWatchItemsForPlay(local);
+      writeWatchMediaStore({ items: remote });
+      return remote;
     }
-    writeWatchMediaStore({ items: remote });
+
+    // 손님: 화면은 인터넷 목록을 보되, 기기 기억을 함부로 지우지 않음
     return remote;
   }
 
