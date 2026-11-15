@@ -294,6 +294,52 @@ export function openYoutubePlayQueue(url: string): void {
   window.location.assign(url);
 }
 
+/** 한국어·영어 채널 — 영상보기 방 언어에 따라 자동으로 넣음 */
+export const YOUTUBE_CHANNEL_BY_LANG: Record<WatchLang, string> = {
+  ko: "https://www.youtube.com/@%EB%B4%84%EC%9D%B4%EC%BD%A9%EC%9D%B4BomKong",
+  en: "https://www.youtube.com/@bomkong-En",
+};
+
+export function youtubeChannelUrlForLang(lang: WatchLang): string {
+  return YOUTUBE_CHANNEL_BY_LANG[lang];
+}
+
+/** 우리가 아는 채널 주소인지 (한글로 풀어 쓴 주소도 포함) */
+export function isKnownYoutubeChannelUrl(raw: string): boolean {
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
+  if (
+    trimmed === YOUTUBE_CHANNEL_BY_LANG.ko ||
+    trimmed === YOUTUBE_CHANNEL_BY_LANG.en
+  ) {
+    return true;
+  }
+  try {
+    const decoded = decodeURIComponent(trimmed);
+    return (
+      decoded === "https://www.youtube.com/@봄이콩이BomKong" ||
+      decoded === YOUTUBE_CHANNEL_BY_LANG.en
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * 비어 있거나 채널 주소만 있으면 언어에 맞는 채널로 맞춤.
+ * 이미 특정 영상 주소가 있으면 그대로 둠.
+ */
+export function youtubeUrlForWatchLang(
+  lang: WatchLang,
+  currentUrl = "",
+): string {
+  const trimmed = currentUrl.trim();
+  if (!trimmed || isKnownYoutubeChannelUrl(trimmed)) {
+    return youtubeChannelUrlForLang(lang);
+  }
+  return trimmed;
+}
+
 /** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */
 export function resolveYoutubeWatchUrl(raw: string): string | null {
   const id = extractYoutubeVideoId(raw);

@@ -26,6 +26,7 @@ import {
   suggestNextEpisodeNumberForLang,
   watchSlotLabel,
   writeWatchMediaStore,
+  youtubeChannelUrlForLang,
   type WatchLang,
 } from "@/lib/watch-media";
 
@@ -207,7 +208,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
         id: watchId,
         name: target.name,
         title: target.title,
-        youtubeUrl: "",
+        youtubeUrl: youtubeChannelUrlForLang(watchLang),
         note: "",
         addedAt: new Date().toISOString(),
         episodeNumber,
