@@ -1304,6 +1304,13 @@ label.form-row textarea {
   font-weight: 700;
 }
 
+.video-rules-audience {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+
 .video-rules-panel {
   display: flex;
   flex-direction: column;
