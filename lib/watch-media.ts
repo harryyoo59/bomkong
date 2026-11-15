@@ -202,6 +202,10 @@ export function repairSplitLanguagePairs(items: WatchItem[]): WatchItem[] {
   return sortWatchItemsForPlay(next);
 }
 
+function looksLikeYoutubeVideoId(id: string): boolean {
+  return /^[a-zA-Z0-9_-]{6,}$/.test(id);
+}
+
 /** 유튜브 영상 아이디만 뽑음. 못 찾으면 null */
 export function extractYoutubeVideoId(raw: string): string | null {
   const trimmed = raw.trim();
@@ -220,7 +224,7 @@ export function extractYoutubeVideoId(raw: string): string | null {
 
     if (host === "youtu.be") {
       const id = u.pathname.split("/").filter(Boolean)[0];
-      if (id && /^[a-zA-Z0-9_-]{6,}$/.test(id)) {
+      if (id && looksLikeYoutubeVideoId(id)) {
         return id;
       }
     }
@@ -229,16 +233,18 @@ export function extractYoutubeVideoId(raw: string): string | null {
       host === "youtube.com" ||
       host === "m.youtube.com" ||
       host === "music.youtube.com" ||
-      host === "youtube-nocookie.com"
+      host === "youtube-nocookie.com" ||
+      host === "studio.youtube.com"
     ) {
       const v = u.searchParams.get("v");
-      if (v && /^[a-zA-Z0-9_-]{6,}$/.test(v)) {
+      if (v && looksLikeYoutubeVideoId(v)) {
         return v;
       }
+      // 시청·숏츠·스튜디오 편집 주소까지
       const pathMatch = u.pathname.match(
-        /\/(?:shorts|embed|live|v)\/([a-zA-Z0-9_-]+)/,
+        /\/(?:shorts|embed|live|v|video)\/([a-zA-Z0-9_-]+)/,
       );
-      if (pathMatch?.[1] && /^[a-zA-Z0-9_-]{6,}$/.test(pathMatch[1])) {
+      if (pathMatch?.[1] && looksLikeYoutubeVideoId(pathMatch[1])) {
         return pathMatch[1];
       }
     }
@@ -247,6 +253,11 @@ export function extractYoutubeVideoId(raw: string): string | null {
   }
 
   return null;
+}
+
+/** 밖에서 「유튜브에서 보기」로 열 수 있는 주소인지 (채널만 있으면 안 됨) */
+export function hasPlayableYoutubeUrl(raw: string): boolean {
+  return Boolean(extractYoutubeVideoId(raw));
 }
 
 /**
@@ -340,22 +351,14 @@ export function youtubeUrlForWatchLang(
   return trimmed;
 }
 
-/** 붙여 넣은 주소·아이디를 유튜브 시청 주소로 바꿈. 못 바꾸면 null */
+/**
+ * 붙여 넣은 주소·아이디를 「재생 가능한」 유튜브 시청 주소로 바꿈.
+ * 채널 주소만 있으면 null (밖 목록과 같은 기준).
+ */
 export function resolveYoutubeWatchUrl(raw: string): string | null {
   const id = extractYoutubeVideoId(raw);
-  if (id) {
-    return `https://www.youtube.com/watch?v=${id}`;
-  }
-
-  const trimmed = raw.trim();
-  if (
-    /^https?:\/\//i.test(trimmed) &&
-    /youtu\.?be/i.test(trimmed)
-  ) {
-    return trimmed;
-  }
-
-  return null;
+  if (!id) return null;
+  return `https://www.youtube.com/watch?v=${id}`;
 }
 
 function parseLang(raw: unknown): WatchLang | null {
