@@ -237,8 +237,7 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   rules: {
     eyebrow: "관리자실 · 3번 칸",
     title: "영상제작 규칙",
-    intro:
-      "봄이콩이 모든 영상의 절대 기준이에요. 아래로 스크롤하며 읽고, 필요하면 「글 고치기」로 고쳐요.",
+    intro: "",
     empty: "",
   },
   logos: {
@@ -445,6 +444,14 @@ export function normalizeAdminCopyStore(
     let room = normalizeRoom(raw.rooms?.[key] ?? {}, fallback);
     // 영상보기: 예전 긴 안내 글은 비움 (사장님용 설명이 필요 없음)
     if (key === "watch" && room.intro.trim() === oldWatchIntro) {
+      room = { ...room, intro: "" };
+    }
+    // 영상제작 규칙: 예전 안내 글 비움
+    if (
+      key === "rules" &&
+      room.intro.includes("절대 기준") &&
+      room.intro.includes("글 고치기")
+    ) {
       room = { ...room, intro: "" };
     }
     // 미공개·영상보기: 예전 7·9번 눈썹 글 → 5·6번
