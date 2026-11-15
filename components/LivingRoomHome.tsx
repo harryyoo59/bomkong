@@ -406,9 +406,9 @@ export function LivingRoomHome({
           }
           const utter = new SpeechSynthesisUtterance(nextBeat.speak);
           utter.lang = "ko-KR";
-          // 최후 수단: 아이처럼 밝게
-          utter.pitch = nextBeat.speaker === "kongi" ? 1.25 : 1.7;
-          utter.rate = nextBeat.speaker === "kongi" ? 1.02 : 1.1;
+          // 최후 수단: 봄이=높고 밝고 맑은 6살 · 콩이=조금 더 낮은 동생
+          utter.pitch = nextBeat.speaker === "kongi" ? 1.25 : 1.85;
+          utter.rate = nextBeat.speaker === "kongi" ? 1.02 : 1.14;
           utter.onend = () => {
             if (speakTokenRef.current !== token) return;
             setTimeout(advance, 220);
