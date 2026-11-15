@@ -23,6 +23,8 @@ export type WatchMediaStore = {
 };
 
 const STORAGE_KEY = "bomkong_watch_video_v1";
+/** 덮어쓰기 사고 대비 백업 (비어 있지 않을 때만 갱신) */
+const BACKUP_STORAGE_KEY = "bomkong_watch_video_backup_v1";
 
 export const EMPTY_WATCH_STORE: WatchMediaStore = {
   items: [],
@@ -500,12 +502,53 @@ export function readWatchMediaStore(): WatchMediaStore {
   }
 }
 
+function readRawWatchItems(key: string): WatchItem[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Partial<WatchMediaStore>;
+    const items = Array.isArray(parsed.items)
+      ? parsed.items
+          .map((it) =>
+            normalizeItem(it as Partial<WatchItem> & Record<string, unknown>),
+          )
+          .filter((it): it is WatchItem => Boolean(it))
+      : [];
+    return ensureWatchPlaySlots(items);
+  } catch {
+    return [];
+  }
+}
+
 export function writeWatchMediaStore(store: WatchMediaStore): void {
   if (typeof window === "undefined") return;
+  const ordered = sortWatchItemsForPlay(store.items);
+  // 비어 있지 않은 목록만 백업 — 빈 값으로 백업을 지우지 않음
+  if (ordered.length > 0) {
+    try {
+      window.localStorage.setItem(
+        BACKUP_STORAGE_KEY,
+        JSON.stringify({ items: ordered }),
+      );
+    } catch {
+      /* quota — 본문 저장은 계속 */
+    }
+  }
   window.localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ items: sortWatchItemsForPlay(store.items) }),
+    JSON.stringify({ items: ordered }),
   );
+}
+
+/** 백업에서 목록 살리기 (지금 목록이 비었을 때만) */
+export function restoreWatchMediaFromBackup(): WatchItem[] {
+  const current = readWatchMediaStore().items;
+  if (current.length > 0) return sortWatchItemsForPlay(current);
+  const backup = readRawWatchItems(BACKUP_STORAGE_KEY);
+  if (backup.length === 0) return [];
+  writeWatchMediaStore({ items: backup });
+  return sortWatchItemsForPlay(backup);
 }
 
 export function makeWatchId(): string {
@@ -533,16 +576,28 @@ function parseApiItems(raw: unknown): WatchItem[] {
   );
 }
 
-/** 인터넷에 있는 영상보기 목록을 불러와 이 기기 기억에도 맞춰 둠 */
-export async function pullWatchMediaFromServer(): Promise<WatchItem[]> {
+/** 인터넷 목록만 읽음. 기기 기억을 함부로 비우지 않음 */
+export async function fetchWatchMediaFromServer(): Promise<WatchItem[]> {
   const res = await fetch("/api/watch", { cache: "no-store" });
   const data = (await res.json()) as WatchApiResponse;
   if (!res.ok || !data.ok) {
     throw new Error(data.error || "영상 목록을 불러오지 못했어요.");
   }
-  const items = sortWatchItemsForPlay(parseApiItems(data.items));
-  writeWatchMediaStore({ items });
-  return items;
+  return sortWatchItemsForPlay(parseApiItems(data.items));
+}
+
+/** @deprecated fetchWatchMediaFromServer 사용. 빈 목록으로 기기 기억을 덮지 않음 */
+export async function pullWatchMediaFromServer(): Promise<WatchItem[]> {
+  const remote = await fetchWatchMediaFromServer();
+  const local = readWatchMediaStore().items;
+  // 인터넷이 비어 있고 기기에 남아 있으면 기기를 지치지 않음
+  if (remote.length === 0 && local.length > 0) {
+    return sortWatchItemsForPlay(local);
+  }
+  if (remote.length > 0) {
+    writeWatchMediaStore({ items: remote });
+  }
+  return remote.length > 0 ? remote : sortWatchItemsForPlay(local);
 }
 
 /** 관리자: 목록을 인터넷에 올려 다른 사람도 보게 함 */
@@ -565,29 +620,102 @@ export async function pushWatchMediaToServer(
 }
 
 /**
- * 손님·관리자 공통: 인터넷 목록을 맞추고,
- * 예전에 이 기기에만 있던 목록이 있으면 한 번 인터넷으로 올림.
+ * 미리보기 파일(이 기기)에서 영상보기 칸을 다시 만듦.
+ * 제목·유튜브는 비어 있을 수 있어, 나중에 고치면 됨.
+ */
+export async function rebuildWatchMediaFromPreviews(): Promise<WatchItem[]> {
+  if (typeof window === "undefined") return [];
+  const { listAllMediaPreviews } = await import("@/lib/media-preview-store");
+  const previews = await listAllMediaPreviews();
+  const watchPreviews = previews
+    .filter((row) => row.id.startsWith("wv-") && row.kind === "video")
+    .sort((a, b) => a.updatedAt.localeCompare(b.updatedAt));
+  if (watchPreviews.length === 0) return [];
+
+  const items: WatchItem[] = watchPreviews.map((row, index) => {
+    const mime = (row.mimeType || "").toLowerCase();
+    const ext = mime.includes("webm")
+      ? "webm"
+      : mime.includes("quicktime")
+        ? "mov"
+        : "mp4";
+    return {
+      id: row.id,
+      name: `restored-${index + 1}.${ext}`,
+      title: `복구한 영상 ${index + 1}`,
+      youtubeUrl: "",
+      note: "",
+      addedAt: row.updatedAt || new Date().toISOString(),
+      episodeNumber: index + 1,
+      lang: "ko" as const,
+    };
+  });
+  const ordered = sortWatchItemsForPlay(ensureWatchPlaySlots(items));
+  writeWatchMediaStore({ items: ordered });
+  return ordered;
+}
+
+/**
+ * 손님·관리자 공통: 인터넷·기기·백업·미리보기를 안전하게 맞춤.
+ * 빈 인터넷 목록이 기기 목록을 지우지 않음.
  */
 export async function syncWatchMediaWithServer(options?: {
   allowUploadLocal?: boolean;
 }): Promise<WatchItem[]> {
   const allowUploadLocal = options?.allowUploadLocal === true;
-  const local = readWatchMediaStore().items;
-  let remote: WatchItem[] = [];
-  try {
-    remote = await pullWatchMediaFromServer();
-  } catch {
-    // 인터넷이 안 되면 기기 기억만 씀
-    return sortWatchItemsForPlay(local);
-  }
+  let local = readWatchMediaStore().items;
 
-  if (allowUploadLocal && local.length > 0 && remote.length === 0) {
+  // 지금이 비었으면 백업 → 미리보기 순으로 살림
+  if (local.length === 0) {
+    local = restoreWatchMediaFromBackup();
+  }
+  if (local.length === 0 && allowUploadLocal) {
     try {
-      return await pushWatchMediaToServer(local);
+      local = await rebuildWatchMediaFromPreviews();
     } catch {
-      return remote;
+      /* ignore */
     }
   }
 
-  return remote;
+  let remote: WatchItem[] = [];
+  try {
+    remote = await fetchWatchMediaFromServer();
+  } catch {
+    return sortWatchItemsForPlay(local);
+  }
+
+  // 기기에만 있고 인터넷이 비면 → 인터넷으로 올림 (관리자) / 기기를 지킴 (손님)
+  if (local.length > 0 && remote.length === 0) {
+    if (allowUploadLocal) {
+      try {
+        return await pushWatchMediaToServer(local);
+      } catch {
+        writeWatchMediaStore({ items: local });
+        return sortWatchItemsForPlay(local);
+      }
+    }
+    writeWatchMediaStore({ items: local });
+    return sortWatchItemsForPlay(local);
+  }
+
+  // 인터넷에 있으면 그게 기준. 다만 기기에만 있는 id는 관리자일 때 합침
+  if (remote.length > 0) {
+    if (allowUploadLocal && local.length > 0) {
+      const remoteIds = new Set(remote.map((it) => it.id));
+      const onlyLocal = local.filter((it) => !remoteIds.has(it.id));
+      if (onlyLocal.length > 0) {
+        const merged = sortWatchItemsForPlay([...remote, ...onlyLocal]);
+        try {
+          return await pushWatchMediaToServer(merged);
+        } catch {
+          writeWatchMediaStore({ items: merged });
+          return merged;
+        }
+      }
+    }
+    writeWatchMediaStore({ items: remote });
+    return remote;
+  }
+
+  return sortWatchItemsForPlay(local);
 }
