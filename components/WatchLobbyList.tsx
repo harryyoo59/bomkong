@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import {
   buildYoutubePlayQueueUrl,
-  extractYoutubeVideoId,
+  hasPlayableYoutubeUrl,
   openYoutubePlayQueue,
   readWatchMediaStore,
   watchSlotLabel,
@@ -64,7 +64,7 @@ export function WatchLobbyList() {
         {ordered.map(({ item, isResume }) => {
           const queueUrl = buildYoutubePlayQueueUrl(items, item.id);
           const canPlay = Boolean(
-            queueUrl && extractYoutubeVideoId(item.youtubeUrl),
+            queueUrl && hasPlayableYoutubeUrl(item.youtubeUrl),
           );
           const slot = watchSlotLabel(item);
           return (

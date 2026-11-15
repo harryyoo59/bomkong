@@ -262,10 +262,24 @@ export function WatchVideoRoom() {
     const target = items.find((it) => it.id === id);
     if (!target) return;
     const raw = (editUrls[id] ?? "").trim();
-    // 비우면 언어에 맞는 채널로 다시 채움
-    const nextUrl = youtubeUrlForWatchLang(target.lang, raw);
-    if (!resolveYoutubeWatchUrl(nextUrl)) {
-      setMessage("유튜브 주소가 잘못된 것 같아요. 다시 붙여 넣어 주세요.");
+    // 비우면 언어에 맞는 채널로 다시 채움 (밖에서는 영상 주소가 있어야 재생됨)
+    if (!raw) {
+      const nextUrl = youtubeUrlForWatchLang(target.lang, "");
+      persist(
+        items.map((it) =>
+          it.id === id ? { ...it, youtubeUrl: nextUrl } : it,
+        ),
+      );
+      setMessage(
+        `「${target.title}」 유튜브를 ${target.lang === "ko" ? "한국어" : "영어"} 채널로 맞춰 두었어요.`,
+      );
+      return;
+    }
+    const nextUrl = resolveYoutubeWatchUrl(raw);
+    if (!nextUrl) {
+      setMessage(
+        "영상(숏츠) 주소를 붙여 넣어 주세요. 채널 주소만으로는 안 돼요.",
+      );
       return;
     }
     persist(
@@ -273,11 +287,7 @@ export function WatchVideoRoom() {
         it.id === id ? { ...it, youtubeUrl: nextUrl } : it,
       ),
     );
-    setMessage(
-      raw
-        ? `「${target.title}」 유튜브 주소를 저장했어요.`
-        : `「${target.title}」 유튜브를 ${target.lang === "ko" ? "한국어" : "영어"} 채널로 맞춰 두었어요.`,
-    );
+    setMessage(`「${target.title}」 유튜브 주소를 저장했어요.`);
   }
 
   async function onRemove(id: string) {
