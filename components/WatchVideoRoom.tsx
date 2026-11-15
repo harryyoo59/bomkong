@@ -90,25 +90,18 @@ export function WatchVideoRoom() {
       try {
         const synced = await syncWatchMediaWithServer({
           allowUploadLocal: true,
+          confirmChange: (msg) =>
+            typeof window !== "undefined" ? window.confirm(msg) : false,
         });
-        let changed = false;
+        // 채널 주소 자동 맞춤은 화면용만 — 확인 없이 인터넷에 올리지 않음
         const filled = synced.map((it) => {
           const nextUrl = youtubeUrlForWatchLang(it.lang, it.youtubeUrl);
-          if (nextUrl !== it.youtubeUrl) {
-            changed = true;
-            return { ...it, youtubeUrl: nextUrl };
-          }
-          return it;
+          return nextUrl !== it.youtubeUrl
+            ? { ...it, youtubeUrl: nextUrl }
+            : it;
         });
         const ordered = sortWatchItemsForPlay(filled);
-        if (changed) {
-          writeWatchMediaStore({ items: ordered });
-          try {
-            await pushWatchMediaToServer(ordered);
-          } catch {
-            /* 채널 주소 자동 맞추기 실패해도 화면은 진행 */
-          }
-        }
+        writeWatchMediaStore({ items: ordered });
         if (cancelled) return;
         setItems(ordered);
         const nextSlot = suggestNextWatchSlot(ordered);
@@ -117,11 +110,11 @@ export function WatchVideoRoom() {
         syncEditors(ordered);
         if (synced.length > 0) {
           setMessage(
-            `영상 ${synced.length}개를 맞춰 두었어요. 제목·유튜브가 「복구한 영상」이면 아래에서 고쳐 주세요. 다른 사람도 같은 목록을 봐요.`,
+            `영상 ${synced.length}개예요. 바꿀 때는 「제목 다시 쓰기」나 저장 버튼으로만 올려 주세요.`,
           );
         } else {
           setMessage(
-            "목록이 비어 있어요. 예전에 미리보기 파일이 남아 있으면 다시 열어 복구를 시도해 주세요.",
+            "목록이 비어 있어요. 미리보기로 다시 만들지는 물어본 뒤에만 해요.",
           );
         }
       } catch {
