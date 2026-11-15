@@ -13,8 +13,10 @@ import {
 import { enterAdminByKnock } from "@/app/admin/actions";
 import { GuardianGate } from "@/components/GuardianGate";
 import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
+import { getMediaPreview } from "@/lib/media-preview-store";
 import {
   buildYoutubePlayQueueUrl,
+  extractYoutubeVideoId,
   getWatchItemById,
   openYoutubePlayQueue,
   readWatchMediaStore,
@@ -29,6 +31,13 @@ import {
   LIVING_ROOM_BEATS,
   type LivingStoryTarget,
 } from "@/lib/living-room-story";
+
+const TV_FALLBACK_POSTER = "/living-room/v4-frame-1s.jpg";
+
+type TvScreenMedia =
+  | { mode: "placeholder" }
+  | { mode: "image"; url: string; local: boolean }
+  | { mode: "video"; url: string; local: boolean };
 
 /** 문 노크: 직전 노크와 이 시간 안이면 이어서 셈 */
 const DOOR_KNOCK_GAP_MS = 4000;
@@ -177,6 +186,9 @@ export function LivingRoomHome({
   const [guardianFor, setGuardianFor] = useState<LivingMenuId | null>(null);
   const [progress, setProgress] = useState<WatchProgress | null>(null);
   const [promptVisible, setPromptVisible] = useState(false);
+  const [tvMedia, setTvMedia] = useState<TvScreenMedia>({
+    mode: "placeholder",
+  });
   const [beatIndex, setBeatIndex] = useState(0);
   const [knockPending, setKnockPending] = useState(false);
   const captionId = useId();
@@ -257,16 +269,89 @@ export function LivingRoomHome({
     }
   }, [playing, reduceMotion]);
 
+  // 로비 TV: 지금 이어보는 영상의 그림(또는 미리보기)으로 바꿈
+  useEffect(() => {
+    let cancelled = false;
+    let localUrl: string | null = null;
+
+    async function loadTvMedia() {
+      const saved = progress;
+      if (!saved) {
+        if (!cancelled) setTvMedia({ mode: "placeholder" });
+        return;
+      }
+      const item = getWatchItemById(saved.episodeId);
+      if (!item) {
+        if (!cancelled) setTvMedia({ mode: "placeholder" });
+        return;
+      }
+
+      const ytId = extractYoutubeVideoId(item.youtubeUrl);
+      if (ytId) {
+        if (!cancelled) {
+          setTvMedia({
+            mode: "image",
+            url: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
+            local: false,
+          });
+        }
+        return;
+      }
+
+      const preview = await getMediaPreview(item.id);
+      if (cancelled) return;
+      if (preview?.thumbBlob) {
+        localUrl = URL.createObjectURL(preview.thumbBlob);
+        if (cancelled) {
+          URL.revokeObjectURL(localUrl);
+          return;
+        }
+        setTvMedia({ mode: "image", url: localUrl, local: true });
+        return;
+      }
+      if (preview?.blob) {
+        localUrl = URL.createObjectURL(preview.blob);
+        if (cancelled) {
+          URL.revokeObjectURL(localUrl);
+          return;
+        }
+        if (preview.kind === "photo") {
+          setTvMedia({ mode: "image", url: localUrl, local: true });
+        } else {
+          setTvMedia({ mode: "video", url: localUrl, local: true });
+        }
+        return;
+      }
+
+      setTvMedia({ mode: "placeholder" });
+    }
+
+    void loadTvMedia();
+
+    return () => {
+      cancelled = true;
+      if (localUrl) URL.revokeObjectURL(localUrl);
+    };
+  }, [progress]);
+
   useEffect(() => {
     const v = tvVideoRef.current;
     if (!v || reduceMotion) return;
+    if (tvMedia.mode === "image") return;
     v.muted = true;
     v.defaultMuted = true;
     v.volume = 0;
-    if (progress && progress.position > 0) {
+    if (
+      tvMedia.mode === "placeholder" &&
+      progress &&
+      progress.position > 0
+    ) {
       const seek = () => {
         try {
-          v.currentTime = Math.min(progress.position, v.duration || progress.position);
+          v.currentTime = Math.min(
+            progress.position,
+            v.duration || progress.position,
+          );
         } catch {
           /* ignore seek errors before metadata */
         }
@@ -277,7 +362,7 @@ export function LivingRoomHome({
     void v.play().catch(() => {
       /* autoplay may fail — poster still ok */
     });
-  }, [progress, reduceMotion]);
+  }, [progress, reduceMotion, tvMedia]);
 
   const stopStoryVoiceNow = useCallback(() => {
     speakTokenRef.current += 1;
@@ -506,18 +591,32 @@ export function LivingRoomHome({
             aria-label="큰 티비 화면"
           >
             <div className="tv-screen tv-screen-video">
-              <video
-                ref={tvVideoRef}
-                className="tv-video-el"
-                src={PLACEHOLDER_VIDEO}
-                poster="/living-room/v4-frame-1s.jpg"
-                muted
-                playsInline
-                loop
-                autoPlay
-                preload="auto"
-                aria-label="봄이콩이 영상"
-              />
+              {tvMedia.mode === "image" ? (
+                <img
+                  className="tv-video-el"
+                  src={tvMedia.url}
+                  alt={resumeLabel ? `지금 보는 영상 · ${resumeLabel}` : "지금 보는 영상"}
+                  draggable={false}
+                />
+              ) : (
+                <video
+                  ref={tvVideoRef}
+                  className="tv-video-el"
+                  key={tvMedia.mode === "video" ? tvMedia.url : "placeholder"}
+                  src={
+                    tvMedia.mode === "video" ? tvMedia.url : PLACEHOLDER_VIDEO
+                  }
+                  poster={TV_FALLBACK_POSTER}
+                  muted
+                  playsInline
+                  loop
+                  autoPlay
+                  preload="auto"
+                  aria-label={
+                    resumeLabel ? `지금 보는 영상 · ${resumeLabel}` : "봄이콩이 영상"
+                  }
+                />
+              )}
               {promptVisible && progress ? (
                 <div className="tv-resume" role="dialog" aria-label="이어보기 선택">
                   <p className="tv-resume-prompt">
