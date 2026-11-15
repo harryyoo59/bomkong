@@ -5,7 +5,7 @@ import {
   buildYoutubePlayQueueUrl,
   hasPlayableYoutubeUrl,
   openYoutubePlayQueue,
-  readWatchMediaStore,
+  syncWatchMediaWithServer,
   watchSlotLabel,
   type WatchItem,
 } from "@/lib/watch-media";
@@ -22,9 +22,23 @@ export function WatchLobbyList() {
   const resumeRowRef = useRef<HTMLLIElement | null>(null);
 
   useEffect(() => {
-    setItems(readWatchMediaStore().items);
-    setResumeId(readWatchResume()?.lastOpenedId ?? null);
-    setReady(true);
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await syncWatchMediaWithServer();
+        if (!cancelled) setItems(list);
+      } catch {
+        if (!cancelled) setItems([]);
+      } finally {
+        if (!cancelled) {
+          setResumeId(readWatchResume()?.lastOpenedId ?? null);
+          setReady(true);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const ordered = orderWatchItemsForResume(items, resumeId);

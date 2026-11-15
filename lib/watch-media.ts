@@ -1,4 +1,4 @@
-/** 영상보기 보관실(관리자실 6번) — 거실 「영상보기」전용. 이 기기 브라우저에만 기억 */
+/** 영상보기 보관실(관리자실 6번) — 거실 「영상보기」전용. 인터넷 저장 + 기기 임시 기억 */
 
 export type WatchLang = "ko" | "en";
 
@@ -514,4 +514,80 @@ export function makeWatchId(): string {
 
 export function getWatchItemById(id: string): WatchItem | undefined {
   return readWatchMediaStore().items.find((it) => it.id === id);
+}
+
+type WatchApiResponse = {
+  ok?: boolean;
+  items?: WatchItem[];
+  error?: string;
+};
+
+function parseApiItems(raw: unknown): WatchItem[] {
+  if (!Array.isArray(raw)) return [];
+  return ensureWatchPlaySlots(
+    raw
+      .map((it) =>
+        normalizeItem(it as Partial<WatchItem> & Record<string, unknown>),
+      )
+      .filter((it): it is WatchItem => Boolean(it)),
+  );
+}
+
+/** 인터넷에 있는 영상보기 목록을 불러와 이 기기 기억에도 맞춰 둠 */
+export async function pullWatchMediaFromServer(): Promise<WatchItem[]> {
+  const res = await fetch("/api/watch", { cache: "no-store" });
+  const data = (await res.json()) as WatchApiResponse;
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "영상 목록을 불러오지 못했어요.");
+  }
+  const items = sortWatchItemsForPlay(parseApiItems(data.items));
+  writeWatchMediaStore({ items });
+  return items;
+}
+
+/** 관리자: 목록을 인터넷에 올려 다른 사람도 보게 함 */
+export async function pushWatchMediaToServer(
+  items: WatchItem[],
+): Promise<WatchItem[]> {
+  const ordered = sortWatchItemsForPlay(ensureWatchPlaySlots(items));
+  const res = await fetch("/api/admin/watch", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: ordered }),
+  });
+  const data = (await res.json()) as WatchApiResponse;
+  if (!res.ok || !data.ok) {
+    throw new Error(data.error || "영상 목록을 인터넷에 올리지 못했어요.");
+  }
+  const saved = sortWatchItemsForPlay(parseApiItems(data.items ?? ordered));
+  writeWatchMediaStore({ items: saved });
+  return saved;
+}
+
+/**
+ * 손님·관리자 공통: 인터넷 목록을 맞추고,
+ * 예전에 이 기기에만 있던 목록이 있으면 한 번 인터넷으로 올림.
+ */
+export async function syncWatchMediaWithServer(options?: {
+  allowUploadLocal?: boolean;
+}): Promise<WatchItem[]> {
+  const allowUploadLocal = options?.allowUploadLocal === true;
+  const local = readWatchMediaStore().items;
+  let remote: WatchItem[] = [];
+  try {
+    remote = await pullWatchMediaFromServer();
+  } catch {
+    // 인터넷이 안 되면 기기 기억만 씀
+    return sortWatchItemsForPlay(local);
+  }
+
+  if (allowUploadLocal && local.length > 0 && remote.length === 0) {
+    try {
+      return await pushWatchMediaToServer(local);
+    } catch {
+      return remote;
+    }
+  }
+
+  return remote;
 }

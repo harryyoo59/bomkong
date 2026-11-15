@@ -20,6 +20,7 @@ import {
   getWatchItemById,
   openYoutubePlayQueue,
   readWatchMediaStore,
+  syncWatchMediaWithServer,
 } from "@/lib/watch-media";
 import {
   clearWatchProgress,
@@ -237,22 +238,34 @@ export function LivingRoomHome({
   }, []);
 
   useEffect(() => {
-    const saved = readWatchProgress();
-    if (!saved) {
-      setProgress(null);
-      setPromptVisible(false);
-      return;
-    }
-    // 이어보기는 영상보기 방(6번)에 있는 것만. 예전 샘플·다른 방 기록은 무시.
-    const inWatchRoom = Boolean(getWatchItemById(saved.episodeId));
-    if (!inWatchRoom) {
-      clearWatchProgress();
-      setProgress(null);
-      setPromptVisible(false);
-      return;
-    }
-    setProgress(saved);
-    setPromptVisible(saved.position >= 1);
+    let cancelled = false;
+    (async () => {
+      try {
+        await syncWatchMediaWithServer();
+      } catch {
+        /* 기기 기억만으로도 이어서 안내 가능 */
+      }
+      if (cancelled) return;
+      const saved = readWatchProgress();
+      if (!saved) {
+        setProgress(null);
+        setPromptVisible(false);
+        return;
+      }
+      // 이어보기는 영상보기 방(6번)에 있는 것만. 예전 샘플·다른 방 기록은 무시.
+      const inWatchRoom = Boolean(getWatchItemById(saved.episodeId));
+      if (!inWatchRoom) {
+        clearWatchProgress();
+        setProgress(null);
+        setPromptVisible(false);
+        return;
+      }
+      setProgress(saved);
+      setPromptVisible(saved.position >= 1);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {

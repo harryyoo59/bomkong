@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import {
   buildYoutubePlayQueueUrl,
   openYoutubePlayQueue,
-  readWatchMediaStore,
   sortWatchItemsForPlay,
+  syncWatchMediaWithServer,
   watchSlotLabel,
   type WatchItem,
 } from "@/lib/watch-media";
@@ -27,33 +27,39 @@ export function WatchVaultPlayer({
   const [wrapsToFirst, setWrapsToFirst] = useState(false);
 
   useEffect(() => {
-    const store = readWatchMediaStore();
-    const ordered = sortWatchItemsForPlay(store.items);
-    const found = ordered.find((it) => it.id === id) ?? null;
-    setItem(found);
-    if (!found) {
-      setQueueUrl(null);
-      setNextItem(null);
-      setWrapsToFirst(false);
-      return;
-    }
+    let cancelled = false;
+    (async () => {
+      const ordered = sortWatchItemsForPlay(await syncWatchMediaWithServer());
+      if (cancelled) return;
+      const found = ordered.find((it) => it.id === id) ?? null;
+      setItem(found);
+      if (!found) {
+        setQueueUrl(null);
+        setNextItem(null);
+        setWrapsToFirst(false);
+        return;
+      }
 
-    writeWatchResume(found.id);
-    const url = buildYoutubePlayQueueUrl(ordered, found.id);
-    setQueueUrl(url);
-    const next = nextPlayableWatchItemAfter(ordered, id);
-    setNextItem(next);
-    setWrapsToFirst(
-      ordered.length > 1 &&
-        Boolean(next) &&
-        next?.id === ordered[0]?.id &&
-        found.id !== ordered[0]?.id,
-    );
+      writeWatchResume(found.id);
+      const url = buildYoutubePlayQueueUrl(ordered, found.id);
+      setQueueUrl(url);
+      const next = nextPlayableWatchItemAfter(ordered, id);
+      setNextItem(next);
+      setWrapsToFirst(
+        ordered.length > 1 &&
+          Boolean(next) &&
+          next?.id === ordered[0]?.id &&
+          found.id !== ordered[0]?.id,
+      );
 
-    // 유튜브로 바로 열기 (조회수·큰 화면 · 다음 편 이어서 · 같은 화면)
-    if (url) {
-      openYoutubePlayQueue(url);
-    }
+      // 유튜브로 바로 열기 (조회수·큰 화면 · 다음 편 이어서 · 같은 화면)
+      if (url) {
+        openYoutubePlayQueue(url);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
   if (item === undefined) {

@@ -11,12 +11,13 @@ import {
 import {
   findWatchSlot,
   makeWatchId,
-  readWatchMediaStore,
+  pushWatchMediaToServer,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
   sortWatchItemsNumberDesc,
   suggestNextWatchSlot,
   suggestWatchSlotAfterAdd,
+  syncWatchMediaWithServer,
   watchSlotLabel,
   writeWatchMediaStore,
   youtubeChannelUrlForLang,
@@ -82,33 +83,70 @@ export function WatchVideoRoom() {
   }
 
   useEffect(() => {
-    const store = readWatchMediaStore();
-    let changed = false;
-    const filled = store.items.map((it) => {
-      const nextUrl = youtubeUrlForWatchLang(it.lang, it.youtubeUrl);
-      if (nextUrl !== it.youtubeUrl) {
-        changed = true;
-        return { ...it, youtubeUrl: nextUrl };
+    let cancelled = false;
+    (async () => {
+      try {
+        const synced = await syncWatchMediaWithServer({
+          allowUploadLocal: true,
+        });
+        let changed = false;
+        const filled = synced.map((it) => {
+          const nextUrl = youtubeUrlForWatchLang(it.lang, it.youtubeUrl);
+          if (nextUrl !== it.youtubeUrl) {
+            changed = true;
+            return { ...it, youtubeUrl: nextUrl };
+          }
+          return it;
+        });
+        const ordered = sortWatchItemsForPlay(filled);
+        if (changed) {
+          writeWatchMediaStore({ items: ordered });
+          try {
+            await pushWatchMediaToServer(ordered);
+          } catch {
+            /* 채널 주소 자동 맞추기 실패해도 화면은 진행 */
+          }
+        }
+        if (cancelled) return;
+        setItems(ordered);
+        const nextSlot = suggestNextWatchSlot(ordered);
+        setEpisodeNumberText(String(nextSlot.episodeNumber));
+        setLang(nextSlot.lang);
+        syncEditors(ordered);
+        if (synced.length > 0) {
+          setMessage(
+            "영상 목록을 인터넷에 맞춰 두었어요. 다른 사람도 같은 목록을 봐요.",
+          );
+        }
+      } catch {
+        if (!cancelled) {
+          setMessage("인터넷 목록을 못 불러왔어요. 잠시 후 다시 열어 주세요.");
+        }
+      } finally {
+        if (!cancelled) setReady(true);
       }
-      return it;
-    });
-    const ordered = sortWatchItemsForPlay(filled);
-    if (changed) {
-      writeWatchMediaStore({ items: ordered });
-    }
-    setItems(ordered);
-    const nextSlot = suggestNextWatchSlot(ordered);
-    setEpisodeNumberText(String(nextSlot.episodeNumber));
-    setLang(nextSlot.lang);
-    syncEditors(ordered);
-    setReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  function persist(next: WatchItem[]) {
+  async function persist(next: WatchItem[]) {
     const ordered = sortWatchItemsForPlay(next);
     writeWatchMediaStore({ items: ordered });
     setItems(ordered);
     syncEditors(ordered);
+    try {
+      const saved = await pushWatchMediaToServer(ordered);
+      setItems(saved);
+      syncEditors(saved);
+    } catch (err) {
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "인터넷에 저장하지 못했어요. 다시 해 주세요.",
+      );
+    }
   }
 
   function onPickFile(fileList: FileList | null) {
@@ -161,7 +199,7 @@ export function WatchVideoRoom() {
     }
     // 나중에 넣은 것은 뒤로 — 번호 순으로 정렬해 저장
     const next = sortWatchItemsForPlay([...items, item]);
-    persist(next);
+    await persist(next);
     if (pendingFile) {
       setPreviewTicks((prev) => ({
         ...prev,
@@ -227,7 +265,7 @@ export function WatchVideoRoom() {
       );
       return;
     }
-    persist(
+    void persist(
       items.map((it) =>
         it.id === id
           ? {
@@ -252,7 +290,7 @@ export function WatchVideoRoom() {
       setMessage("영상 제목을 적어 주세요.");
       return;
     }
-    persist(
+    void persist(
       items.map((it) => (it.id === id ? { ...it, title: nextTitle } : it)),
     );
     setMessage(`제목을 「${nextTitle}」(으)로 바꿨어요.`);
@@ -265,7 +303,7 @@ export function WatchVideoRoom() {
     // 비우면 언어에 맞는 채널로 다시 채움 (밖에서는 영상 주소가 있어야 재생됨)
     if (!raw) {
       const nextUrl = youtubeUrlForWatchLang(target.lang, "");
-      persist(
+      void persist(
         items.map((it) =>
           it.id === id ? { ...it, youtubeUrl: nextUrl } : it,
         ),
@@ -282,7 +320,7 @@ export function WatchVideoRoom() {
       );
       return;
     }
-    persist(
+    void persist(
       items.map((it) =>
         it.id === id ? { ...it, youtubeUrl: nextUrl } : it,
       ),
@@ -295,7 +333,7 @@ export function WatchVideoRoom() {
     if (!target) return;
     await deleteMediaPreview(id);
     const next = items.filter((it) => it.id !== id);
-    persist(next);
+    await persist(next);
     const nextSlot = suggestNextWatchSlot(next);
     setEpisodeNumberText(String(nextSlot.episodeNumber));
     setLang(nextSlot.lang);
@@ -433,8 +471,8 @@ export function WatchVideoRoom() {
       <section>
         <h2 className="section-title">거실에 보이는 영상</h2>
         <p className="muted tiny">
-          이 기기에만 기억해요. 아래 목록은 번호 큰 것이 위, 1번은 맨 아래예요.
-          같은 번호는 한국어 → 영어 순이에요.
+          인터넷에 저장해요. 다른 사람도 같은 목록을 봐요. 아래는 번호 큰 것이
+          위, 1번은 맨 아래예요. 같은 번호는 한국어 → 영어 순이에요.
         </p>
         {adminList.length === 0 ? (
           <AdminEmptyText roomKey="watch" />
