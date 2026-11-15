@@ -56,6 +56,7 @@ export function WatchVideoRoom() {
   const [copyMessage, setCopyMessage] = useState("");
   const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
   const [formKey, setFormKey] = useState(0);
+  const [editTitles, setEditTitles] = useState<Record<string, string>>({});
   const [editUrls, setEditUrls] = useState<Record<string, string>>({});
   const [editSlots, setEditSlots] = useState<
     Record<string, { episodeNumberText: string; lang: WatchLang }>
@@ -65,6 +66,7 @@ export function WatchVideoRoom() {
   );
 
   function syncEditors(list: WatchItem[]) {
+    setEditTitles(Object.fromEntries(list.map((it) => [it.id, it.title])));
     setEditUrls(
       Object.fromEntries(list.map((it) => [it.id, it.youtubeUrl])),
     );
@@ -229,6 +231,20 @@ export function WatchVideoRoom() {
     setMessage(
       `「${target.title}」 자리를 ${num}-${nextLang}(으)로 바꿨어요.`,
     );
+  }
+
+  function onSaveTitle(id: string) {
+    const target = items.find((it) => it.id === id);
+    if (!target) return;
+    const nextTitle = (editTitles[id] ?? "").trim();
+    if (!nextTitle) {
+      setMessage("영상 제목을 적어 주세요.");
+      return;
+    }
+    persist(
+      items.map((it) => (it.id === id ? { ...it, title: nextTitle } : it)),
+    );
+    setMessage(`제목을 「${nextTitle}」(으)로 바꿨어요.`);
   }
 
   function onSaveYoutube(id: string) {
@@ -420,7 +436,6 @@ export function WatchVideoRoom() {
                     />
                     <div>
                       <p className="tiny muted">{slot}</p>
-                      <strong>{item.title}</strong>
                       {item.name ? (
                         <p className="tiny muted">파일 · {item.name}</p>
                       ) : (
@@ -450,6 +465,26 @@ export function WatchVideoRoom() {
                           }))
                         }
                       />
+                      <label className="admin-inline-youtube">
+                        영상 제목
+                        <input
+                          value={editTitles[item.id] ?? ""}
+                          onChange={(e) =>
+                            setEditTitles((prev) => ({
+                              ...prev,
+                              [item.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="영상 제목"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        className="btn btn-soft"
+                        onClick={() => onSaveTitle(item.id)}
+                      >
+                        제목 저장
+                      </button>
                       <label className="admin-inline-youtube">
                         유튜브 주소
                         <input
