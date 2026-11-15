@@ -21,9 +21,11 @@ import {
 } from "@/lib/unreleased-media";
 import {
   makeWatchId,
+  pushWatchMediaToServer,
   readWatchMediaStore,
   sortWatchItemsForPlay,
   suggestNextEpisodeNumberForLang,
+  syncWatchMediaWithServer,
   watchSlotLabel,
   writeWatchMediaStore,
   youtubeChannelUrlForLang,
@@ -198,9 +200,16 @@ export function UnreleasedVideoRoom({ lang }: Props) {
         downloadBlob(preview.blob, target.name || `${target.title}.mp4`);
       }
 
-      const watchStore = readWatchMediaStore();
+      let watchItems = readWatchMediaStore().items;
+      try {
+        watchItems = await syncWatchMediaWithServer({
+          allowUploadLocal: true,
+        });
+      } catch {
+        /* 기기 목록으로 이어감 */
+      }
       const episodeNumber = suggestNextEpisodeNumberForLang(
-        watchStore.items,
+        watchItems,
         watchLang,
       );
       const watchId = makeWatchId();
@@ -214,11 +223,13 @@ export function UnreleasedVideoRoom({ lang }: Props) {
         episodeNumber,
         lang: watchLang,
       };
-      const nextWatch = sortWatchItemsForPlay([
-        ...watchStore.items,
-        watchItem,
-      ]);
+      const nextWatch = sortWatchItemsForPlay([...watchItems, watchItem]);
       writeWatchMediaStore({ items: nextWatch });
+      try {
+        await pushWatchMediaToServer(nextWatch);
+      } catch {
+        /* 인터넷 저장 실패해도 기기에는 남아 있음 */
+      }
       await moveMediaPreview(target.id, watchId);
 
       const nextUnreleased = items.filter((it) => it.id !== id);
