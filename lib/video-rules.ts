@@ -6,14 +6,20 @@ export const VIDEO_RULES_AI_STORAGE_KEY = "bomkong_video_rules_ai_v1";
 /** 체크리스트 (AI용과 같은 구조 · 사장님이 따로 정리) */
 export const VIDEO_RULES_CHECKLIST_STORAGE_KEY =
   "bomkong_video_rules_checklist_v1";
+/** 쿠키영상 규칙 (체크리스트와 같은 구조) */
+export const VIDEO_RULES_COOKIE_STORAGE_KEY =
+  "bomkong_video_rules_cookie_v1";
 
-export type VideoRulesAudience = "admin" | "ai" | "checklist";
+export type VideoRulesAudience = "admin" | "ai" | "checklist" | "cookie";
 
 /** AI용은 아직 비움 — 사장님이 간략본을 붙여 넣음 */
 export const DEFAULT_VIDEO_RULES_AI_DOCUMENT = "";
 
 /** 체크리스트도 처음엔 비움 — 사장님이 붙여 넣음 */
 export const DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT = "";
+
+/** 쿠키영상도 처음엔 비움 — 사장님이 붙여 넣음 */
+export const DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT = "";
 
 /** 원문 그대로. 줄이거나 고쳐 쓰지 말 것. */
 export const DEFAULT_VIDEO_RULES_DOCUMENT = `[봄이콩이 영상 제작 기준 - 최종 확정본]
@@ -191,4 +197,27 @@ export function writeVideoRulesChecklistDocument(text: string): void {
 export function clearVideoRulesChecklistDocument(): void {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(VIDEO_RULES_CHECKLIST_STORAGE_KEY);
+}
+
+export function readVideoRulesCookieDocument(): string {
+  if (typeof window === "undefined") {
+    return DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT;
+  }
+  try {
+    const raw = window.localStorage.getItem(VIDEO_RULES_COOKIE_STORAGE_KEY);
+    if (typeof raw === "string") return raw;
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT;
+}
+
+export function writeVideoRulesCookieDocument(text: string): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(VIDEO_RULES_COOKIE_STORAGE_KEY, text);
+}
+
+export function clearVideoRulesCookieDocument(): void {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(VIDEO_RULES_COOKIE_STORAGE_KEY);
 }

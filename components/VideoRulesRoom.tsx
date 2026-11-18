@@ -8,16 +8,20 @@ import {
 import {
   DEFAULT_VIDEO_RULES_AI_DOCUMENT,
   DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
+  DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT,
   DEFAULT_VIDEO_RULES_DOCUMENT,
   clearVideoRulesAiDocument,
   clearVideoRulesChecklistDocument,
+  clearVideoRulesCookieDocument,
   clearVideoRulesDocumentOverride,
   parseVideoRulesDocument,
   readVideoRulesAiDocument,
   readVideoRulesChecklistDocument,
+  readVideoRulesCookieDocument,
   readVideoRulesDocument,
   writeVideoRulesAiDocument,
   writeVideoRulesChecklistDocument,
+  writeVideoRulesCookieDocument,
   writeVideoRulesDocument,
   type VideoRulesAudience,
   type VideoRulesBlock,
@@ -74,11 +78,22 @@ function remoteHasSharedContent(
   adminBody: string,
   aiBody: string,
   checklistBody: string,
+  cookieBody: string,
 ): boolean {
   return Boolean(
-    adminBody.trim() || aiBody.trim() || checklistBody.trim(),
+    adminBody.trim() ||
+      aiBody.trim() ||
+      checklistBody.trim() ||
+      cookieBody.trim(),
   );
 }
+
+type Docs = {
+  admin: string;
+  ai: string;
+  checklist: string;
+  cookie: string;
+};
 
 export function VideoRulesRoom() {
   const [audience, setAudience] = useState<VideoRulesAudience>("admin");
@@ -91,6 +106,12 @@ export function VideoRulesRoom() {
   );
   const [checklistDraft, setChecklistDraft] = useState(
     DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
+  );
+  const [cookieText, setCookieText] = useState(
+    DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT,
+  );
+  const [cookieDraft, setCookieDraft] = useState(
+    DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT,
   );
   const [ready, setReady] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -107,6 +128,7 @@ export function VideoRulesRoom() {
       const localAdmin = readVideoRulesDocument();
       const localAi = readVideoRulesAiDocument();
       const localChecklist = readVideoRulesChecklistDocument();
+      const localCookie = readVideoRulesCookieDocument();
       if (!cancelled) {
         setAdminText(localAdmin);
         setAdminDraft(localAdmin);
@@ -114,6 +136,8 @@ export function VideoRulesRoom() {
         setAiDraft(localAi);
         setChecklistText(localChecklist);
         setChecklistDraft(localChecklist);
+        setCookieText(localCookie);
+        setCookieDraft(localCookie);
         setReady(true);
       }
 
@@ -134,22 +158,24 @@ export function VideoRulesRoom() {
           store.adminBody,
           store.aiBody,
           store.checklistBody,
+          store.cookieBody,
         )
       ) {
         const nextAdmin = store.adminBody.trim()
           ? store.adminBody
           : DEFAULT_VIDEO_RULES_DOCUMENT;
-        const nextAi = store.aiBody;
-        const nextChecklist = store.checklistBody;
         writeVideoRulesDocument(nextAdmin);
-        writeVideoRulesAiDocument(nextAi);
-        writeVideoRulesChecklistDocument(nextChecklist);
+        writeVideoRulesAiDocument(store.aiBody);
+        writeVideoRulesChecklistDocument(store.checklistBody);
+        writeVideoRulesCookieDocument(store.cookieBody);
         setAdminText(nextAdmin);
         setAdminDraft(nextAdmin);
-        setAiText(nextAi);
-        setAiDraft(nextAi);
-        setChecklistText(nextChecklist);
-        setChecklistDraft(nextChecklist);
+        setAiText(store.aiBody);
+        setAiDraft(store.aiBody);
+        setChecklistText(store.checklistBody);
+        setChecklistDraft(store.checklistBody);
+        setCookieText(store.cookieBody);
+        setCookieDraft(store.cookieBody);
         setSharedOk(true);
         setSyncMessage(
           "다른 기기와 같은 규칙이에요. 고쳐서 저장하면 자동으로 맞춰져요.",
@@ -164,6 +190,7 @@ export function VideoRulesRoom() {
         adminBody: localAdmin,
         aiBody: localAi,
         checklistBody: localChecklist,
+        cookieBody: localCookie,
       });
       if (cancelled) return;
       setSyncBusy(false);
@@ -195,27 +222,39 @@ export function VideoRulesRoom() {
   const isAdmin = audience === "admin";
   const isAi = audience === "ai";
   const isChecklist = audience === "checklist";
-  const isSideDoc = isAi || isChecklist;
+  const isCookie = audience === "cookie";
+  const isSideDoc = isAi || isChecklist || isCookie;
 
-  const text = isAdmin ? adminText : isAi ? aiText : checklistText;
-  const draft = isAdmin ? adminDraft : isAi ? aiDraft : checklistDraft;
+  const text = isAdmin
+    ? adminText
+    : isAi
+      ? aiText
+      : isChecklist
+        ? checklistText
+        : cookieText;
+  const draft = isAdmin
+    ? adminDraft
+    : isAi
+      ? aiDraft
+      : isChecklist
+        ? checklistDraft
+        : cookieDraft;
   const setDraft = isAdmin
     ? setAdminDraft
     : isAi
       ? setAiDraft
-      : setChecklistDraft;
+      : isChecklist
+        ? setChecklistDraft
+        : setCookieDraft;
   const blocks = useMemo(() => parseVideoRulesDocument(text), [text]);
 
-  async function publishAll(
-    nextAdmin: string,
-    nextAi: string,
-    nextChecklist: string,
-  ) {
+  async function publishAll(docs: Docs) {
     setSyncBusy(true);
     const result = await publishVideoRulesAction({
-      adminBody: nextAdmin,
-      aiBody: nextAi,
-      checklistBody: nextChecklist,
+      adminBody: docs.admin,
+      aiBody: docs.ai,
+      checklistBody: docs.checklist,
+      cookieBody: docs.cookie,
     });
     setSyncBusy(false);
     if (result.ok) {
@@ -229,11 +268,22 @@ export function VideoRulesRoom() {
     };
   }
 
+  function currentDocs(
+    override: Partial<Docs> = {},
+  ): Docs {
+    return {
+      admin: override.admin ?? adminText,
+      ai: override.ai ?? aiText,
+      checklist: override.checklist ?? checklistText,
+      cookie: override.cookie ?? cookieText,
+    };
+  }
+
   async function onSave() {
     if (isAdmin) {
       writeVideoRulesDocument(draft);
       setAdminText(draft);
-      const published = await publishAll(draft, aiText, checklistText);
+      const published = await publishAll(currentDocs({ admin: draft }));
       setEditing(false);
       setSyncMessage(
         published.ok
@@ -242,11 +292,22 @@ export function VideoRulesRoom() {
       );
       return;
     }
-
     if (isAi) {
       writeVideoRulesAiDocument(draft);
       setAiText(draft);
-      const published = await publishAll(adminText, draft, checklistText);
+      const published = await publishAll(currentDocs({ ai: draft }));
+      setEditing(false);
+      setSyncMessage(
+        published.ok
+          ? "저장했고, 다른 기기에도 자동으로 맞춰 두었어요."
+          : `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
+      );
+      return;
+    }
+    if (isChecklist) {
+      writeVideoRulesChecklistDocument(draft);
+      setChecklistText(draft);
+      const published = await publishAll(currentDocs({ checklist: draft }));
       setEditing(false);
       setSyncMessage(
         published.ok
@@ -256,9 +317,9 @@ export function VideoRulesRoom() {
       return;
     }
 
-    writeVideoRulesChecklistDocument(draft);
-    setChecklistText(draft);
-    const published = await publishAll(adminText, aiText, draft);
+    writeVideoRulesCookieDocument(draft);
+    setCookieText(draft);
+    const published = await publishAll(currentDocs({ cookie: draft }));
     setEditing(false);
     setSyncMessage(
       published.ok
@@ -284,9 +345,7 @@ export function VideoRulesRoom() {
       setAdminText(DEFAULT_VIDEO_RULES_DOCUMENT);
       setAdminDraft(DEFAULT_VIDEO_RULES_DOCUMENT);
       const published = await publishAll(
-        DEFAULT_VIDEO_RULES_DOCUMENT,
-        aiText,
-        checklistText,
+        currentDocs({ admin: DEFAULT_VIDEO_RULES_DOCUMENT }),
       );
       setEditing(false);
       setSyncMessage(
@@ -308,9 +367,7 @@ export function VideoRulesRoom() {
       setAiText(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
       setAiDraft(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
       const published = await publishAll(
-        adminText,
-        DEFAULT_VIDEO_RULES_AI_DOCUMENT,
-        checklistText,
+        currentDocs({ ai: DEFAULT_VIDEO_RULES_AI_DOCUMENT }),
       );
       setEditing(false);
       setSyncMessage(
@@ -321,31 +378,51 @@ export function VideoRulesRoom() {
       return;
     }
 
+    if (isChecklist) {
+      if (
+        typeof window !== "undefined" &&
+        !window.confirm("체크리스트를 비울까요?")
+      ) {
+        return;
+      }
+      clearVideoRulesChecklistDocument();
+      setChecklistText(DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT);
+      setChecklistDraft(DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT);
+      const published = await publishAll(
+        currentDocs({ checklist: DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT }),
+      );
+      setEditing(false);
+      setSyncMessage(
+        published.ok
+          ? "체크리스트를 비웠고, 다른 기기에도 맞춰 두었어요."
+          : `이 기기는 비웠어요. ${published.message}`,
+      );
+      return;
+    }
+
     if (
       typeof window !== "undefined" &&
-      !window.confirm("체크리스트를 비울까요?")
+      !window.confirm("쿠키영상 글을 비울까요?")
     ) {
       return;
     }
-    clearVideoRulesChecklistDocument();
-    setChecklistText(DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT);
-    setChecklistDraft(DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT);
+    clearVideoRulesCookieDocument();
+    setCookieText(DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT);
+    setCookieDraft(DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT);
     const published = await publishAll(
-      adminText,
-      aiText,
-      DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
+      currentDocs({ cookie: DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT }),
     );
     setEditing(false);
     setSyncMessage(
       published.ok
-        ? "체크리스트를 비웠고, 다른 기기에도 맞춰 두었어요."
+        ? "쿠키영상 글을 비웠고, 다른 기기에도 맞춰 두었어요."
         : `이 기기는 비웠어요. ${published.message}`,
     );
   }
 
   async function onShareAgain() {
     if (syncBusy) return;
-    const published = await publishAll(adminText, aiText, checklistText);
+    const published = await publishAll(currentDocs());
     if (published.ok) {
       setSyncMessage(
         "확인했어요. 다른 기기에서도 같은 규칙을 봐요. 새로고침 해 보세요.",
@@ -368,10 +445,14 @@ export function VideoRulesRoom() {
     const raw = text.trim();
     const emptyMsg = isAi
       ? "아직 AI용 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요."
-      : "아직 체크리스트 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요.";
+      : isChecklist
+        ? "아직 체크리스트 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요."
+        : "아직 쿠키영상 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요.";
     const okMsg = isAi
       ? "AI용 규칙을 복사했어요. AI 채팅에 붙여 넣으면 돼요."
-      : "체크리스트를 복사했어요. 필요한 곳에 붙여 넣으면 돼요.";
+      : isChecklist
+        ? "체크리스트를 복사했어요. 필요한 곳에 붙여 넣으면 돼요."
+        : "쿠키영상 글을 복사했어요. 필요한 곳에 붙여 넣으면 돼요.";
     if (!raw) {
       setCopyMessage(emptyMsg);
       return;
@@ -403,7 +484,9 @@ export function VideoRulesRoom() {
     ? "관리자용 규칙 고치기"
     : isAi
       ? "AI용 규칙 고치기"
-      : "체크리스트 고치기";
+      : isChecklist
+        ? "체크리스트 고치기"
+        : "쿠키영상 고치기";
 
   return (
     <section className="panel video-rules-panel" aria-label="영상제작 규칙">
@@ -449,6 +532,13 @@ export function VideoRulesRoom() {
           onClick={() => setAudience("checklist")}
         >
           체크리스트
+        </button>
+        <button
+          type="button"
+          className={`btn ${isCookie ? "btn-primary" : "btn-soft"}`}
+          onClick={() => setAudience("cookie")}
+        >
+          쿠키영상
         </button>
       </div>
 
