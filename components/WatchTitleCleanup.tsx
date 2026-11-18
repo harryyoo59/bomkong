@@ -47,7 +47,7 @@ export function WatchTitleCleanup({
   const current = ordered[safeIndex] ?? null;
 
   const [title, setTitle] = useState("");
-  const [episodeText, setEpisodeText] = useState("1");
+  const [episodeText, setEpisodeText] = useState("0");
   const [lang, setLang] = useState<WatchLang>("ko");
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -98,8 +98,8 @@ export function WatchTitleCleanup({
       return;
     }
     const num = Math.floor(Number(episodeText.trim()));
-    if (!Number.isFinite(num) || num < 1) {
-      setNote("편 번호는 1 이상으로 적어 주세요.");
+    if (!Number.isFinite(num) || num < 0) {
+      setNote("편 번호는 0 이상으로 적어 주세요.");
       return;
     }
     const clash = findWatchSlot(items, num, lang);
@@ -222,7 +222,7 @@ export function WatchTitleCleanup({
             편 번호
             <input
               type="number"
-              min={1}
+              min={0}
               step={1}
               value={episodeText}
               onChange={(e) => setEpisodeText(e.target.value)}
