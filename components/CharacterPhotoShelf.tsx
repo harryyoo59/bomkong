@@ -254,17 +254,17 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       if (remoteResult.count === 0 && merged.length > 0) {
         setSharedOk(false);
         setMessage(
-          `이 기기에 ${merged.length}장이 있어요. 아직 인터넷에는 없어요. 아래 「다른 기기에도 보이게 올리기」를 눌러 주세요.`,
+          `이 기기에 ${merged.length}장이 있어요. 아직 인터넷에는 없어요. 아래 「예전에 안 올린 사진 다시 맞추기」를 한 번만 눌러 주세요. 앞으로 새 사진은 자동으로 올라가요.`,
         );
       } else if (remoteResult.count > 0 && remoteResult.count >= merged.length) {
         setSharedOk(true);
         setMessage(
-          `사진 ${merged.length}장이에요. 인터넷에도 같아서 다른 기기에서도 봐요.`,
+          `사진 ${merged.length}장이에요. 인터넷에도 같아서 다른 기기에서도 봐요. 새 사진은 넣을 때 자동으로 올라가요.`,
         );
       } else if (remoteResult.count > 0) {
         setSharedOk(false);
         setMessage(
-          `이 기기 ${merged.length}장 · 인터넷 ${remoteResult.count}장이에요. 「다른 기기에도 보이게 올리기」로 맞춰 주세요.`,
+          `이 기기 ${merged.length}장 · 인터넷 ${remoteResult.count}장이에요. 아래 「다시 맞추기」로 한 번만 맞추면 돼요.`,
         );
       } else {
         setSharedOk(true);
@@ -284,6 +284,31 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       writeCharacterPhotoStore(shelf, { items: next });
     }
     setItems(next);
+  }
+
+  /** 한 장을 인터넷에 올림. 실패해도 이 기기 사진은 그대로 둠. */
+  async function publishOneItem(
+    item: CharacterPhotoItem,
+  ): Promise<CharacterPhotoItem | null> {
+    const blob = await resolvePhotoBlob(item);
+    const file = new File([blob], item.name || "photo.jpg", {
+      type: blob.type || "image/jpeg",
+    });
+    const form = new FormData();
+    form.set("shelf", shelf);
+    form.set("id", item.id);
+    form.set("name", item.name || file.name);
+    form.set("note", item.note || "");
+    form.set("addedAt", item.addedAt || new Date().toISOString());
+    form.set("file", file);
+
+    const result = await publishOneCharacterPhotoAction(form);
+    if (!result.ok) return null;
+    return {
+      ...item,
+      publicUrl: result.item.publicUrl,
+      storagePath: result.item.storagePath,
+    };
   }
 
   function onPickFiles(fileList: FileList | null) {
@@ -357,9 +382,10 @@ export function CharacterPhotoShelf({ shelf }: Props) {
         }
       }
 
+      let nextItems = items;
       if (added.length > 0) {
-        const next = [...added, ...items];
-        persist(next);
+        nextItems = [...added, ...items];
+        persist(nextItems);
         setSharedOk(false);
         setPreviewTicks((prev) => {
           const copy = { ...prev };
@@ -370,12 +396,54 @@ export function CharacterPhotoShelf({ shelf }: Props) {
         });
       }
 
+      // 봄이: 넣자마자 자동으로 인터넷에도 올림 (매번 버튼 안 눌러도 됨)
+      let autoOk = 0;
+      let autoFail = 0;
+      if (canShare && added.length > 0) {
+        setMessage(`${added.length}장 넣는 중… 다른 기기에도 자동으로 올리는 중이에요.`);
+        const published = [...nextItems];
+        for (let i = 0; i < added.length; i += 1) {
+          const localItem = added[i];
+          const idx = published.findIndex((it) => it.id === localItem.id);
+          try {
+            const saved = await publishOneItem(localItem);
+            if (!saved) {
+              autoFail += 1;
+              continue;
+            }
+            if (idx >= 0) published[idx] = saved;
+            autoOk += 1;
+          } catch {
+            autoFail += 1;
+          }
+        }
+        nextItems = published;
+        persist(published);
+        if (autoOk > 0 && autoFail === 0) {
+          setSharedOk(true);
+        } else if (autoFail > 0) {
+          setSharedOk(false);
+        }
+      }
+
       if (added.length > 0 && failNames.length === 0) {
-        setMessage(
-          canShare
-            ? `${who} 사진 보관에 ${added.length}장을 넣었어요. 다른 기기에도 보이게 하려면 아래 올리기를 눌러 주세요.`
-            : `${who} 사진 보관에 ${added.length}장을 갤러리에 넣었어요.`,
-        );
+        if (!canShare) {
+          setMessage(
+            `${who} 사진 보관에 ${added.length}장을 갤러리에 넣었어요.`,
+          );
+        } else if (autoOk > 0 && autoFail === 0) {
+          setMessage(
+            `${who} 사진 ${autoOk}장을 넣었고, 다른 기기에도 자동으로 올려 두었어요.`,
+          );
+        } else if (autoOk > 0 && autoFail > 0) {
+          setMessage(
+            `${autoOk}장은 다른 기기에도 올렸어요. ${autoFail}장은 자동 올리기에 실패해서, 아래 「다시 맞추기」를 눌러 주세요.`,
+          );
+        } else {
+          setMessage(
+            `${added.length}장은 이 기기에 넣었어요. 자동 올리기는 실패했어요. 아래 「다시 맞추기」를 눌러 주세요.`,
+          );
+        }
       } else if (added.length > 0 && failNames.length > 0) {
         setMessage(
           `${added.length}장은 넣었어요. ${failNames.length}장은 못 넣었어요. 다시 골라 주세요.`,
@@ -414,29 +482,18 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     try {
       for (let i = 0; i < nextItems.length; i += 1) {
         const item = nextItems[i];
+        // 이미 인터넷에 있는 건 건너뛰고, 안 올린 것만 / 실패 복구용
+        if (item.publicUrl && item.storagePath) {
+          okCount += 1;
+          continue;
+        }
         try {
-          const blob = await resolvePhotoBlob(item);
-          const file = new File([blob], item.name || "photo.jpg", {
-            type: blob.type || "image/jpeg",
-          });
-          const form = new FormData();
-          form.set("shelf", shelf);
-          form.set("id", item.id);
-          form.set("name", item.name || file.name);
-          form.set("note", item.note || "");
-          form.set("addedAt", item.addedAt || new Date().toISOString());
-          form.set("file", file);
-
-          const result = await publishOneCharacterPhotoAction(form);
-          if (!result.ok) {
+          const saved = await publishOneItem(item);
+          if (!saved) {
             failNames.push(item.name || item.id);
             continue;
           }
-          nextItems[i] = {
-            ...item,
-            publicUrl: result.item.publicUrl,
-            storagePath: result.item.storagePath,
-          };
+          nextItems[i] = saved;
           okCount += 1;
         } catch {
           failNames.push(item.name || item.id);
@@ -509,17 +566,17 @@ export function CharacterPhotoShelf({ shelf }: Props) {
         <div className="watch-share-box" aria-label="다른 기기에 보이기">
           <p className="tiny muted">
             {sharedOk
-              ? "지금 인터넷과 같아요. 다른 기기에서도 이 사진을 봐요."
-              : "다른 기기에서도 같게 보려면, 이 버튼으로 인터넷에 올려 주세요. 사진은 지우지 않아요. 원본 영상도 건드리지 않아요."}
+              ? "새 사진은 넣을 때 자동으로 다른 기기에도 올라가요. 지금 인터넷과 같아요."
+              : "새 사진은 넣을 때 자동으로 올라가요. 예전에 안 올린 사진만 아래 「다시 맞추기」로 한 번 맞추면 돼요. 사진은 지우지 않아요."}
           </p>
           <p className="tiny muted">지금 이 기기 사진 {items.length}장</p>
           <button
             type="button"
-            className="btn btn-primary btn-wide"
+            className="btn btn-soft btn-wide"
             disabled={shareBusy || items.length === 0}
             onClick={() => void onShareToOtherDevices()}
           >
-            {shareBusy ? "올리는 중…" : "다른 기기에도 보이게 올리기"}
+            {shareBusy ? "맞추는 중…" : "예전에 안 올린 사진 다시 맞추기"}
           </button>
         </div>
       ) : null}
