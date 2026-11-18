@@ -95,44 +95,28 @@ export function WatchLobbyList() {
               className={`ep-row${isResume ? " is-resume" : ""}`}
               ref={isResume ? resumeRowRef : undefined}
             >
-              <div className="ep-row-main">
-                <div className="ep-thumb" aria-hidden={thumb ? undefined : true}>
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      className="ep-thumb-image"
-                      src={thumb}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+              <div className="ep-meta">
+                <div className="ep-head">
+                  <span className="ep-num">{slot}</span>
+                  {isResume ? (
+                    <span className="resume-mark" aria-label="이어볼 영상">
+                      <span className="resume-signal" aria-hidden="true" />
+                      <span className="badge badge-resume">이어볼 영상</span>
+                    </span>
                   ) : (
-                    <span className="ep-thumb-empty" />
+                    <span className="badge badge-free">
+                      {item.lang === "en" ? "영어" : "한국어"}
+                    </span>
                   )}
                 </div>
-                <div className="ep-meta">
-                  <div className="ep-head">
-                    <span className="ep-num">{slot}</span>
-                    {isResume ? (
-                      <span className="resume-mark" aria-label="이어볼 영상">
-                        <span className="resume-signal" aria-hidden="true" />
-                        <span className="badge badge-resume">이어볼 영상</span>
-                      </span>
-                    ) : (
-                      <span className="badge badge-free">
-                        {item.lang === "en" ? "영어" : "한국어"}
-                      </span>
-                    )}
-                  </div>
-                  <strong className="ep-title" title={item.title}>
-                    {item.title}
-                  </strong>
-                  {!canPlay ? (
-                    <p className="muted tiny" role="status">
-                      유튜브 주소 없음
-                    </p>
-                  ) : null}
-                </div>
+                <strong className="ep-title" title={item.title}>
+                  {item.title}
+                </strong>
+                {!canPlay ? (
+                  <p className="muted tiny" role="status">
+                    유튜브 주소 없음
+                  </p>
+                ) : null}
               </div>
               <div className="ep-actions">
                 {canPlay && queueUrl ? (
@@ -156,6 +140,23 @@ export function WatchLobbyList() {
                     유튜브 주소 없음
                   </span>
                 )}
+                <span
+                  className="ep-thumb"
+                  aria-hidden={thumb ? undefined : true}
+                >
+                  {thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      className="ep-thumb-image"
+                      src={thumb}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="ep-thumb-empty" />
+                  )}
+                </span>
               </div>
             </li>
           );
