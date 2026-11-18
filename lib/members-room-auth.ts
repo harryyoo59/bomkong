@@ -32,7 +32,10 @@ export function getMembersRoomAuthConfig(): { configured: boolean } {
 }
 
 export function verifyMembersRoomPassword(password: string): boolean {
-  return safeEqual(password, getSecret());
+  // 한글은 기기마다 글자 조합이 달라질 수 있어 맞춰 비교
+  const typed = password.normalize("NFC").trim();
+  const expected = getSecret().normalize("NFC").trim();
+  return safeEqual(typed, expected);
 }
 
 export function createMembersRoomSessionToken(): string {

@@ -40,9 +40,13 @@ export function MembersRoomGate({ enterAction }: Props) {
         <label>
           입장 비밀글
           <input
-            type="password"
+            type="text"
             name="password"
-            autoComplete="current-password"
+            lang="ko"
+            inputMode="text"
+            autoComplete="off"
+            autoCorrect="off"
+            spellCheck={false}
             placeholder="비밀글을 적어 주세요"
             disabled={busy}
             required
