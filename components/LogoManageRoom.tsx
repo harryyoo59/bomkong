@@ -4,13 +4,19 @@ import { useEffect, useState } from "react";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
 import {
+  listLogoItemsAction,
+  removeLogoItemAction,
+} from "@/app/admin/logos/actions";
+import {
   copyPngPromiseToClipboard,
   pngFromBlob,
   pngFromImageUrl,
 } from "@/lib/copy-image-clipboard";
+import { publishLogoItemWithFile } from "@/lib/logo-catalog-client";
 import {
   formatSerial,
   makeLogoId,
+  mergeLogoCatalogWithRemote,
   readLogoCatalog,
   sortBySerial,
   suggestNextSerial,
@@ -41,12 +47,90 @@ export function LogoManageRoom() {
   const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
     {},
   );
+  const [shareBusy, setShareBusy] = useState(false);
+  const [sharedOk, setSharedOk] = useState(false);
 
   useEffect(() => {
-    const store = readLogoCatalog();
-    setItems(store.items);
-    setSerialText(String(suggestNextSerial(store.items)));
-    setReady(true);
+    let cancelled = false;
+
+    async function boot() {
+      const local = readLogoCatalog().items;
+      if (!cancelled) {
+        setItems(local);
+        setSerialText(String(suggestNextSerial(local)));
+        setReady(true);
+      }
+
+      const remote = await listLogoItemsAction();
+      if (cancelled) return;
+
+      if (!remote.ok) {
+        setSharedOk(false);
+        setMessage(
+          "이 기기 로고는 그대로예요. 인터넷 목록은 아직 확인하지 못했어요.",
+        );
+        return;
+      }
+
+      const merged = mergeLogoCatalogWithRemote(local, remote.items);
+      writeLogoCatalog({ items: merged });
+      setItems(merged);
+      setSerialText(String(suggestNextSerial(merged)));
+
+      // 인터넷에 없는 항목(새 로고·고친 공식 로고 정보) 자동 맞춤
+      const remoteIds = new Set(remote.items.map((it) => it.id));
+      const toPublish = merged.filter((it) => {
+        if (!remoteIds.has(it.id)) return true;
+        if (it.builtIn) return false;
+        return !it.publicUrl && !it.storagePath;
+      });
+
+      if (toPublish.length === 0) {
+        setSharedOk(true);
+        setMessage(
+          "로고 목록이 다른 기기와 같아요. 새 로고는 넣을 때 자동으로 올라가요.",
+        );
+        return;
+      }
+
+      setShareBusy(true);
+      setMessage(
+        `이 기기 로고 ${toPublish.length}개를 다른 기기에도 맞게 올리는 중이에요…`,
+      );
+      const next = [...merged];
+      let ok = 0;
+      for (const item of toPublish) {
+        try {
+          const saved = await publishLogoItemWithFile(item);
+          const idx = next.findIndex((it) => it.id === item.id);
+          if (idx >= 0) next[idx] = saved;
+          ok += 1;
+        } catch {
+          /* 이 기기 원본 유지 */
+        }
+      }
+      if (cancelled) return;
+      const sorted = sortBySerial(next);
+      writeLogoCatalog({ items: sorted });
+      setItems(sorted);
+      setShareBusy(false);
+      if (ok === toPublish.length) {
+        setSharedOk(true);
+        setMessage(
+          "로고를 인터넷에 맞춰 두었어요. 앞으로 넣거나 고치면 자동으로 같아져요.",
+        );
+      } else {
+        setSharedOk(false);
+        setMessage(
+          `${ok}개는 올렸어요. 나머지는 「다시 맞추기」로 한 번 더 해 주세요.`,
+        );
+      }
+    }
+
+    void boot();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function persist(next: LogoItem[]) {
@@ -123,6 +207,7 @@ export function LogoManageRoom() {
           );
         }
       }
+      let nextItem = item;
       const next = [...items, item];
       persist(next);
       if (pendingFile) {
@@ -131,14 +216,27 @@ export function LogoManageRoom() {
           [item.id]: (prev[item.id] ?? 0) + 1,
         }));
       }
-      setMessage(
-        `일련번호 ${formatSerial(serial)} 「${item.title}」을(를) 로고 목록에 넣었어요.`,
-      );
+
+      try {
+        setMessage("넣고, 다른 기기에도 자동으로 올리는 중이에요…");
+        nextItem = await publishLogoItemWithFile(item);
+        persist([...items, nextItem]);
+        setSharedOk(true);
+        setMessage(
+          `일련번호 ${formatSerial(serial)} 「${nextItem.title}」을(를) 넣었고, 다른 기기에도 자동으로 올려 두었어요.`,
+        );
+      } catch {
+        setSharedOk(false);
+        setMessage(
+          `일련번호 ${formatSerial(serial)} 「${item.title}」은(는) 이 기기에 넣었어요. 자동 올리기는 실패해서 「다시 맞추기」를 눌러 주세요.`,
+        );
+      }
+
       setTitle("");
       setBlurb("");
       setPendingFile(null);
       setFileLabel("");
-      setSerialText(String(suggestNextSerial(next)));
+      setSerialText(String(suggestNextSerial([...items, nextItem])));
       setFormKey((k) => k + 1);
     } finally {
       setSaving(false);
@@ -160,7 +258,7 @@ export function LogoManageRoom() {
     setEditBlurb("");
   }
 
-  function confirmEdit(e: React.FormEvent) {
+  async function confirmEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editId) return;
     const serial = parseSerial(editSerialText);
@@ -179,7 +277,7 @@ export function LogoManageRoom() {
       );
       return;
     }
-    const next = items.map((it) =>
+    const fixed = items.map((it) =>
       it.id === editId
         ? {
             ...it,
@@ -189,11 +287,55 @@ export function LogoManageRoom() {
           }
         : it,
     );
-    persist(next);
-    setMessage(
-      `「${trimmedTitle}」을(를) 고쳤어요. 일련번호 ${formatSerial(serial)}.`,
-    );
+    persist(fixed);
+    const edited = fixed.find((it) => it.id === editId);
+    if (edited) {
+      try {
+        const saved = await publishLogoItemWithFile(edited);
+        persist(fixed.map((it) => (it.id === saved.id ? saved : it)));
+        setSharedOk(true);
+        setMessage(
+          `「${trimmedTitle}」을(를) 고쳤고, 다른 기기에도 맞춰 두었어요. 일련번호 ${formatSerial(serial)}.`,
+        );
+      } catch {
+        setSharedOk(false);
+        setMessage(
+          `「${trimmedTitle}」은(는) 이 기기에서 고쳤어요. 자동 맞추기는 실패해서 「다시 맞추기」를 눌러 주세요.`,
+        );
+      }
+    }
     cancelEdit();
+  }
+
+  async function onShareAgain() {
+    if (shareBusy || items.length === 0) return;
+    setShareBusy(true);
+    let ok = 0;
+    const next = [...items];
+    try {
+      for (let i = 0; i < next.length; i += 1) {
+        try {
+          next[i] = await publishLogoItemWithFile(next[i]);
+          ok += 1;
+        } catch {
+          /* keep */
+        }
+      }
+      persist(next);
+      if (ok === next.length) {
+        setSharedOk(true);
+        setMessage(
+          `확인했어요. 인터넷에 로고 ${ok}개가 맞춰져 있어요. 다른 기기에서 새로고침 해 보세요.`,
+        );
+      } else {
+        setSharedOk(false);
+        setMessage(
+          `${ok}개는 맞췄어요. 나머지는 다시 눌러 주세요.`,
+        );
+      }
+    } finally {
+      setShareBusy(false);
+    }
   }
 
   async function onRemove(id: string) {
@@ -204,6 +346,7 @@ export function LogoManageRoom() {
       return;
     }
     await deleteMediaPreview(id);
+    await removeLogoItemAction(id, target.storagePath);
     persist(items.filter((it) => it.id !== id));
     setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
     if (editId === id) cancelEdit();
@@ -214,6 +357,9 @@ export function LogoManageRoom() {
     const pngPromise = (async () => {
       if (item.src) {
         return pngFromImageUrl(item.src);
+      }
+      if (item.publicUrl) {
+        return pngFromImageUrl(item.publicUrl);
       }
       const record = await getMediaPreview(item.id);
       if (!record?.blob) {
@@ -240,10 +386,27 @@ export function LogoManageRoom() {
 
   return (
     <div className="admin-wrap">
+      <div className="watch-share-box" aria-label="다른 기기에 맞추기">
+        <p className="tiny muted">
+          {sharedOk
+            ? "새 로고·고치기는 자동으로 다른 기기에도 맞춰져요."
+            : "넣거나 고치면 자동으로 올라가요. 안 맞으면 「다시 맞추기」를 눌러 주세요."}
+        </p>
+        <p className="tiny muted">지금 이 기기 로고 {items.length}개</p>
+        <button
+          type="button"
+          className="btn btn-soft btn-wide"
+          disabled={shareBusy || saving || items.length === 0}
+          onClick={() => void onShareAgain()}
+        >
+          {shareBusy ? "맞추는 중…" : "다른 기기와 다시 맞추기"}
+        </button>
+      </div>
+
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
           공식 로고에 <strong>일련번호</strong>를 붙여 관리하는 방이에요.
-          목록에서는 로고 그림과 설명이 바로 보여요. 「복사하기」로 AI에게 붙여
+          넣으면 다른 기기에도 자동으로 맞춰져요. 「복사하기」로 AI에게 붙여
           넣을 수 있어요.
         </p>
 
@@ -338,6 +501,7 @@ export function LogoManageRoom() {
                       kindHint="photo"
                       label={item.title}
                       refreshToken={previewTicks[item.id] ?? 0}
+                      remoteUrl={item.publicUrl}
                     />
                   )}
                 </div>
@@ -354,7 +518,7 @@ export function LogoManageRoom() {
                 {editId === item.id ? (
                   <form
                     className="admin-form vault-move-form"
-                    onSubmit={confirmEdit}
+                    onSubmit={(e) => void confirmEdit(e)}
                   >
                     <label>
                       일련번호

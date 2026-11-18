@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import {
   formatSerial,
@@ -16,8 +15,8 @@ export function LogoGallery() {
     setItems(readLogoCatalog().items);
   }, []);
 
-  const withPicture = items.filter((it) => Boolean(it.src));
-  const nameOnly = items.filter((it) => !it.src);
+  const withPicture = items.filter((it) => Boolean(it.src || it.publicUrl));
+  const nameOnly = items.filter((it) => !it.src && !it.publicUrl);
 
   return (
     <>
@@ -31,14 +30,14 @@ export function LogoGallery() {
             <p className="muted logo-room-blurb">{room.blurb}</p>
           ) : null}
           <figure className="logo-card">
-            <Image
-              src={room.src!}
+            {/* 공식 로고는 사이트 안 그림, 새로 넣은 로고는 인터넷 주소 */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={(room.src || room.publicUrl)!}
               alt={`${formatSerial(room.serial)} ${room.title}`}
+              className="logo-image"
               width={room.width ?? 1200}
               height={room.height ?? 800}
-              className="logo-image"
-              sizes="(max-width: 390px) 100vw, 390px"
-              priority={index === 0}
             />
             <figcaption className="logo-caption">
               {formatSerial(room.serial)} · {room.title}

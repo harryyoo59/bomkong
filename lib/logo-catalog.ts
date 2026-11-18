@@ -1,4 +1,4 @@
-/** 로고 관리 — 일련번호·목록. 이 기기 브라우저에만 기억 (서버 저장 전 자리) */
+/** 로고 관리 — 일련번호·목록. 인터넷 맞춤 + 이 기기 기억 */
 
 export type LogoItem = {
   id: string;
@@ -15,6 +15,8 @@ export type LogoItem = {
   src?: string;
   width?: number;
   height?: number;
+  publicUrl?: string;
+  storagePath?: string;
 };
 
 export type LogoCatalogStore = {
@@ -22,6 +24,8 @@ export type LogoCatalogStore = {
 };
 
 const STORAGE_KEY = "bomkong_logo_catalog_v1";
+
+export const LOGO_FILES_BUCKET = "logo-files";
 
 export const SEED_LOGOS: LogoItem[] = [
   {
@@ -82,7 +86,31 @@ export const EMPTY_STORE: LogoCatalogStore = {
   items: [...SEED_LOGOS],
 };
 
-function normalizeItem(raw: Partial<LogoItem>, fallback?: LogoItem): LogoItem | null {
+export function logoStoragePath(id: string, mimeType: string): string {
+  const safeId = id.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const mime = (mimeType || "").toLowerCase();
+  let ext = "png";
+  if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
+  else if (mime.includes("webp")) ext = "webp";
+  else if (mime.includes("gif")) ext = "gif";
+  else if (mime.includes("svg")) ext = "svg";
+  else if (mime.includes("avif")) ext = "avif";
+  else if (mime.includes("heic")) ext = "heic";
+  return `${safeId}.${ext}`;
+}
+
+export function logoFilePublicUrl(
+  supabaseUrl: string,
+  storagePath: string,
+): string {
+  const base = supabaseUrl.replace(/\/$/, "");
+  return `${base}/storage/v1/object/public/${LOGO_FILES_BUCKET}/${storagePath}`;
+}
+
+function normalizeItem(
+  raw: Partial<LogoItem>,
+  fallback?: LogoItem,
+): LogoItem | null {
   const id = typeof raw.id === "string" && raw.id ? raw.id : fallback?.id;
   if (!id) return null;
 
@@ -94,6 +122,23 @@ function normalizeItem(raw: Partial<LogoItem>, fallback?: LogoItem): LogoItem | 
       : seed?.serial ?? 1;
 
   const builtIn = Boolean(raw.builtIn ?? seed?.builtIn ?? false);
+  const publicUrl =
+    typeof raw.publicUrl === "string" && raw.publicUrl.trim()
+      ? raw.publicUrl.trim()
+      : undefined;
+  const storagePath =
+    typeof raw.storagePath === "string" && raw.storagePath.trim()
+      ? raw.storagePath.trim()
+      : undefined;
+
+  let src: string | undefined;
+  if (builtIn) {
+    src = seed?.src ?? (typeof raw.src === "string" ? raw.src : undefined);
+  } else if (publicUrl) {
+    src = publicUrl;
+  } else if (typeof raw.src === "string" && raw.src.trim()) {
+    src = raw.src.trim();
+  }
 
   return {
     id,
@@ -116,9 +161,19 @@ function normalizeItem(raw: Partial<LogoItem>, fallback?: LogoItem): LogoItem | 
         ? raw.addedAt
         : seed?.addedAt ?? new Date().toISOString(),
     builtIn,
-    src: builtIn ? seed?.src ?? raw.src : raw.src,
-    width: builtIn ? seed?.width ?? raw.width : raw.width,
-    height: builtIn ? seed?.height ?? raw.height : raw.height,
+    src,
+    width: builtIn
+      ? seed?.width ?? raw.width
+      : typeof raw.width === "number"
+        ? raw.width
+        : undefined,
+    height: builtIn
+      ? seed?.height ?? raw.height
+      : typeof raw.height === "number"
+        ? raw.height
+        : undefined,
+    publicUrl,
+    storagePath,
   };
 }
 
@@ -193,4 +248,41 @@ export function suggestNextSerial(items: LogoItem[]): number {
 
 export function formatSerial(serial: number): string {
   return String(Math.floor(serial)).padStart(2, "0");
+}
+
+/** 이 기기 + 인터넷 목록을 합침. 공식 시드도 유지. */
+export function mergeLogoCatalogWithRemote(
+  local: LogoItem[],
+  remote: LogoItem[],
+): LogoItem[] {
+  const byId = new Map<string, Partial<LogoItem>>();
+  for (const item of local) byId.set(item.id, item);
+  for (const item of remote) {
+    const prev = byId.get(item.id);
+    if (!prev) {
+      byId.set(item.id, item);
+      continue;
+    }
+    byId.set(item.id, {
+      ...prev,
+      ...item,
+      title: item.title || (prev.title as string) || "",
+      blurb:
+        typeof item.blurb === "string"
+          ? item.blurb
+          : typeof prev.blurb === "string"
+            ? prev.blurb
+            : "",
+      publicUrl: item.publicUrl || (prev.publicUrl as string | undefined),
+      storagePath:
+        item.storagePath || (prev.storagePath as string | undefined),
+      src: item.builtIn
+        ? (prev.src as string | undefined) || item.src
+        : item.publicUrl ||
+          item.src ||
+          (prev.src as string | undefined),
+    });
+  }
+  return mergeWithSeed({ items: Array.from(byId.values()) as LogoItem[] })
+    .items;
 }
