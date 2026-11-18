@@ -20,8 +20,7 @@ import {
   syncWatchMediaWithServer,
   watchSlotLabel,
   writeWatchMediaStore,
-  youtubeChannelUrlForLang,
-  youtubeUrlForWatchLang,
+  isKnownYoutubeChannelUrl,
   YOUTUBE_CHANNEL_BY_LANG,
   type WatchItem,
   type WatchLang,
@@ -66,8 +65,14 @@ export function WatchVideoRoom() {
 
   function syncEditors(list: WatchItem[]) {
     setEditTitles(Object.fromEntries(list.map((it) => [it.id, it.title])));
+    // 채널 주소만 있으면 칸을 비워 두어 직접 영상 주소를 넣게 함
     setEditUrls(
-      Object.fromEntries(list.map((it) => [it.id, it.youtubeUrl])),
+      Object.fromEntries(
+        list.map((it) => [
+          it.id,
+          isKnownYoutubeChannelUrl(it.youtubeUrl) ? "" : it.youtubeUrl,
+        ]),
+      ),
     );
     setEditSlots(
       Object.fromEntries(
@@ -91,14 +96,7 @@ export function WatchVideoRoom() {
           confirmChange: (msg) =>
             typeof window !== "undefined" ? window.confirm(msg) : false,
         });
-        // 채널 주소 자동 맞춤은 화면용만 — 확인 없이 인터넷에 올리지 않음
-        const filled = synced.map((it) => {
-          const nextUrl = youtubeUrlForWatchLang(it.lang, it.youtubeUrl);
-          return nextUrl !== it.youtubeUrl
-            ? { ...it, youtubeUrl: nextUrl }
-            : it;
-        });
-        const ordered = sortWatchItemsForPlay(filled);
+        const ordered = sortWatchItemsForPlay(synced);
         writeWatchMediaStore({ items: ordered });
         if (cancelled) return;
         setItems(ordered);
@@ -175,12 +173,11 @@ export function WatchVideoRoom() {
       );
       return;
     }
-    const autoYoutubeUrl = youtubeChannelUrlForLang(lang);
     const item: WatchItem = {
       id: makeWatchId(),
       name: pendingFile?.name ?? "",
       title: trimmedTitle,
-      youtubeUrl: autoYoutubeUrl,
+      youtubeUrl: "",
       note: "",
       addedAt: new Date().toISOString(),
       episodeNumber: num,
@@ -207,9 +204,9 @@ export function WatchVideoRoom() {
     setMessage(
       pendingFile
         ? previewOk
-          ? `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 아이들이 누르면 유튜브로 가요. 옆에 관리용 미리보기도 있어요.`
-          : `유튜브 주소와 제목은 넣었어요(${slot}). 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`
-        : `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브는 ${lang === "ko" ? "한국어" : "영어"} 채널로 자동 넣었어요.`,
+          ? `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소는 아래에서 직접 넣어 주세요. 옆에 관리용 미리보기도 있어요.`
+          : `제목은 넣었어요(${slot}). 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요. 유튜브 주소도 아래에서 넣어 주세요.`
+        : `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소는 아래에서 직접 넣어 주세요.`,
     );
     setTitle("");
     setPendingFile(null);
@@ -269,13 +266,12 @@ export function WatchVideoRoom() {
               ...it,
               episodeNumber: num,
               lang: nextLang,
-              youtubeUrl: youtubeUrlForWatchLang(nextLang, it.youtubeUrl),
             }
           : it,
       ),
     );
     setMessage(
-      `「${target.title}」 자리를 ${num}-${nextLang}(으)로 바꿨어요. 유튜브도 ${nextLang === "ko" ? "한국어" : "영어"} 채널에 맞춰 두었어요.`,
+      `「${target.title}」 자리를 ${num}-${nextLang}(으)로 바꿨어요.`,
     );
   }
 
@@ -297,17 +293,14 @@ export function WatchVideoRoom() {
     const target = items.find((it) => it.id === id);
     if (!target) return;
     const raw = (editUrls[id] ?? "").trim();
-    // 비우면 언어에 맞는 채널로 다시 채움 (밖에서는 영상 주소가 있어야 재생됨)
     if (!raw) {
-      const nextUrl = youtubeUrlForWatchLang(target.lang, "");
       void persist(
         items.map((it) =>
-          it.id === id ? { ...it, youtubeUrl: nextUrl } : it,
+          it.id === id ? { ...it, youtubeUrl: "" } : it,
         ),
       );
-      setMessage(
-        `「${target.title}」 유튜브를 ${target.lang === "ko" ? "한국어" : "영어"} 채널로 맞춰 두었어요.`,
-      );
+      setEditUrls((prev) => ({ ...prev, [id]: "" }));
+      setMessage(`「${target.title}」 유튜브 주소를 비워 두었어요.`);
       return;
     }
     const nextUrl = resolveYoutubeWatchUrl(raw);
@@ -322,6 +315,7 @@ export function WatchVideoRoom() {
         it.id === id ? { ...it, youtubeUrl: nextUrl } : it,
       ),
     );
+    setEditUrls((prev) => ({ ...prev, [id]: nextUrl }));
     setMessage(`「${target.title}」 유튜브 주소를 저장했어요.`);
   }
 
@@ -395,9 +389,8 @@ export function WatchVideoRoom() {
 
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="tiny muted">
-          유튜브 주소는 언어에 맞춰 자동으로 넣어요. 한국어 → 한국어 채널,
-          영어 → 영어 채널. 특정 숏츠 주소가 있으면 아래에서 나중에 바꿔도
-          돼요.
+          먼저 제목·번호만 넣고, 유튜브 영상 주소는 아래 목록 칸에 직접 붙여
+          넣어요.
         </p>
 
         <label>
@@ -539,8 +532,7 @@ export function WatchVideoRoom() {
                         제목 저장
                       </button>
                       <label className="admin-inline-youtube">
-                        유튜브 주소 (비우면 {item.lang === "ko" ? "한국어" : "영어"}{" "}
-                        채널로)
+                        유튜브 주소
                         <input
                           value={editUrls[item.id] ?? ""}
                           onChange={(e) =>
@@ -549,11 +541,7 @@ export function WatchVideoRoom() {
                               [item.id]: e.target.value,
                             }))
                           }
-                          placeholder={
-                            item.lang === "ko"
-                              ? "자동 · 한국어 채널 (숏츠 주소 있으면 붙여 넣기)"
-                              : "자동 · 영어 채널 (숏츠 주소 있으면 붙여 넣기)"
-                          }
+                          placeholder="숏츠·영상 주소를 직접 붙여 넣기"
                           inputMode="url"
                         />
                       </label>
