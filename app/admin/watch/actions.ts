@@ -101,12 +101,16 @@ export async function publishWatchCatalogAction(
       count: verified.length,
     };
   } catch (err) {
-    return {
-      ok: false,
-      message:
-        err instanceof Error
-          ? err.message
-          : "인터넷에 올리지 못했어요. 다시 해 주세요.",
-    };
+    const raw =
+      err instanceof Error ? err.message : "인터넷에 올리지 못했어요.";
+    const lower = raw.toLowerCase();
+    let message = raw;
+    if (lower.includes("forbidden") || lower.includes("permission")) {
+      message =
+        "인터넷 저장 열쇠가 맞지 않아요. 사장님께 호스팅 설정을 확인해 달라고 해 주세요.";
+    } else if (lower.includes("jwt") || lower.includes("api key")) {
+      message = "인터넷 저장 연결 열쇠에 문제가 있어요. 다시 시도해 주세요.";
+    }
+    return { ok: false, message };
   }
 }

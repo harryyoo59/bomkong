@@ -13,6 +13,7 @@ import {
   fetchWatchMediaFromServer,
   findWatchSlot,
   makeWatchId,
+  pushWatchMediaToServer,
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
@@ -26,6 +27,19 @@ import {
   type WatchItem,
   type WatchLang,
 } from "@/lib/watch-media";
+
+function tellShareResult(
+  setMessage: (msg: string) => void,
+  msg: string,
+): void {
+  setMessage(msg);
+  if (typeof window === "undefined") return;
+  try {
+    window.alert(msg);
+  } catch {
+    /* 알림이 막혀도 화면 글은 남김 */
+  }
+}
 
 const CHANNEL_ROWS = [
   {
@@ -181,36 +195,83 @@ export function WatchVideoRoom() {
   }
 
   async function onShareToOtherDevices() {
-    if (shareBusy) return;
+    if (shareBusy) {
+      tellShareResult(
+        setMessage,
+        "아직 이전 올리기가 끝나지 않았어요. 잠시만 기다려 주세요.",
+      );
+      return;
+    }
     const ordered = sortWatchItemsForPlay(items);
     if (ordered.length === 0) {
-      setMessage("올릴 영상이 없어요. 먼저 목록에 영상을 넣어 주세요.");
+      setSharedOk(false);
+      tellShareResult(
+        setMessage,
+        "올릴 영상이 없어요. 먼저 목록에 영상을 넣어 주세요.",
+      );
       return;
     }
     setShareBusy(true);
-    setMessage("인터넷에 올리는 중이에요…");
+    setMessage(`인터넷에 ${ordered.length}개 올리는 중이에요…`);
     try {
-      const result = await publishWatchCatalogAction(ordered);
+      let result: Awaited<ReturnType<typeof publishWatchCatalogAction>>;
+      try {
+        result = await Promise.race([
+          publishWatchCatalogAction(ordered),
+          new Promise<never>((_, reject) => {
+            window.setTimeout(() => {
+              reject(
+                new Error(
+                  "시간이 너무 오래 걸려요. 새로고침한 뒤 다시 눌러 주세요.",
+                ),
+              );
+            }, 25000);
+          }),
+        ]);
+      } catch (actionErr) {
+        // 서버 연결이 실패하면 다른 길로 한 번 더 시도 (목록은 지우지 않음)
+        try {
+          const saved = await pushWatchMediaToServer(ordered);
+          const remote = await fetchWatchMediaFromServer();
+          if (remote.length === 0) {
+            throw new Error(
+              "올렸다고 나왔지만 인터넷 목록이 비어 있어요. 다시 해 주세요.",
+            );
+          }
+          result = { ok: true, items: remote, count: remote.length };
+          void saved;
+        } catch (fallbackErr) {
+          const actionMsg =
+            actionErr instanceof Error ? actionErr.message : "올리기 실패";
+          const fallbackMsg =
+            fallbackErr instanceof Error
+              ? fallbackErr.message
+              : "다른 길 올리기도 실패";
+          throw new Error(`${actionMsg} / ${fallbackMsg}`);
+        }
+      }
+
       if (!result.ok) {
         setSharedOk(false);
-        setMessage(result.message);
-        if (typeof window !== "undefined") {
-          window.alert(result.message);
-        }
+        tellShareResult(setMessage, result.message);
         return;
       }
       setItems(result.items);
       syncEditors(result.items);
       writeWatchMediaStore({ items: result.items });
       setSharedOk(true);
-      setMessage(
-        `확인했어요. 인터넷에 ${result.count}개 있어요. 다른 기기에서도 같은 목록을 봐요.`,
+      tellShareResult(
+        setMessage,
+        `확인했어요. 인터넷에 ${result.count}개 있어요. 다른 기기에서 새로고침 해 보세요.`,
       );
-      if (typeof window !== "undefined") {
-        window.alert(
-          `인터넷에 ${result.count}개 올렸어요. 다른 기기에서 새로고침 해 보세요.`,
-        );
-      }
+    } catch (err) {
+      setSharedOk(false);
+      tellShareResult(
+        setMessage,
+        err instanceof Error
+          ? err.message
+          : "인터넷에 올리지 못했어요. 다시 해 주세요.",
+      );
     } finally {
       setShareBusy(false);
     }
@@ -445,6 +506,7 @@ export function WatchVideoRoom() {
             ? "지금 인터넷과 같아요. 다른 기기에서도 이 목록을 봐요."
             : "다른 기기에서도 같게 보려면, 이 버튼으로 인터넷에 올려 주세요. 목록을 지우지는 않아요."}
         </p>
+        <p className="tiny muted">지금 이 기기 목록 {items.length}개</p>
         <button
           type="button"
           className="btn btn-primary btn-wide"
@@ -453,6 +515,11 @@ export function WatchVideoRoom() {
         >
           {shareBusy ? "올리는 중…" : "다른 기기에도 보이게 올리기"}
         </button>
+        {message ? (
+          <p className="form-msg" role="alert">
+            {message}
+          </p>
+        ) : null}
       </div>
       <div className="watch-channel-box" aria-label="유튜브 채널 주소">
         {CHANNEL_ROWS.map((row) => (
