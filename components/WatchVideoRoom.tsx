@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { publishWatchCatalogAction } from "@/app/admin/watch/actions";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
 import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
@@ -12,7 +13,6 @@ import {
   fetchWatchMediaFromServer,
   findWatchSlot,
   makeWatchId,
-  pushWatchMediaToServer,
   readWatchMediaStore,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
@@ -162,22 +162,22 @@ export function WatchVideoRoom() {
       setMessage("목록이 비어 있어요.");
       return;
     }
-    try {
-      const saved = await pushWatchMediaToServer(ordered);
-      setItems(saved);
-      syncEditors(saved);
-      setSharedOk(true);
-      setMessage(
-        `저장했어요. 다른 기기에서도 같은 목록(${saved.length}개)을 봐요.`,
-      );
-    } catch (err) {
+    const result = await publishWatchCatalogAction(ordered);
+    if (!result.ok) {
       setSharedOk(false);
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : "인터넷에 저장하지 못했어요. 다시 해 주세요.",
-      );
+      setMessage(result.message);
+      if (typeof window !== "undefined") {
+        window.alert(result.message);
+      }
+      return;
     }
+    setItems(result.items);
+    syncEditors(result.items);
+    writeWatchMediaStore({ items: result.items });
+    setSharedOk(true);
+    setMessage(
+      `저장했어요. 다른 기기에서도 같은 목록(${result.count}개)을 봐요.`,
+    );
   }
 
   async function onShareToOtherDevices() {
@@ -190,20 +190,27 @@ export function WatchVideoRoom() {
     setShareBusy(true);
     setMessage("인터넷에 올리는 중이에요…");
     try {
-      const saved = await pushWatchMediaToServer(ordered);
-      setItems(saved);
-      syncEditors(saved);
+      const result = await publishWatchCatalogAction(ordered);
+      if (!result.ok) {
+        setSharedOk(false);
+        setMessage(result.message);
+        if (typeof window !== "undefined") {
+          window.alert(result.message);
+        }
+        return;
+      }
+      setItems(result.items);
+      syncEditors(result.items);
+      writeWatchMediaStore({ items: result.items });
       setSharedOk(true);
       setMessage(
-        `인터넷에 ${saved.length}개 올렸어요. 다른 기기에서도 같은 목록을 봐요.`,
+        `확인했어요. 인터넷에 ${result.count}개 있어요. 다른 기기에서도 같은 목록을 봐요.`,
       );
-    } catch (err) {
-      setSharedOk(false);
-      setMessage(
-        err instanceof Error
-          ? err.message
-          : "인터넷에 올리지 못했어요. 다시 해 주세요.",
-      );
+      if (typeof window !== "undefined") {
+        window.alert(
+          `인터넷에 ${result.count}개 올렸어요. 다른 기기에서 새로고침 해 보세요.`,
+        );
+      }
     } finally {
       setShareBusy(false);
     }
