@@ -9,9 +9,11 @@ import {
   saveMediaPreview,
 } from "@/lib/media-preview-store";
 import {
+  fetchWatchMediaFromServer,
   findWatchSlot,
   makeWatchId,
   pushWatchMediaToServer,
+  readWatchMediaStore,
   resolveYoutubeWatchUrl,
   sortWatchItemsForPlay,
   sortWatchItemsNumberDesc,
@@ -61,6 +63,8 @@ export function WatchVideoRoom() {
   const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
     {},
   );
+  const [shareBusy, setShareBusy] = useState(false);
+  const [sharedOk, setSharedOk] = useState(false);
 
   function syncEditors(list: WatchItem[]) {
     setEditTitles(Object.fromEntries(list.map((it) => [it.id, it.title])));
@@ -84,30 +88,59 @@ export function WatchVideoRoom() {
     let cancelled = false;
     (async () => {
       try {
+        const before = sortWatchItemsForPlay(readWatchMediaStore().items);
         const synced = await syncWatchMediaWithServer({
           allowUploadLocal: true,
           confirmChange: (msg) =>
             typeof window !== "undefined" ? window.confirm(msg) : false,
         });
         const ordered = sortWatchItemsForPlay(synced);
-        writeWatchMediaStore({ items: ordered });
+        // 빈 결과로 기존 목록을 덮지 않음 (writeWatchMediaStore 가드와 함께)
+        if (ordered.length > 0) {
+          writeWatchMediaStore({ items: ordered });
+        }
         if (cancelled) return;
-        setItems(ordered);
-        const nextSlot = suggestNextWatchSlot(ordered);
+        const shown = ordered.length > 0 ? ordered : before;
+        setItems(shown);
+        const nextSlot = suggestNextWatchSlot(shown);
         setEpisodeNumberText(String(nextSlot.episodeNumber));
         setLang(nextSlot.lang);
-        syncEditors(ordered);
-        if (synced.length > 0) {
+        syncEditors(shown);
+
+        let remoteCount = -1;
+        try {
+          remoteCount = (await fetchWatchMediaFromServer()).length;
+        } catch {
+          remoteCount = -1;
+        }
+
+        if (shown.length === 0) {
+          setSharedOk(false);
+          setMessage("목록이 비어 있어요. 넣으면 인터넷에도 바로 저장돼요.");
+        } else if (remoteCount === shown.length) {
+          setSharedOk(true);
           setMessage(
-            `영상 ${synced.length}개예요. 인터넷에 저장돼 있어 다른 기기에서도 같은 목록을 봐요.`,
+            `영상 ${shown.length}개예요. 인터넷에도 같아서 다른 기기에서도 봐요.`,
+          );
+        } else if (remoteCount === 0) {
+          setSharedOk(false);
+          setMessage(
+            `이 기기에 ${shown.length}개가 있어요. 아직 인터넷에는 없어요. 아래 「다른 기기에도 보이게 올리기」를 눌러 주세요.`,
+          );
+        } else if (remoteCount > 0) {
+          setSharedOk(false);
+          setMessage(
+            `이 기기 ${shown.length}개 · 인터넷 ${remoteCount}개예요. 「다른 기기에도 보이게 올리기」로 맞춰 주세요.`,
           );
         } else {
+          setSharedOk(false);
           setMessage(
-            "목록이 비어 있어요. 넣으면 인터넷에도 바로 저장돼요.",
+            `이 기기에 ${shown.length}개가 있어요. 인터넷 상태를 확인하지 못했어요.`,
           );
         }
       } catch {
         if (!cancelled) {
+          setSharedOk(false);
           setMessage("인터넷 목록을 못 불러왔어요. 잠시 후 다시 열어 주세요.");
         }
       } finally {
@@ -124,19 +157,55 @@ export function WatchVideoRoom() {
     writeWatchMediaStore({ items: ordered }, { allowEmpty: true });
     setItems(ordered);
     syncEditors(ordered);
+    if (ordered.length === 0) {
+      setSharedOk(false);
+      setMessage("목록이 비어 있어요.");
+      return;
+    }
     try {
       const saved = await pushWatchMediaToServer(ordered);
       setItems(saved);
       syncEditors(saved);
+      setSharedOk(true);
       setMessage(
         `저장했어요. 다른 기기에서도 같은 목록(${saved.length}개)을 봐요.`,
       );
     } catch (err) {
+      setSharedOk(false);
       setMessage(
         err instanceof Error
           ? err.message
           : "인터넷에 저장하지 못했어요. 다시 해 주세요.",
       );
+    }
+  }
+
+  async function onShareToOtherDevices() {
+    if (shareBusy) return;
+    const ordered = sortWatchItemsForPlay(items);
+    if (ordered.length === 0) {
+      setMessage("올릴 영상이 없어요. 먼저 목록에 영상을 넣어 주세요.");
+      return;
+    }
+    setShareBusy(true);
+    setMessage("인터넷에 올리는 중이에요…");
+    try {
+      const saved = await pushWatchMediaToServer(ordered);
+      setItems(saved);
+      syncEditors(saved);
+      setSharedOk(true);
+      setMessage(
+        `인터넷에 ${saved.length}개 올렸어요. 다른 기기에서도 같은 목록을 봐요.`,
+      );
+    } catch (err) {
+      setSharedOk(false);
+      setMessage(
+        err instanceof Error
+          ? err.message
+          : "인터넷에 올리지 못했어요. 다시 해 주세요.",
+      );
+    } finally {
+      setShareBusy(false);
     }
   }
 
@@ -363,6 +432,21 @@ export function WatchVideoRoom() {
 
   return (
     <div className="admin-wrap">
+      <div className="watch-share-box" aria-label="다른 기기에 보이기">
+        <p className="tiny muted">
+          {sharedOk
+            ? "지금 인터넷과 같아요. 다른 기기에서도 이 목록을 봐요."
+            : "다른 기기에서도 같게 보려면, 이 버튼으로 인터넷에 올려 주세요. 목록을 지우지는 않아요."}
+        </p>
+        <button
+          type="button"
+          className="btn btn-primary btn-wide"
+          disabled={shareBusy || items.length === 0}
+          onClick={() => void onShareToOtherDevices()}
+        >
+          {shareBusy ? "올리는 중…" : "다른 기기에도 보이게 올리기"}
+        </button>
+      </div>
       <div className="watch-channel-box" aria-label="유튜브 채널 주소">
         {CHANNEL_ROWS.map((row) => (
           <div key={row.id} className="watch-channel-row">

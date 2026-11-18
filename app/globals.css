@@ -2349,6 +2349,17 @@ label.form-row textarea {
   }
 }
 
+.watch-share-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 14px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(232, 245, 233, 0.95);
+  border: 1px solid rgba(76, 175, 80, 0.35);
+}
+
 .watch-channel-box {
   display: flex;
   flex-direction: column;

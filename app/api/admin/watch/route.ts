@@ -103,9 +103,29 @@ export async function PUT(request: Request) {
       { status: 400 },
     );
   }
+  // 빈 목록으로 인터넷을 비우지 않음 (실수로 전체 삭제 방지)
+  if (items.length === 0) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "빈 목록은 인터넷에 올리지 않아요. 지우는 일은 사장님이 직접 시킬 때만 해요.",
+      },
+      { status: 400 },
+    );
+  }
 
   try {
     const saved = await replaceWatchItemsOnServer(items);
+    if (saved.length === 0) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "인터넷에 올렸는데 목록이 비어 돌아왔어요. 다시 해 주세요.",
+        },
+        { status: 500 },
+      );
+    }
     return NextResponse.json({ ok: true, items: saved });
   } catch (err) {
     return NextResponse.json(
