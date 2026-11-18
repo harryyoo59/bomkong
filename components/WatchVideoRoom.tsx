@@ -99,11 +99,11 @@ export function WatchVideoRoom() {
         syncEditors(ordered);
         if (synced.length > 0) {
           setMessage(
-            `영상 ${synced.length}개예요. 바꿀 때는 저장 버튼으로만 올려 주세요.`,
+            `영상 ${synced.length}개예요. 인터넷에 저장돼 있어 다른 기기에서도 같은 목록을 봐요.`,
           );
         } else {
           setMessage(
-            "목록이 비어 있어요. 미리보기로 다시 만들지는 물어본 뒤에만 해요.",
+            "목록이 비어 있어요. 넣으면 인터넷에도 바로 저장돼요.",
           );
         }
       } catch {
@@ -128,6 +128,9 @@ export function WatchVideoRoom() {
       const saved = await pushWatchMediaToServer(ordered);
       setItems(saved);
       syncEditors(saved);
+      setMessage(
+        `저장했어요. 다른 기기에서도 같은 목록(${saved.length}개)을 봐요.`,
+      );
     } catch (err) {
       setMessage(
         err instanceof Error
