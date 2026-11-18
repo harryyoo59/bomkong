@@ -7,13 +7,17 @@ import {
 } from "@/app/admin/rules/actions";
 import {
   DEFAULT_VIDEO_RULES_AI_DOCUMENT,
+  DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
   DEFAULT_VIDEO_RULES_DOCUMENT,
   clearVideoRulesAiDocument,
+  clearVideoRulesChecklistDocument,
   clearVideoRulesDocumentOverride,
   parseVideoRulesDocument,
   readVideoRulesAiDocument,
+  readVideoRulesChecklistDocument,
   readVideoRulesDocument,
   writeVideoRulesAiDocument,
+  writeVideoRulesChecklistDocument,
   writeVideoRulesDocument,
   type VideoRulesAudience,
   type VideoRulesBlock,
@@ -25,7 +29,9 @@ function RulesDocumentView({
   blocks: VideoRulesBlock[];
 }) {
   if (blocks.length === 0) {
-    return null;
+    return (
+      <p className="muted tiny">아직 글이 없어요. 「글 고치기」로 넣어 주세요.</p>
+    );
   }
 
   return (
@@ -64,8 +70,14 @@ function RulesDocumentView({
   );
 }
 
-function remoteHasSharedContent(adminBody: string, aiBody: string): boolean {
-  return Boolean(adminBody.trim() || aiBody.trim());
+function remoteHasSharedContent(
+  adminBody: string,
+  aiBody: string,
+  checklistBody: string,
+): boolean {
+  return Boolean(
+    adminBody.trim() || aiBody.trim() || checklistBody.trim(),
+  );
 }
 
 export function VideoRulesRoom() {
@@ -74,6 +86,12 @@ export function VideoRulesRoom() {
   const [adminDraft, setAdminDraft] = useState(DEFAULT_VIDEO_RULES_DOCUMENT);
   const [aiText, setAiText] = useState(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
   const [aiDraft, setAiDraft] = useState(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
+  const [checklistText, setChecklistText] = useState(
+    DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
+  );
+  const [checklistDraft, setChecklistDraft] = useState(
+    DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
+  );
   const [ready, setReady] = useState(false);
   const [editing, setEditing] = useState(false);
   const [copyMessage, setCopyMessage] = useState("");
@@ -88,11 +106,14 @@ export function VideoRulesRoom() {
     async function boot() {
       const localAdmin = readVideoRulesDocument();
       const localAi = readVideoRulesAiDocument();
+      const localChecklist = readVideoRulesChecklistDocument();
       if (!cancelled) {
         setAdminText(localAdmin);
         setAdminDraft(localAdmin);
         setAiText(localAi);
         setAiDraft(localAi);
+        setChecklistText(localChecklist);
+        setChecklistDraft(localChecklist);
         setReady(true);
       }
 
@@ -108,17 +129,27 @@ export function VideoRulesRoom() {
       }
 
       const { store } = remote;
-      if (remoteHasSharedContent(store.adminBody, store.aiBody)) {
+      if (
+        remoteHasSharedContent(
+          store.adminBody,
+          store.aiBody,
+          store.checklistBody,
+        )
+      ) {
         const nextAdmin = store.adminBody.trim()
           ? store.adminBody
           : DEFAULT_VIDEO_RULES_DOCUMENT;
         const nextAi = store.aiBody;
+        const nextChecklist = store.checklistBody;
         writeVideoRulesDocument(nextAdmin);
         writeVideoRulesAiDocument(nextAi);
+        writeVideoRulesChecklistDocument(nextChecklist);
         setAdminText(nextAdmin);
         setAdminDraft(nextAdmin);
         setAiText(nextAi);
         setAiDraft(nextAi);
+        setChecklistText(nextChecklist);
+        setChecklistDraft(nextChecklist);
         setSharedOk(true);
         setSyncMessage(
           "다른 기기와 같은 규칙이에요. 고쳐서 저장하면 자동으로 맞춰져요.",
@@ -126,13 +157,13 @@ export function VideoRulesRoom() {
         return;
       }
 
-      // 인터넷이 비어 있으면 이 기기 글을 지우지 않고, 한 번 자동으로 올림
       setSharedOk(false);
       setSyncBusy(true);
       setSyncMessage("이 기기 규칙을 다른 기기에도 맞게 올리는 중이에요…");
       const published = await publishVideoRulesAction({
         adminBody: localAdmin,
         aiBody: localAi,
+        checklistBody: localChecklist,
       });
       if (cancelled) return;
       setSyncBusy(false);
@@ -162,16 +193,29 @@ export function VideoRulesRoom() {
   }, [audience]);
 
   const isAdmin = audience === "admin";
-  const text = isAdmin ? adminText : aiText;
-  const draft = isAdmin ? adminDraft : aiDraft;
-  const setDraft = isAdmin ? setAdminDraft : setAiDraft;
+  const isAi = audience === "ai";
+  const isChecklist = audience === "checklist";
+  const isSideDoc = isAi || isChecklist;
+
+  const text = isAdmin ? adminText : isAi ? aiText : checklistText;
+  const draft = isAdmin ? adminDraft : isAi ? aiDraft : checklistDraft;
+  const setDraft = isAdmin
+    ? setAdminDraft
+    : isAi
+      ? setAiDraft
+      : setChecklistDraft;
   const blocks = useMemo(() => parseVideoRulesDocument(text), [text]);
 
-  async function publishBoth(nextAdmin: string, nextAi: string) {
+  async function publishAll(
+    nextAdmin: string,
+    nextAi: string,
+    nextChecklist: string,
+  ) {
     setSyncBusy(true);
     const result = await publishVideoRulesAction({
       adminBody: nextAdmin,
       aiBody: nextAi,
+      checklistBody: nextChecklist,
     });
     setSyncBusy(false);
     if (result.ok) {
@@ -189,29 +233,38 @@ export function VideoRulesRoom() {
     if (isAdmin) {
       writeVideoRulesDocument(draft);
       setAdminText(draft);
-      const published = await publishBoth(draft, aiText);
+      const published = await publishAll(draft, aiText, checklistText);
       setEditing(false);
-      if (published.ok) {
-        setSyncMessage("저장했고, 다른 기기에도 자동으로 맞춰 두었어요.");
-      } else {
-        setSyncMessage(
-          `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
-        );
-      }
+      setSyncMessage(
+        published.ok
+          ? "저장했고, 다른 기기에도 자동으로 맞춰 두었어요."
+          : `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
+      );
       return;
     }
 
-    writeVideoRulesAiDocument(draft);
-    setAiText(draft);
-    const published = await publishBoth(adminText, draft);
-    setEditing(false);
-    if (published.ok) {
-      setSyncMessage("저장했고, 다른 기기에도 자동으로 맞춰 두었어요.");
-    } else {
+    if (isAi) {
+      writeVideoRulesAiDocument(draft);
+      setAiText(draft);
+      const published = await publishAll(adminText, draft, checklistText);
+      setEditing(false);
       setSyncMessage(
-        `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
+        published.ok
+          ? "저장했고, 다른 기기에도 자동으로 맞춰 두었어요."
+          : `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
       );
+      return;
     }
+
+    writeVideoRulesChecklistDocument(draft);
+    setChecklistText(draft);
+    const published = await publishAll(adminText, aiText, draft);
+    setEditing(false);
+    setSyncMessage(
+      published.ok
+        ? "저장했고, 다른 기기에도 자동으로 맞춰 두었어요."
+        : `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
+    );
   }
 
   function onCancel() {
@@ -230,9 +283,10 @@ export function VideoRulesRoom() {
       clearVideoRulesDocumentOverride();
       setAdminText(DEFAULT_VIDEO_RULES_DOCUMENT);
       setAdminDraft(DEFAULT_VIDEO_RULES_DOCUMENT);
-      const published = await publishBoth(
+      const published = await publishAll(
         DEFAULT_VIDEO_RULES_DOCUMENT,
         aiText,
+        checklistText,
       );
       setEditing(false);
       setSyncMessage(
@@ -243,30 +297,55 @@ export function VideoRulesRoom() {
       return;
     }
 
+    if (isAi) {
+      if (
+        typeof window !== "undefined" &&
+        !window.confirm("AI용 규칙을 비울까요?")
+      ) {
+        return;
+      }
+      clearVideoRulesAiDocument();
+      setAiText(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
+      setAiDraft(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
+      const published = await publishAll(
+        adminText,
+        DEFAULT_VIDEO_RULES_AI_DOCUMENT,
+        checklistText,
+      );
+      setEditing(false);
+      setSyncMessage(
+        published.ok
+          ? "AI용을 비웠고, 다른 기기에도 맞춰 두었어요."
+          : `이 기기는 비웠어요. ${published.message}`,
+      );
+      return;
+    }
+
     if (
       typeof window !== "undefined" &&
-      !window.confirm("AI용 규칙을 비울까요?")
+      !window.confirm("체크리스트를 비울까요?")
     ) {
       return;
     }
-    clearVideoRulesAiDocument();
-    setAiText(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
-    setAiDraft(DEFAULT_VIDEO_RULES_AI_DOCUMENT);
-    const published = await publishBoth(
+    clearVideoRulesChecklistDocument();
+    setChecklistText(DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT);
+    setChecklistDraft(DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT);
+    const published = await publishAll(
       adminText,
-      DEFAULT_VIDEO_RULES_AI_DOCUMENT,
+      aiText,
+      DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
     );
     setEditing(false);
     setSyncMessage(
       published.ok
-        ? "AI용을 비웠고, 다른 기기에도 맞춰 두었어요."
+        ? "체크리스트를 비웠고, 다른 기기에도 맞춰 두었어요."
         : `이 기기는 비웠어요. ${published.message}`,
     );
   }
 
   async function onShareAgain() {
     if (syncBusy) return;
-    const published = await publishBoth(adminText, aiText);
+    const published = await publishAll(adminText, aiText, checklistText);
     if (published.ok) {
       setSyncMessage(
         "확인했어요. 다른 기기에서도 같은 규칙을 봐요. 새로고침 해 보세요.",
@@ -284,11 +363,17 @@ export function VideoRulesRoom() {
     }
   }
 
-  async function onCopyAi() {
-    if (copyBusy) return;
-    const raw = aiText.trim();
+  async function onCopySide() {
+    if (copyBusy || !isSideDoc) return;
+    const raw = text.trim();
+    const emptyMsg = isAi
+      ? "아직 AI용 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요."
+      : "아직 체크리스트 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요.";
+    const okMsg = isAi
+      ? "AI용 규칙을 복사했어요. AI 채팅에 붙여 넣으면 돼요."
+      : "체크리스트를 복사했어요. 필요한 곳에 붙여 넣으면 돼요.";
     if (!raw) {
-      setCopyMessage("아직 AI용 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요.");
+      setCopyMessage(emptyMsg);
       return;
     }
     setCopyBusy(true);
@@ -302,7 +387,7 @@ export function VideoRulesRoom() {
         );
       }
       await navigator.clipboard.writeText(raw);
-      setCopyMessage("AI용 규칙을 복사했어요. AI 채팅에 붙여 넣으면 돼요.");
+      setCopyMessage(okMsg);
     } catch (err) {
       setCopyMessage(
         err instanceof Error
@@ -313,6 +398,12 @@ export function VideoRulesRoom() {
       setCopyBusy(false);
     }
   }
+
+  const editorLabel = isAdmin
+    ? "관리자용 규칙 고치기"
+    : isAi
+      ? "AI용 규칙 고치기"
+      : "체크리스트 고치기";
 
   return (
     <section className="panel video-rules-panel" aria-label="영상제작 규칙">
@@ -347,10 +438,17 @@ export function VideoRulesRoom() {
         </button>
         <button
           type="button"
-          className={`btn ${!isAdmin ? "btn-primary" : "btn-soft"}`}
+          className={`btn ${isAi ? "btn-primary" : "btn-soft"}`}
           onClick={() => setAudience("ai")}
         >
           AI용
+        </button>
+        <button
+          type="button"
+          className={`btn ${isChecklist ? "btn-primary" : "btn-soft"}`}
+          onClick={() => setAudience("checklist")}
+        >
+          체크리스트
         </button>
       </div>
 
@@ -385,11 +483,11 @@ export function VideoRulesRoom() {
               글 고치기
             </button>
           )}
-          {!isAdmin ? (
+          {isSideDoc ? (
             <button
               type="button"
               className="btn btn-soft"
-              onClick={() => void onCopyAi()}
+              onClick={() => void onCopySide()}
               disabled={!ready || copyBusy}
             >
               {copyBusy ? "복사 중…" : "복사하기"}
@@ -406,7 +504,7 @@ export function VideoRulesRoom() {
         </div>
       </div>
 
-      {copyMessage && !isAdmin ? (
+      {copyMessage && isSideDoc ? (
         <p className="form-msg">{copyMessage}</p>
       ) : null}
 
@@ -417,7 +515,7 @@ export function VideoRulesRoom() {
           onChange={(e) => setDraft(e.target.value)}
           rows={isAdmin ? 28 : 16}
           spellCheck={false}
-          aria-label={isAdmin ? "관리자용 규칙 고치기" : "AI용 규칙 고치기"}
+          aria-label={editorLabel}
         />
       ) : (
         <RulesDocumentView blocks={blocks} />

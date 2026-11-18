@@ -44,6 +44,7 @@ export async function loadVideoRulesAction(): Promise<
 export async function publishVideoRulesAction(input: {
   adminBody: string;
   aiBody: string;
+  checklistBody: string;
 }): Promise<
   | { ok: true; store: VideoRulesRemoteStore }
   | { ok: false; message: string }
@@ -60,9 +61,15 @@ export async function publishVideoRulesAction(input: {
   const adminBody =
     typeof input?.adminBody === "string" ? input.adminBody : "";
   const aiBody = typeof input?.aiBody === "string" ? input.aiBody : "";
+  const checklistBody =
+    typeof input?.checklistBody === "string" ? input.checklistBody : "";
 
   try {
-    const store = await upsertVideoRulesOnServer({ adminBody, aiBody });
+    const store = await upsertVideoRulesOnServer({
+      adminBody,
+      aiBody,
+      checklistBody,
+    });
     return { ok: true, store };
   } catch (err) {
     return {
