@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import {
+  loadAdminCopyAction,
+  publishAdminCopyAction,
+} from "@/app/admin/copy-actions";
 import { AdminCopyEditor } from "@/components/AdminCopyEditor";
 import {
   getDefaultAdminCopy,
@@ -71,15 +75,69 @@ export function AdminClinicBoard({ logoutAction }: Props) {
   const [store, setStore] = useState<AdminCopyStore>(getDefaultAdminCopy);
   const [ready, setReady] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState("");
 
   useEffect(() => {
-    setStore(readAdminCopyStore());
-    setReady(true);
+    let cancelled = false;
+
+    async function boot() {
+      const local = readAdminCopyStore();
+      if (!cancelled) {
+        setStore(local);
+        setReady(true);
+      }
+
+      const remote = await loadAdminCopyAction();
+      if (cancelled) return;
+
+      if (!remote.ok) {
+        setSyncMessage(
+          "이 기기 글씨는 그대로예요. 인터넷 글씨는 아직 확인하지 못했어요.",
+        );
+        return;
+      }
+
+      if (remote.remote.store) {
+        writeAdminCopyStore(remote.remote.store);
+        setStore(remote.remote.store);
+        setSyncMessage(
+          "칸 이름·글씨가 다른 기기와 같아요. 고치면 자동으로 맞춰져요.",
+        );
+        return;
+      }
+
+      // 인터넷이 비어 있으면 이 기기 글을 올려 맞춤
+      const published = await publishAdminCopyAction(local);
+      if (cancelled) return;
+      if (published.ok && published.remote.store) {
+        writeAdminCopyStore(published.remote.store);
+        setStore(published.remote.store);
+        setSyncMessage(
+          "이 기기 글씨를 인터넷에 맞춰 두었어요. 앞으로 고치면 자동으로 같아져요.",
+        );
+      } else if (!published.ok) {
+        setSyncMessage(published.message);
+      }
+    }
+
+    void boot();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function persist(next: AdminCopyStore) {
     writeAdminCopyStore(next);
     setStore(next);
+    void publishAdminCopyAction(next).then((published) => {
+      if (published.ok) {
+        setSyncMessage("글씨를 고쳤고, 다른 기기에도 자동으로 맞춰 두었어요.");
+      } else {
+        setSyncMessage(
+          `이 기기에는 저장했어요. ${published.message}`,
+        );
+      }
+    });
   }
 
   const groups = groupClinicDoors(store.doors);
@@ -111,8 +169,17 @@ export function AdminClinicBoard({ logoutAction }: Props) {
         </div>
       </header>
 
+      {syncMessage ? (
+        <p className="form-msg tiny" role="status">
+          {syncMessage}
+        </p>
+      ) : null}
+
       {editing ? (
         <section className="panel admin-copy-panel">
+          <p className="tiny muted">
+            고친 내용은 자동으로 다른 기기에도 맞춰져요.
+          </p>
           <AdminCopyEditor store={store} onChange={persist} />
         </section>
       ) : null}
