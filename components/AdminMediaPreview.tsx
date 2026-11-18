@@ -13,6 +13,8 @@ type Props = {
   label?: string;
   /** 미리보기를 다시 넣었을 때 숫자만 올려 다시 읽기 */
   refreshToken?: number;
+  /** 이 기기에 파일이 없을 때 인터넷 사진 주소로 보여 줌 (사진은 지우지 않음) */
+  remoteUrl?: string;
 };
 
 type PreviewState =
@@ -30,6 +32,7 @@ export function AdminMediaPreview({
   kindHint,
   label,
   refreshToken = 0,
+  remoteUrl,
 }: Props) {
   const dialogId = useId();
   const [state, setState] = useState<PreviewState>({ status: "loading" });
@@ -54,6 +57,16 @@ export function AdminMediaPreview({
         thumbUrlRef.current = null;
       }
       if (!record) {
+        const fallback = remoteUrl?.trim();
+        if (fallback) {
+          setState({
+            status: "ready",
+            mediaUrl: fallback,
+            thumbUrl: fallback,
+            kind: kindHint || "photo",
+          });
+          return;
+        }
         setState({ status: "missing" });
         return;
       }
@@ -87,7 +100,7 @@ export function AdminMediaPreview({
         thumbUrlRef.current = null;
       }
     };
-  }, [itemId, kindHint, refreshToken]);
+  }, [itemId, kindHint, refreshToken, remoteUrl]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
