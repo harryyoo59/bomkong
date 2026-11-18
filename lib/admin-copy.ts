@@ -46,6 +46,9 @@ export const ROOM_KEYS = [
   "duo-photos",
   "rules",
   "logos",
+  "emoticons",
+  "bomi-emoticons",
+  "kongi-emoticons",
   "unreleased",
   "unreleased-ko",
   "unreleased-en",
@@ -69,6 +72,9 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   "duo-photos": "봄이·콩이 사진 보관",
   rules: "영상제작 규칙",
   logos: "로고 관리",
+  emoticons: "이모티콘 제작",
+  "bomi-emoticons": "봄이 이모티콘",
+  "kongi-emoticons": "콩이 이모티콘",
   unreleased: "미공개 영상실",
   "unreleased-ko": "미공개 영상실 · 한국어",
   "unreleased-en": "미공개 영상실 · 영어",
@@ -83,7 +89,7 @@ export const DEFAULT_CLINIC: ClinicHeaderCopy = {
   eyebrow: "관리자실 · 진료실",
   title: "관리자실을 칸으로 나눴어요",
   intro:
-    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·둘이 함께·영상규칙·로고·미공개 영상실·영상보기·회원현황·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
+    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·둘이 함께·영상규칙·로고·이모티콘 제작·미공개 영상실·영상보기·회원현황·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
   logoutLabel: "나가기",
   homeLinkLabel: "거실로 돌아가기",
   editOpenLabel: "글 고치기",
@@ -176,7 +182,18 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     note: "상표·이름 관련은 나중에",
     href: "/admin/logos",
     kind: "link",
-    groupId: "",
+    groupId: "logos",
+    builtIn: true,
+  },
+  {
+    id: "door-emoticons",
+    number: "·",
+    title: "이모티콘 제작",
+    body: "로고 관리 아래예요. 봄이·콩이 이모티콘을 나눠 모아 둬요.",
+    note: "봄이 · 콩이",
+    href: "/admin/emoticons",
+    kind: "photo",
+    groupId: "logos",
     builtIn: true,
   },
   {
@@ -259,6 +276,27 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     intro:
       "공식 로고에 일련번호를 붙여 모아 두는 방이에요. 번호를 정하고, 나중에 고쳐도 돼요.",
     empty: "아직 넣어 둔 로고가 없어요.",
+  },
+  emoticons: {
+    eyebrow: "관리자실 · 로고 관리 아래",
+    title: "이모티콘 제작",
+    intro:
+      "봄이 이모티콘·콩이 이모티콘을 따로 모아 둬요. 아래 문 중 하나를 눌러 들어가세요.",
+    empty: "",
+  },
+  "bomi-emoticons": {
+    eyebrow: "관리자실 · 이모티콘 제작 · 봄이",
+    title: "봄이 이모티콘",
+    intro:
+      "봄이 이모티콘을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
+    empty: "아직 넣어 둔 봄이 이모티콘이 없어요.",
+  },
+  "kongi-emoticons": {
+    eyebrow: "관리자실 · 이모티콘 제작 · 콩이",
+    title: "콩이 이모티콘",
+    intro:
+      "콩이 이모티콘을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
+    empty: "아직 넣어 둔 콩이 이모티콘이 없어요.",
   },
   unreleased: {
     eyebrow: "관리자실 · 5번 칸",
@@ -352,6 +390,10 @@ function migrateBuiltInDoor(
     door.number !== fallback.number
   ) {
     door = { ...door, number: fallback.number };
+  }
+
+  if (door.id === "door-logos" && door.groupId !== fallback.groupId) {
+    door = { ...door, groupId: fallback.groupId };
   }
 
   if (door.id === "door-rules") {
