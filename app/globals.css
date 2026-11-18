@@ -420,6 +420,96 @@ span.btn.is-disabled {
   gap: 12px;
 }
 
+/* 거실 영상보기: 목록 + 미리보기 (폰=아래, 큰 화면=오른쪽) */
+.watch-lobby-split {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+}
+
+.watch-lobby-list-pane {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.watch-lobby-preview-pane {
+  min-width: 0;
+  flex: 0 0 auto;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: var(--card);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.watch-lobby-preview-label {
+  margin: 0 0 8px;
+}
+
+.watch-lobby-preview-frame {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #e8eef2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watch-lobby-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.watch-lobby-preview-empty {
+  margin: 0;
+  padding: 12px;
+  text-align: center;
+}
+
+.watch-lobby-preview-slot {
+  margin: 10px 0 0;
+  color: var(--leaf);
+  font-weight: 800;
+  font-size: 0.82rem;
+}
+
+.watch-lobby-preview-title {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  word-break: keep-all;
+}
+
+@media (min-width: 720px) {
+  .watch-lobby-split {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .watch-lobby-list-pane {
+    flex: 1 1 0;
+  }
+
+  .watch-lobby-preview-pane {
+    flex: 0 0 260px;
+    position: sticky;
+    top: 12px;
+  }
+}
+
 .ep-row {
   display: flex;
   flex-direction: column;
@@ -429,6 +519,12 @@ span.btn.is-disabled {
   background: var(--card);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.ep-row.is-selected:not(.is-resume) {
+  border-color: var(--leaf);
+  box-shadow: 0 0 0 2px rgba(45, 122, 78, 0.18);
 }
 
 .ep-row.is-resume {
