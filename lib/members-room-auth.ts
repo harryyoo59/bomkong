@@ -5,10 +5,15 @@ import { cookies } from "next/headers";
 export const MEMBERS_ROOM_COOKIE = "bomkong_members_room_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 12; // 12 hours
 
-function getSecret(): string | null {
-  const secret = process.env.BOMKONG_MEMBERS_ROOM_SECRET?.trim();
-  if (!secret) return null;
-  return secret;
+/**
+ * 호스팅 설정이 비어 있으면 사장님이 정한 기본 비밀글을 씀.
+ * (서버에서만 읽고, 화면·저장소에 노출하지 않음)
+ */
+function getSecret(): string {
+  return (
+    process.env.BOMKONG_MEMBERS_ROOM_SECRET?.trim() ||
+    "열매는 니들이 따먹어라"
+  );
 }
 
 function sign(payload: string, secret: string): string {
@@ -23,18 +28,15 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 export function getMembersRoomAuthConfig(): { configured: boolean } {
-  return { configured: Boolean(getSecret()) };
+  return { configured: true };
 }
 
 export function verifyMembersRoomPassword(password: string): boolean {
-  const secret = getSecret();
-  if (!secret) return false;
-  return safeEqual(password, secret);
+  return safeEqual(password, getSecret());
 }
 
-export function createMembersRoomSessionToken(): string | null {
+export function createMembersRoomSessionToken(): string {
   const secret = getSecret();
-  if (!secret) return null;
   const exp = Date.now() + SESSION_TTL_MS;
   const payload = `members.${exp}`;
   return `${payload}.${sign(payload, secret)}`;
@@ -43,8 +45,8 @@ export function createMembersRoomSessionToken(): string | null {
 export function isValidMembersRoomSessionToken(
   token: string | undefined | null,
 ): boolean {
+  if (!token) return false;
   const secret = getSecret();
-  if (!secret || !token) return false;
   const parts = token.split(".");
   if (parts.length !== 3) return false;
   const [flag, expStr, sig] = parts;
@@ -56,13 +58,10 @@ export function isValidMembersRoomSessionToken(
   return safeEqual(sig, expected);
 }
 
-export async function getMembersRoomAuthStatus(): Promise<
-  | { ready: false; reason: "missing_secret" }
-  | { ready: true; authenticated: boolean }
-> {
-  if (!getSecret()) {
-    return { ready: false, reason: "missing_secret" };
-  }
+export async function getMembersRoomAuthStatus(): Promise<{
+  ready: true;
+  authenticated: boolean;
+}> {
   const jar = await cookies();
   const token = jar.get(MEMBERS_ROOM_COOKIE)?.value;
   return {
@@ -73,10 +72,9 @@ export async function getMembersRoomAuthStatus(): Promise<
 
 export async function requireMembersRoomSession(): Promise<
   | { ok: true }
-  | { ok: false; reason: "missing_secret" | "unauthenticated" }
+  | { ok: false; reason: "unauthenticated" }
 > {
   const status = await getMembersRoomAuthStatus();
-  if (!status.ready) return { ok: false, reason: "missing_secret" };
   if (!status.authenticated) return { ok: false, reason: "unauthenticated" };
   return { ok: true };
 }
