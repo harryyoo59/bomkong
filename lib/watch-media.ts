@@ -601,11 +601,27 @@ export async function pullWatchMediaFromServer(): Promise<WatchItem[]> {
   return syncWatchMediaWithServer();
 }
 
-/** 관리자: 목록을 인터넷에 올려 다른 사람도 보게 함 */
+/** 인터넷·기기 목록을 칸 단위로 합침. 같은 칸은 기기 쪽을 우선. 지우지 않음. */
+export function mergeWatchCatalog(
+  remote: WatchItem[],
+  local: WatchItem[],
+): WatchItem[] {
+  const byId = new Map<string, WatchItem>();
+  for (const it of remote) byId.set(it.id, it);
+  for (const it of local) byId.set(it.id, it);
+  return sortWatchItemsForPlay(ensureWatchPlaySlots([...byId.values()]));
+}
+
+/** 관리자: 목록을 인터넷에 올려 다른 사람도 보게 함. 빈 목록으로는 올리지 않음. */
 export async function pushWatchMediaToServer(
   items: WatchItem[],
 ): Promise<WatchItem[]> {
   const ordered = sortWatchItemsForPlay(ensureWatchPlaySlots(items));
+  if (ordered.length === 0) {
+    throw new Error(
+      "빈 목록은 인터넷에 올리지 않아요. 지우는 일은 사장님이 직접 시킬 때만 해요.",
+    );
+  }
   const res = await fetch("/api/admin/watch", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -617,14 +633,16 @@ export async function pushWatchMediaToServer(
   }
   const saved = sortWatchItemsForPlay(parseApiItems(data.items ?? ordered));
   // 올린 뒤 빈 응답이면 기기 목록을 지우지 않음
-  if (ordered.length > 0 && saved.length === 0) {
+  if (saved.length === 0) {
     throw new Error("인터넷에 올렸는데 목록이 비어 돌아왔어요. 다시 해 주세요.");
   }
-  writeWatchMediaStore(
-    { items: saved.length > 0 ? saved : ordered },
-    { allowEmpty: ordered.length === 0 },
-  );
-  return saved.length > 0 ? saved : ordered;
+  if (saved.length < ordered.length) {
+    throw new Error(
+      "인터넷에 일부만 저장됐어요. 기기 목록은 그대로 두고 다시 올려 주세요.",
+    );
+  }
+  writeWatchMediaStore({ items: saved });
+  return saved;
 }
 
 /**
@@ -733,7 +751,7 @@ export async function syncWatchMediaWithServer(options?: {
         return sortWatchItemsForPlay(local);
       }
     }
-    // 거실: 인터넷이 아직 비어도 이 기기 목록은 그대로 보여 줌 (사라지게 하지 않음)
+    // 거실: 인터넷이 아직 비어도 이 기기 목록은 그대로 보여 줌
     return sortWatchItemsForPlay(local);
   }
 
@@ -743,7 +761,7 @@ export async function syncWatchMediaWithServer(options?: {
     return remote;
   }
 
-  // 둘 다 있으면
+  // 둘 다 있으면: 합쳐서 맞춤 (어느 쪽도 함부로 버리지 않음)
   if (remote.length > 0 && local.length > 0) {
     const same = watchListSignature(local) === watchListSignature(remote);
     if (same) {
@@ -751,24 +769,18 @@ export async function syncWatchMediaWithServer(options?: {
       return remote;
     }
 
+    const merged = mergeWatchCatalog(remote, local);
     if (allowUploadLocal) {
-      const remoteIds = new Set(remote.map((it) => it.id));
-      const onlyLocal = local.filter((it) => !remoteIds.has(it.id));
-      // 이 기기에만 더 있는 칸은 합쳐서 인터넷에 저장
-      if (onlyLocal.length > 0) {
-        const merged = sortWatchItemsForPlay([...remote, ...onlyLocal]);
-        try {
-          return await pushWatchMediaToServer(merged);
-        } catch {
-          writeWatchMediaStore({ items: local });
-          return sortWatchItemsForPlay(local);
-        }
+      try {
+        return await pushWatchMediaToServer(merged);
+      } catch {
+        writeWatchMediaStore({ items: local });
+        return sortWatchItemsForPlay(local);
       }
     }
 
-    // 내용은 인터넷이 기준 (다른 기기와 같게)
-    writeWatchMediaStore({ items: remote });
-    return remote;
+    // 손님: 화면은 합친 목록을 보되, 기기 기억은 지우지 않음
+    return merged;
   }
 
   // 둘 다 비면 백업까지 다시 확인
