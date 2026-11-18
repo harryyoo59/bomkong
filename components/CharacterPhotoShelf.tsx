@@ -29,11 +29,11 @@ type Props = {
   shelf: CharacterShelf;
 };
 
-/** 봄이·콩이 사진보관 다른 기기 공유 (넣을 때 자동 올리기) */
+/** 봄이·콩이·함께 사진보관 다른 기기 공유 (넣을 때 자동 올리기) */
 const SHARE_ENABLED: Record<CharacterShelf, boolean> = {
   bomi: true,
   kongi: true,
-  duo: false,
+  duo: true,
 };
 
 function isImageFile(file: File): boolean {
