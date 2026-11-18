@@ -29,7 +29,7 @@ function rowToItem(row: WatchRow): WatchItem | null {
   if (!row?.id || !row.title?.trim()) return null;
   const lang: WatchLang = row.lang === "en" ? "en" : "ko";
   const episodeNumber =
-    Number.isFinite(row.episode_number) && row.episode_number >= 1
+    Number.isFinite(row.episode_number) && row.episode_number >= 0
       ? Math.floor(row.episode_number)
       : 0;
   return {

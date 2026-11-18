@@ -12,7 +12,7 @@ export type WatchItem = {
   youtubeUrl: string;
   note: string;
   addedAt: string;
-  /** 편 번호 (1, 2, 3…) — 나중에 넣은 편이 큰 번호 */
+  /** 편 번호 (0, 1, 2…) — 나중에 넣은 편이 큰 번호 */
   episodeNumber: number;
   /** 같은 편의 한국어(ko) / 영어(en) */
   lang: WatchLang;
@@ -80,11 +80,11 @@ export function findWatchSlot(
   );
 }
 
-/** 새로 넣을 때 쓸 다음 편 번호(한국어 기준 최대+1) */
+/** 새로 넣을 때 쓸 다음 편 번호(한국어 기준 최대+1). 비어 있으면 0 */
 export function suggestNextEpisodeNumber(items: WatchItem[]): number {
   const max = items.reduce(
     (acc, it) => (it.episodeNumber > acc ? it.episodeNumber : acc),
-    0,
+    -1,
   );
   return max + 1;
 }
@@ -368,15 +368,16 @@ function parseLang(raw: unknown): WatchLang | null {
   return null;
 }
 
+/** 유효하면 0 이상 정수, 없으면 -1 (아직 번호 없음) */
 function parseEpisodeNumber(raw: unknown): number {
-  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 1) {
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
     return Math.floor(raw);
   }
   if (typeof raw === "string" && raw.trim()) {
     const n = Number(raw.trim());
-    if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+    if (Number.isFinite(n) && n >= 0) return Math.floor(n);
   }
-  return 0;
+  return -1;
 }
 
 function normalizeItem(raw: Partial<WatchItem> & Record<string, unknown>): WatchItem | null {
@@ -401,7 +402,7 @@ function normalizeItem(raw: Partial<WatchItem> & Record<string, unknown>): Watch
 }
 
 /**
- * 예전 목록(번호 없음 · 최근 것이 앞) → 먼저 넣은 것부터 1-ko, 2-ko…
+ * 예전 목록(번호 없음 · 최근 것이 앞) → 먼저 넣은 것부터 0-ko, 1-ko…
  * 이미 번호가 있는 항목은 그대로 두고, 없는 것만 뒤에 번호를 붙임.
  */
 export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
@@ -409,12 +410,12 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
     ...it,
     lang: it.lang === "en" ? ("en" as const) : ("ko" as const),
     episodeNumber:
-      Number.isFinite(it.episodeNumber) && it.episodeNumber >= 1
+      Number.isFinite(it.episodeNumber) && it.episodeNumber >= 0
         ? Math.floor(it.episodeNumber)
-        : 0,
+        : -1,
   }));
 
-  const missing = stamped.filter((it) => it.episodeNumber < 1);
+  const missing = stamped.filter((it) => it.episodeNumber < 0);
   if (missing.length === 0) {
     return repairSplitLanguagePairs(stamped);
   }
@@ -427,7 +428,7 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
     return sortWatchItemsForPlay(
       chronological.map((it, index) => ({
         ...it,
-        episodeNumber: index + 1,
+        episodeNumber: index,
         lang: "ko" as const,
       })),
     );
@@ -436,7 +437,7 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
   let next =
     stamped.reduce(
       (acc, it) => (it.episodeNumber > acc ? it.episodeNumber : acc),
-      0,
+      -1,
     ) + 1;
   const assigned = new Map<string, number>();
   const missingChrono = [...missing].sort((a, b) => {
@@ -450,11 +451,11 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
 
   return repairSplitLanguagePairs(
     stamped.map((it) =>
-      it.episodeNumber >= 1
+      it.episodeNumber >= 0
         ? it
         : {
             ...it,
-            episodeNumber: assigned.get(it.id) ?? 1,
+            episodeNumber: assigned.get(it.id) ?? 0,
             lang: "ko" as const,
           },
     ),
@@ -646,7 +647,7 @@ export async function rebuildWatchMediaFromPreviews(): Promise<WatchItem[]> {
       youtubeUrl: "",
       note: "",
       addedAt: row.updatedAt || new Date().toISOString(),
-      episodeNumber: index + 1,
+      episodeNumber: index,
       lang: "ko" as const,
     };
   });

@@ -26,11 +26,14 @@ function parseItems(raw: unknown): WatchItem[] | null {
     const episodeNumber =
       typeof r.episodeNumber === "number" &&
       Number.isFinite(r.episodeNumber) &&
-      r.episodeNumber >= 1
+      r.episodeNumber >= 0
         ? Math.floor(r.episodeNumber)
         : typeof r.episodeNumber === "string"
-          ? Math.floor(Number(r.episodeNumber)) || 0
-          : 0;
+          ? (() => {
+              const n = Math.floor(Number(r.episodeNumber));
+              return Number.isFinite(n) && n >= 0 ? n : -1;
+            })()
+          : -1;
     out.push({
       id: r.id,
       name: typeof r.name === "string" ? r.name : "",

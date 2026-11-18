@@ -48,7 +48,7 @@ export function WatchVideoRoom() {
   const [ready, setReady] = useState(false);
   const [title, setTitle] = useState("");
   /** 글자로 둬서 지울 때 빈칸이 되게 함 (숫자면 지우자마자 1로 고정됨) */
-  const [episodeNumberText, setEpisodeNumberText] = useState("1");
+  const [episodeNumberText, setEpisodeNumberText] = useState("0");
   const [lang, setLang] = useState<WatchLang>("ko");
   const [fileLabel, setFileLabel] = useState("");
   const [pendingFile, setPendingFile] = useState<File | null>(null);
@@ -167,8 +167,8 @@ export function WatchVideoRoom() {
       return;
     }
     const num = Math.floor(Number(episodeNumberText.trim()));
-    if (!Number.isFinite(num) || num < 1) {
-      setMessage("편 번호는 1 이상으로 적어 주세요.");
+    if (!Number.isFinite(num) || num < 0) {
+      setMessage("편 번호는 0 이상으로 적어 주세요.");
       return;
     }
     if (findWatchSlot(items, num, lang)) {
@@ -253,8 +253,8 @@ export function WatchVideoRoom() {
     const target = items.find((it) => it.id === id);
     if (!target) return;
     const num = Math.floor(Number(nextNumberText.trim()));
-    if (!Number.isFinite(num) || num < 1) {
-      setMessage("편 번호는 1 이상으로 적어 주세요.");
+    if (!Number.isFinite(num) || num < 0) {
+      setMessage("편 번호는 0 이상으로 적어 주세요.");
       return;
     }
     const clash = findWatchSlot(items, num, nextLang);
@@ -382,7 +382,7 @@ export function WatchVideoRoom() {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
 
-  // 관리자 목록: 번호 큰 것이 위 · 1번은 맨 아래 (찾기 쉽게)
+  // 관리자 목록: 번호 큰 것이 위 · 0번은 맨 아래 (찾기 쉽게)
   const adminList = sortWatchItemsNumberDesc(items);
 
   if (cleanupMode) {
@@ -457,7 +457,7 @@ export function WatchVideoRoom() {
             편 번호
             <input
               type="number"
-              min={1}
+              min={0}
               step={1}
               value={episodeNumberText}
               onChange={(e) => setEpisodeNumberText(e.target.value)}
@@ -511,7 +511,7 @@ export function WatchVideoRoom() {
         <h2 className="section-title">거실에 보이는 영상</h2>
         <p className="muted tiny">
           인터넷에 저장해요. 다른 사람도 같은 목록을 봐요. 아래는 번호 큰 것이
-          위, 1번은 맨 아래예요. 같은 번호는 한국어 → 영어 순이에요.
+          위, 0번은 맨 아래예요. 같은 번호는 한국어 → 영어 순이에요.
         </p>
         {adminList.length === 0 ? (
           <AdminEmptyText roomKey="watch" />
@@ -611,7 +611,7 @@ export function WatchVideoRoom() {
                           편 번호
                           <input
                             type="number"
-                            min={1}
+                            min={0}
                             step={1}
                             value={
                               editSlots[item.id]?.episodeNumberText ??
