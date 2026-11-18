@@ -6,16 +6,23 @@ import { AdminEmptyText } from "@/components/AdminEmptyText";
 import { AdminMediaPreview } from "@/components/AdminMediaPreview";
 import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import {
+  listUnreleasedItemsAction,
+  removeUnreleasedItemAction,
+} from "@/app/admin/unreleased/actions";
+import {
   deleteMediaPreview,
   getMediaPreview,
   moveMediaPreview,
   saveMediaPreview,
 } from "@/lib/media-preview-store";
+import { publishUnreleasedItemWithFile } from "@/lib/unreleased-media-client";
 import {
   makeUnreleasedId,
+  mergeUnreleasedLists,
   readUnreleasedMediaStore,
   UNRELEASED_LANG_LABELS,
   writeUnreleasedMediaStore,
+  writeUnreleasedMediaStoreAllowEmpty,
   type UnreleasedItem,
   type UnreleasedLang,
 } from "@/lib/unreleased-media";
@@ -66,6 +73,8 @@ export function UnreleasedVideoRoom({ lang }: Props) {
   );
   const [adding, setAdding] = useState(false);
   const [sendingId, setSendingId] = useState<string | null>(null);
+  const [shareBusy, setShareBusy] = useState(false);
+  const [sharedOk, setSharedOk] = useState(false);
 
   const isEnglish = lang === "en";
   const watchLang: WatchLang = lang;
@@ -76,20 +85,102 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     "video/*,video/mp4,video/quicktime,video/webm,.mp4,.mov,.m4v,.webm";
 
   useEffect(() => {
-    const store = readUnreleasedMediaStore(lang);
-    setItems(store.items);
-    setReady(true);
-    // 한국어↔영어 방 바꿀 때 입력칸·파일 선택을 비움 (이전 방 내용이 남지 않게)
-    setTitle("");
-    setPendingFile(null);
-    setFileLabel("");
-    setMessage("");
-    setSendingId(null);
-    setFormKey((k) => k + 1);
+    let cancelled = false;
+
+    async function boot() {
+      const local = readUnreleasedMediaStore(lang).items;
+      if (!cancelled) {
+        setItems(local);
+        setReady(true);
+        setTitle("");
+        setPendingFile(null);
+        setFileLabel("");
+        setMessage("");
+        setSendingId(null);
+        setFormKey((k) => k + 1);
+      }
+
+      const remoteResult = await listUnreleasedItemsAction(lang);
+      if (cancelled) return;
+
+      if (!remoteResult.ok) {
+        setSharedOk(false);
+        if (local.length > 0) {
+          setMessage(
+            `이 기기에 ${local.length}개가 있어요. 인터넷 목록은 아직 확인하지 못했어요.`,
+          );
+        }
+        return;
+      }
+
+      const merged = mergeUnreleasedLists(local, remoteResult.items);
+      if (merged.length > 0) {
+        writeUnreleasedMediaStore(lang, { items: merged });
+        setItems(merged);
+      }
+
+      // 인터넷에 없는 이 기기 항목은 자동으로 맞춤 (원본은 지우지 않음)
+      const missing = merged.filter(
+        (it) => !remoteResult.items.some((r) => r.id === it.id),
+      );
+      if (missing.length > 0) {
+        setShareBusy(true);
+        setMessage(
+          `이 기기 미공개 ${missing.length}개를 다른 기기에도 맞게 올리는 중이에요…`,
+        );
+        const next = [...merged];
+        let ok = 0;
+        for (const item of missing) {
+          try {
+            const saved = await publishUnreleasedItemWithFile(lang, item);
+            const idx = next.findIndex((it) => it.id === item.id);
+            if (idx >= 0) next[idx] = saved;
+            ok += 1;
+          } catch {
+            /* 이 기기 원본은 그대로 */
+          }
+        }
+        if (!cancelled) {
+          writeUnreleasedMediaStore(lang, { items: next });
+          setItems(next);
+          setShareBusy(false);
+          if (ok === missing.length) {
+            setSharedOk(true);
+            setMessage(
+              `미공개 ${next.length}개예요. 인터넷에도 맞춰 두었어요. 새 영상은 넣을 때 자동으로 올라가요.`,
+            );
+          } else {
+            setSharedOk(false);
+            setMessage(
+              `${ok}개는 올렸어요. 나머지는 「다시 맞추기」로 한 번 더 해 주세요. 원본은 그대로예요.`,
+            );
+          }
+        }
+        return;
+      }
+
+      if (remoteResult.count > 0) {
+        setSharedOk(true);
+        setMessage(
+          `미공개 ${merged.length}개예요. 다른 기기와 같아요. 새 영상은 넣을 때 자동으로 올라가요.`,
+        );
+      } else {
+        setSharedOk(true);
+      }
+    }
+
+    void boot();
+    return () => {
+      cancelled = true;
+    };
   }, [lang]);
 
   function persist(next: UnreleasedItem[]) {
-    writeUnreleasedMediaStore(lang, { items: next });
+    if (next.length === 0) {
+      writeUnreleasedMediaStoreAllowEmpty(lang, { items: next });
+    } else {
+      writeUnreleasedMediaStore(lang, { items: next });
+    }
     setItems(next);
   }
 
@@ -139,19 +230,42 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       } catch {
         previewOk = false;
       }
-      persist([item, ...items]);
+      const next = [item, ...items];
+      persist(next);
       setPreviewTicks((prev) => ({
         ...prev,
         [item.id]: (prev[item.id] ?? 0) + 1,
       }));
+
+      // 넣자마자 자동으로 다른 기기에도 맞춤
+      let sharedItem = item;
+      let shareOk = false;
+      try {
+        setMessage(
+          isEnglish
+            ? "Saving and sharing to other devices…"
+            : "넣고, 다른 기기에도 자동으로 올리는 중이에요…",
+        );
+        sharedItem = await publishUnreleasedItemWithFile(lang, item);
+        shareOk = true;
+        persist([sharedItem, ...items]);
+        setSharedOk(true);
+      } catch {
+        setSharedOk(false);
+      }
+
       setMessage(
-        previewOk
+        shareOk
           ? isEnglish
-            ? `Saved “${item.title}” in Unreleased (English). Preview is on the side.`
-            : `「${item.title}」을(를) 미공개 영상실(${langLabel})에 넣었어요. 옆에 미리보기가 보여요.`
-          : isEnglish
-            ? `Added to the list, but preview failed. Use “Attach preview file” again.`
-            : `목록에는 넣었어요. 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요.`,
+            ? `Saved “${sharedItem.title}” and shared to other devices.`
+            : `「${sharedItem.title}」을(를) 넣었고, 다른 기기에도 자동으로 올려 두었어요.`
+          : previewOk
+            ? isEnglish
+              ? `Saved locally. Auto-share failed — tap “Sync again”.`
+              : `이 기기에는 넣었어요. 자동 올리기는 실패해서 「다시 맞추기」를 눌러 주세요.`
+            : isEnglish
+              ? `Added to the list, but preview/share failed. Retry attach or sync.`
+              : `목록에는 넣었어요. 미리보기·자동 올리기는 실패했어요. 「미리보기 파일 넣기」나 「다시 맞추기」를 해 주세요.`,
       );
       setTitle("");
       setPendingFile(null);
@@ -170,10 +284,48 @@ export function UnreleasedVideoRoom({ lang }: Props) {
     }
   }
 
+  async function onShareAgain() {
+    if (shareBusy || items.length === 0) return;
+    setShareBusy(true);
+    let ok = 0;
+    const next = [...items];
+    try {
+      for (let i = 0; i < next.length; i += 1) {
+        const item = next[i];
+        if (item.publicUrl && item.storagePath) {
+          ok += 1;
+          continue;
+        }
+        try {
+          next[i] = await publishUnreleasedItemWithFile(lang, item);
+          ok += 1;
+        } catch {
+          /* keep local */
+        }
+      }
+      persist(next);
+      if (ok === next.length) {
+        setSharedOk(true);
+        setMessage(
+          `확인했어요. 인터넷에 미공개 ${ok}개가 있어요. 다른 기기에서 새로고침 해 보세요.`,
+        );
+      } else {
+        setSharedOk(false);
+        setMessage(
+          `${ok}개는 맞췄어요. 나머지는 다시 눌러 주세요. 원본은 지우지 않았어요.`,
+        );
+      }
+    } finally {
+      setShareBusy(false);
+    }
+  }
+
   async function onRemove(id: string) {
     const target = items.find((it) => it.id === id);
     if (!target) return;
+    // 이 항목 미리보기만 뺌. 다른 원본·6번 목록은 건드리지 않음.
     await deleteMediaPreview(id);
+    await removeUnreleasedItemAction(lang, id, target.storagePath);
     persist(items.filter((it) => it.id !== id));
     setMessage(`「${target.title}」을(를) 목록에서 빼 두었어요.`);
   }
@@ -198,6 +350,18 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       const preview = await getMediaPreview(target.id);
       if (preview?.blob) {
         downloadBlob(preview.blob, target.name || `${target.title}.mp4`);
+      } else if (target.publicUrl) {
+        try {
+          const res = await fetch(target.publicUrl);
+          if (res.ok) {
+            const blob = await res.blob();
+            if (blob.size > 0) {
+              downloadBlob(blob, target.name || `${target.title}.mp4`);
+            }
+          }
+        } catch {
+          /* 다운로드 실패해도 목록 옮기기는 계속 */
+        }
       }
 
       let watchItems = readWatchMediaStore().items;
@@ -235,12 +399,13 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       await moveMediaPreview(target.id, watchId);
 
       const nextUnreleased = items.filter((it) => it.id !== id);
-      writeUnreleasedMediaStore(lang, { items: nextUnreleased });
+      writeUnreleasedMediaStoreAllowEmpty(lang, { items: nextUnreleased });
       setItems(nextUnreleased);
+      await removeUnreleasedItemAction(lang, id, target.storagePath);
 
       const slot = watchSlotLabel(watchItem);
       setMessage(
-        preview?.blob
+        preview?.blob || target.publicUrl
           ? `「${target.title}」을(를) 영상보기(${slot})로 옮겼어요. 받은 파일을 유튜브 숏츠 초안에 붙여 주세요.`
           : `「${target.title}」을(를) 영상보기(${slot})로 옮겼어요. 미리보기 파일이 없어 다운로드는 못 했어요. 유튜브에서 같은 파일을 골라 올려 주세요.`,
       );
@@ -264,6 +429,23 @@ export function UnreleasedVideoRoom({ lang }: Props) {
 
   return (
     <div className="admin-wrap">
+      <div className="watch-share-box" aria-label="다른 기기에 맞추기">
+        <p className="tiny muted">
+          {sharedOk
+            ? "새 미공개 영상은 넣을 때 자동으로 다른 기기에도 맞춰져요. 원본은 지우지 않아요."
+            : "새 영상은 넣을 때 자동으로 올라가요. 예전에 안 올린 것만 「다시 맞추기」로 한 번 맞추면 돼요."}
+        </p>
+        <p className="tiny muted">지금 이 기기 미공개 {items.length}개</p>
+        <button
+          type="button"
+          className="btn btn-soft btn-wide"
+          disabled={shareBusy || adding || items.length === 0}
+          onClick={() => void onShareAgain()}
+        >
+          {shareBusy ? "맞추는 중…" : "예전에 안 올린 영상 다시 맞추기"}
+        </button>
+      </div>
+
       <div className="unreleased-lang-switch" aria-label="미공개 버전 바꾸기">
         <span className="pair-chip">지금 · {langLabel}</span>
         <Link
@@ -280,8 +462,8 @@ export function UnreleasedVideoRoom({ lang }: Props) {
       <form key={`${lang}-${formKey}`} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
           {isEnglish
-            ? "English-market videos that are finished but not on YouTube yet. Pick a file, type a title (English OK), then save. Korean and English lists stay separate."
-            : "한국어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요. 파일을 고르면 옆에 작은 미리보기가 이 기기에만 저장돼요. 예전에 이름만 넣은 항목은 「미리보기 파일 넣기」로 다시 넣어 주세요. 한국어·영어 목록은 서로 섞이지 않아요."}
+            ? "English-market videos that are finished but not on YouTube yet. Pick a file, type a title (English OK), then save. It also shares to other devices automatically."
+            : "한국어 시장용으로, 만들기는 끝났지만 아직 유튜브에 안 올린 영상을 모아 두는 방이에요. 넣으면 다른 기기에도 자동으로 맞춰져요. 한국어·영어 목록은 서로 섞이지 않아요."}
         </p>
 
         <label>
@@ -356,6 +538,7 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                     kindHint="video"
                     label={item.title}
                     refreshToken={previewTicks[item.id] ?? 0}
+                    remoteUrl={item.publicUrl}
                   />
                   <div>
                     <strong>{item.title}</strong>
@@ -372,12 +555,26 @@ export function UnreleasedVideoRoom({ lang }: Props) {
                       kindHint="video"
                       accept={videoAccept}
                       onMessage={setMessage}
-                      onAttached={() =>
+                      onAttached={() => {
                         setPreviewTicks((prev) => ({
                           ...prev,
                           [item.id]: (prev[item.id] ?? 0) + 1,
-                        }))
-                      }
+                        }));
+                        void publishUnreleasedItemWithFile(lang, item)
+                          .then((saved) => {
+                            setItems((prev) => {
+                              const next = prev.map((it) =>
+                                it.id === saved.id ? saved : it,
+                              );
+                              writeUnreleasedMediaStore(lang, { items: next });
+                              return next;
+                            });
+                            setSharedOk(true);
+                          })
+                          .catch(() => {
+                            setSharedOk(false);
+                          });
+                      }}
                     />
                   </div>
                 </div>
