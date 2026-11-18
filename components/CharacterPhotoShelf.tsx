@@ -29,10 +29,10 @@ type Props = {
   shelf: CharacterShelf;
 };
 
-/** 이번 요청: 봄이 사진보관만 다른 기기 공유 */
+/** 봄이·콩이 사진보관 다른 기기 공유 (넣을 때 자동 올리기) */
 const SHARE_ENABLED: Record<CharacterShelf, boolean> = {
   bomi: true,
-  kongi: false,
+  kongi: true,
   duo: false,
 };
 
