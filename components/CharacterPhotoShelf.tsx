@@ -24,6 +24,7 @@ import {
   type CharacterPhotoItem,
   type CharacterShelf,
 } from "@/lib/character-photos";
+import { askShareBossLock } from "@/lib/share-boss-lock-client";
 
 type Props = {
   shelf: CharacterShelf;
@@ -471,6 +472,11 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     if (!canShare || shareBusy) return;
     if (items.length === 0) {
       tellResult(setMessage, "올릴 사진이 없어요.", true);
+      return;
+    }
+    const lock = await askShareBossLock();
+    if (!lock.ok) {
+      tellResult(setMessage, lock.message, true);
       return;
     }
 

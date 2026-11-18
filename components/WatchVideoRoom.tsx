@@ -9,6 +9,7 @@ import {
   deleteMediaPreview,
   saveMediaPreview,
 } from "@/lib/media-preview-store";
+import { askShareBossLock } from "@/lib/share-boss-lock-client";
 import {
   fetchWatchMediaFromServer,
   findWatchSlot,
@@ -209,6 +210,11 @@ export function WatchVideoRoom() {
         setMessage,
         "올릴 영상이 없어요. 먼저 목록에 영상을 넣어 주세요.",
       );
+      return;
+    }
+    const lock = await askShareBossLock();
+    if (!lock.ok) {
+      tellShareResult(setMessage, lock.message);
       return;
     }
     setShareBusy(true);
