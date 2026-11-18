@@ -13,6 +13,7 @@ import {
   pngFromImageUrl,
 } from "@/lib/copy-image-clipboard";
 import { publishLogoItemWithFile } from "@/lib/logo-catalog-client";
+import { askShareBossLock } from "@/lib/share-boss-lock-client";
 import {
   formatSerial,
   makeLogoId,
@@ -309,6 +310,11 @@ export function LogoManageRoom() {
 
   async function onShareAgain() {
     if (shareBusy || items.length === 0) return;
+    const lock = await askShareBossLock();
+    if (!lock.ok) {
+      setMessage(lock.message);
+      return;
+    }
     setShareBusy(true);
     let ok = 0;
     const next = [...items];

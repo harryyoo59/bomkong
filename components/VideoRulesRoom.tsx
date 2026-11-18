@@ -26,6 +26,7 @@ import {
   type VideoRulesAudience,
   type VideoRulesBlock,
 } from "@/lib/video-rules";
+import { askShareBossLock } from "@/lib/share-boss-lock-client";
 
 function RulesDocumentView({
   blocks,
@@ -422,6 +423,11 @@ export function VideoRulesRoom() {
 
   async function onShareAgain() {
     if (syncBusy) return;
+    const lock = await askShareBossLock();
+    if (!lock.ok) {
+      setSyncMessage(lock.message);
+      return;
+    }
     const published = await publishAll(currentDocs());
     if (published.ok) {
       setSyncMessage(

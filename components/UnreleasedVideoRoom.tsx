@@ -15,6 +15,7 @@ import {
   moveMediaPreview,
   saveMediaPreview,
 } from "@/lib/media-preview-store";
+import { askShareBossLock } from "@/lib/share-boss-lock-client";
 import { publishUnreleasedItemWithFile } from "@/lib/unreleased-media-client";
 import {
   makeUnreleasedId,
@@ -286,6 +287,11 @@ export function UnreleasedVideoRoom({ lang }: Props) {
 
   async function onShareAgain() {
     if (shareBusy || items.length === 0) return;
+    const lock = await askShareBossLock();
+    if (!lock.ok) {
+      setMessage(lock.message);
+      return;
+    }
     setShareBusy(true);
     let ok = 0;
     const next = [...items];
