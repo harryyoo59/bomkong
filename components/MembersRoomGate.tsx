@@ -4,20 +4,15 @@ import { useState } from "react";
 
 type Props = {
   enterAction: (formData: FormData) => Promise<{ ok: false; message: string } | void>;
-  setupNeeded?: boolean;
 };
 
-export function MembersRoomGate({ enterAction, setupNeeded }: Props) {
-  const [message, setMessage] = useState(
-    setupNeeded
-      ? "입장 비밀글을 아직 정해 두지 않았어요. 사장님께 먼저 정해 달라고 해 주세요."
-      : "",
-  );
+export function MembersRoomGate({ enterAction }: Props) {
+  const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (setupNeeded || busy) return;
+    if (busy) return;
     setBusy(true);
     setMessage("");
     const form = e.currentTarget;
@@ -49,14 +44,14 @@ export function MembersRoomGate({ enterAction, setupNeeded }: Props) {
             name="password"
             autoComplete="current-password"
             placeholder="비밀글을 적어 주세요"
-            disabled={setupNeeded || busy}
-            required={!setupNeeded}
+            disabled={busy}
+            required
           />
         </label>
         <button
           type="submit"
           className="btn btn-primary btn-wide"
-          disabled={setupNeeded || busy}
+          disabled={busy}
         >
           {busy ? "확인 중…" : "들어가기"}
         </button>

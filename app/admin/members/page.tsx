@@ -8,10 +8,7 @@ import { AdminRoomHeader } from "@/components/AdminRoomHeader";
 import { MembersRoomGate } from "@/components/MembersRoomGate";
 import { MembersRoomHome } from "@/components/MembersRoomHome";
 import { requireAdminSession } from "@/lib/admin-auth";
-import {
-  getMembersRoomAuthConfig,
-  requireMembersRoomSession,
-} from "@/lib/members-room-auth";
+import { requireMembersRoomSession } from "@/lib/members-room-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -25,16 +22,12 @@ export default async function AdminMembersPage() {
     );
   }
 
-  const { configured } = getMembersRoomAuthConfig();
   const roomGate = await requireMembersRoomSession();
 
   if (!roomGate.ok) {
     return (
       <div className="study-room">
-        <MembersRoomGate
-          enterAction={enterMembersRoom}
-          setupNeeded={!configured}
-        />
+        <MembersRoomGate enterAction={enterMembersRoom} />
         <div className="vault-nav-row">
           <Link className="btn btn-soft" href="/admin">
             관리자실
