@@ -121,7 +121,7 @@ export function WatchVideoRoom() {
 
   async function persist(next: WatchItem[]) {
     const ordered = sortWatchItemsForPlay(next);
-    writeWatchMediaStore({ items: ordered });
+    writeWatchMediaStore({ items: ordered }, { allowEmpty: true });
     setItems(ordered);
     syncEditors(ordered);
     try {

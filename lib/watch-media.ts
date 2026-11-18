@@ -522,7 +522,10 @@ function readRawWatchItems(key: string): WatchItem[] {
   }
 }
 
-export function writeWatchMediaStore(store: WatchMediaStore): void {
+export function writeWatchMediaStore(
+  store: WatchMediaStore,
+  options?: { allowEmpty?: boolean },
+): void {
   if (typeof window === "undefined") return;
   const ordered = sortWatchItemsForPlay(store.items);
   // 비어 있지 않은 목록만 백업 — 빈 값으로 백업을 지우지 않음
@@ -535,6 +538,12 @@ export function writeWatchMediaStore(store: WatchMediaStore): void {
     } catch {
       /* quota — 본문 저장은 계속 */
     }
+  } else if (!options?.allowEmpty) {
+    // 빈 목록으로 덮어쓰지 않음 — 실수로 거실 목록이 사라지는 것을 막음
+    const existing = readRawWatchItems(STORAGE_KEY);
+    if (existing.length > 0) return;
+    const backup = readRawWatchItems(BACKUP_STORAGE_KEY);
+    if (backup.length > 0) return;
   }
   window.localStorage.setItem(
     STORAGE_KEY,
@@ -607,8 +616,15 @@ export async function pushWatchMediaToServer(
     throw new Error(data.error || "영상 목록을 인터넷에 올리지 못했어요.");
   }
   const saved = sortWatchItemsForPlay(parseApiItems(data.items ?? ordered));
-  writeWatchMediaStore({ items: saved });
-  return saved;
+  // 올린 뒤 빈 응답이면 기기 목록을 지우지 않음
+  if (ordered.length > 0 && saved.length === 0) {
+    throw new Error("인터넷에 올렸는데 목록이 비어 돌아왔어요. 다시 해 주세요.");
+  }
+  writeWatchMediaStore(
+    { items: saved.length > 0 ? saved : ordered },
+    { allowEmpty: ordered.length === 0 },
+  );
+  return saved.length > 0 ? saved : ordered;
 }
 
 /**
@@ -717,8 +733,8 @@ export async function syncWatchMediaWithServer(options?: {
         return sortWatchItemsForPlay(local);
       }
     }
-    // 손님·다른 기기: 인터넷이 비면 빈 목록 (기기에만 있는 건 공용이 아님)
-    return [];
+    // 거실: 인터넷이 아직 비어도 이 기기 목록은 그대로 보여 줌 (사라지게 하지 않음)
+    return sortWatchItemsForPlay(local);
   }
 
   // 인터넷에만 있으면 → 받아 와서 맞춤
@@ -755,5 +771,9 @@ export async function syncWatchMediaWithServer(options?: {
     return remote;
   }
 
-  return [];
+  // 둘 다 비면 백업까지 다시 확인
+  if (local.length === 0) {
+    local = restoreWatchMediaFromBackup();
+  }
+  return sortWatchItemsForPlay(local);
 }
