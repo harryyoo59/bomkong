@@ -39,12 +39,12 @@ export async function loadVideoRulesAction(): Promise<
 
 /**
  * 관리자실 3번: 규칙을 인터넷에 맞춰 둠 (저장·되돌리기 때 자동 호출).
- * 빈 글로 전체를 지우는 별도 삭제는 없음. upsert 한 줄만.
  */
 export async function publishVideoRulesAction(input: {
   adminBody: string;
   aiBody: string;
   checklistBody: string;
+  cookieBody: string;
 }): Promise<
   | { ok: true; store: VideoRulesRemoteStore }
   | { ok: false; message: string }
@@ -63,12 +63,15 @@ export async function publishVideoRulesAction(input: {
   const aiBody = typeof input?.aiBody === "string" ? input.aiBody : "";
   const checklistBody =
     typeof input?.checklistBody === "string" ? input.checklistBody : "";
+  const cookieBody =
+    typeof input?.cookieBody === "string" ? input.cookieBody : "";
 
   try {
     const store = await upsertVideoRulesOnServer({
       adminBody,
       aiBody,
       checklistBody,
+      cookieBody,
     });
     return { ok: true, store };
   } catch (err) {
