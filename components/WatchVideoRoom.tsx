@@ -20,7 +20,6 @@ import {
   syncWatchMediaWithServer,
   watchSlotLabel,
   writeWatchMediaStore,
-  isKnownYoutubeChannelUrl,
   YOUTUBE_CHANNEL_BY_LANG,
   type WatchItem,
   type WatchLang,
@@ -65,14 +64,8 @@ export function WatchVideoRoom() {
 
   function syncEditors(list: WatchItem[]) {
     setEditTitles(Object.fromEntries(list.map((it) => [it.id, it.title])));
-    // 채널 주소만 있으면 칸을 비워 두어 직접 영상 주소를 넣게 함
     setEditUrls(
-      Object.fromEntries(
-        list.map((it) => [
-          it.id,
-          isKnownYoutubeChannelUrl(it.youtubeUrl) ? "" : it.youtubeUrl,
-        ]),
-      ),
+      Object.fromEntries(list.map((it) => [it.id, it.youtubeUrl])),
     );
     setEditSlots(
       Object.fromEntries(
