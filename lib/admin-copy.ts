@@ -50,6 +50,7 @@ export const ROOM_KEYS = [
   "unreleased-ko",
   "unreleased-en",
   "watch",
+  "members",
   "mailbox",
 ] as const;
 
@@ -72,6 +73,7 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   "unreleased-ko": "미공개 영상실 · 한국어",
   "unreleased-en": "미공개 영상실 · 영어",
   watch: "영상보기",
+  members: "회원현황",
   mailbox: "손님 의견",
 };
 
@@ -81,7 +83,7 @@ export const DEFAULT_CLINIC: ClinicHeaderCopy = {
   eyebrow: "관리자실 · 진료실",
   title: "관리자실을 칸으로 나눴어요",
   intro:
-    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·둘이 함께·영상규칙·로고·미공개 영상실·영상보기·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
+    "손님용 메뉴와 섞이지 않아요. 봄이·콩이·둘이 함께·영상규칙·로고·미공개 영상실·영상보기·회원현황·손님 의견이 여기에 있어요. 연결된 칸만 눌러 들어가요.",
   logoutLabel: "나가기",
   homeLinkLabel: "거실로 돌아가기",
   editOpenLabel: "글 고치기",
@@ -200,6 +202,17 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     builtIn: true,
   },
   {
+    id: "door-members",
+    number: "7",
+    title: "회원현황",
+    body: "회원 정보·관리·통계를 모아 봐요. 들어갈 때 비밀글이 필요해요.",
+    note: "비밀글 입장",
+    href: "/admin/members",
+    kind: "link",
+    groupId: "",
+    builtIn: true,
+  },
+  {
     id: "door-mailbox",
     number: "우",
     title: "손님 의견",
@@ -274,6 +287,13 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     intro: "",
     empty: "아직 넣어 둔 영상이 없어요. 넣으면 거실 영상보기에 나와요.",
   },
+  members: {
+    eyebrow: "관리자실 · 7번 칸",
+    title: "회원현황",
+    intro:
+      "회원 정보·관리·통계를 모아 보는 방이에요. 들어갈 때 비밀글이 필요해요.",
+    empty: "아직 모아 둔 회원 칸이 없어요.",
+  },
   mailbox: {
     eyebrow: "관리자실 · 손님 의견",
     title: "의견 보내기 우편함",
@@ -324,9 +344,11 @@ function migrateBuiltInDoor(
 ): ClinicDoor {
   if (!fallback || !door.builtIn) return door;
 
-  // 미공개·영상보기 칸 번호: 예전 7·9 → 5·6
+  // 미공개·영상보기·회원현황 칸 번호는 기본값과 맞춤
   if (
-    (door.id === "door-unreleased" || door.id === "door-watch") &&
+    (door.id === "door-unreleased" ||
+      door.id === "door-watch" ||
+      door.id === "door-members") &&
     door.number !== fallback.number
   ) {
     door = { ...door, number: fallback.number };
