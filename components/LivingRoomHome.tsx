@@ -579,7 +579,7 @@ export function LivingRoomHome({
       >
         <img
           className={`living-poster${showPosterOnly ? " is-visible" : ""}`}
-          src="/living-room/living-room-labeled-frame.jpg"
+          src="/living-room/living-room-labeled-frame.jpg?v=2"
           alt=""
           width={848}
           height={480}
@@ -588,8 +588,8 @@ export function LivingRoomHome({
         <video
           ref={roomVideoRef}
           className={`living-video${showPosterOnly ? " is-hidden" : ""}`}
-          src="/living-room/living-room-labeled-preview.mp4"
-          poster="/living-room/living-room-labeled-frame.jpg"
+          src="/living-room/living-room-labeled-preview.mp4?v=2"
+          poster="/living-room/living-room-labeled-frame.jpg?v=2"
           playsInline
           loop
           preload="metadata"
