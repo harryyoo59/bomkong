@@ -28,10 +28,25 @@ import {
   watchHref,
   type WatchProgress,
 } from "@/lib/watch-progress";
+import { readWatchResume } from "@/lib/watch-resume";
 import {
   LIVING_ROOM_BEATS,
   type LivingStoryTarget,
 } from "@/lib/living-room-story";
+
+/** 거실 TV: 예전 이어보기·목록에서 마지막으로 고른 것 중 더 최근 id */
+function resolveLobbyTvEpisodeId(): string | null {
+  const progress = readWatchProgress();
+  const resume = readWatchResume();
+  if (progress && resume) {
+    return progress.updatedAt >= resume.updatedAt
+      ? progress.episodeId
+      : resume.lastOpenedId;
+  }
+  if (progress) return progress.episodeId;
+  if (resume) return resume.lastOpenedId;
+  return null;
+}
 
 const TV_FALLBACK_POSTER = "/living-room/v4-frame-1s.jpg";
 
@@ -282,32 +297,37 @@ export function LivingRoomHome({
     }
   }, [playing, reduceMotion]);
 
-  // 로비 TV: 지금 이어보는 영상의 그림(또는 미리보기)으로 바꿈
+  // 로비 TV: 마지막 본/고른 영상의 유튜브 캡쳐(없으면 기본 화면)
   useEffect(() => {
     let cancelled = false;
     let localUrl: string | null = null;
 
     async function loadTvMedia() {
-      const saved = progress;
-      if (!saved) {
-        if (!cancelled) setTvMedia({ mode: "placeholder" });
+      try {
+        await syncWatchMediaWithServer();
+      } catch {
+        /* 이 기기 목록만으로도 그림 찾기 */
+      }
+      if (cancelled) return;
+
+      const episodeId = resolveLobbyTvEpisodeId();
+      if (!episodeId) {
+        setTvMedia({ mode: "placeholder" });
         return;
       }
-      const item = getWatchItemById(saved.episodeId);
+      const item = getWatchItemById(episodeId);
       if (!item) {
-        if (!cancelled) setTvMedia({ mode: "placeholder" });
+        setTvMedia({ mode: "placeholder" });
         return;
       }
 
       const ytId = extractYoutubeVideoId(item.youtubeUrl);
       if (ytId) {
-        if (!cancelled) {
-          setTvMedia({
-            mode: "image",
-            url: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
-            local: false,
-          });
-        }
+        setTvMedia({
+          mode: "image",
+          url: `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`,
+          local: false,
+        });
         return;
       }
 
