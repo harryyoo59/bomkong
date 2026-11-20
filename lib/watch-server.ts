@@ -23,6 +23,8 @@ type WatchRow = {
   added_at: string;
   episode_number: number;
   lang: string;
+  preview_storage_path?: string | null;
+  preview_mime_type?: string | null;
 };
 
 function rowToItem(row: WatchRow): WatchItem | null {
@@ -32,6 +34,14 @@ function rowToItem(row: WatchRow): WatchItem | null {
     Number.isFinite(row.episode_number) && row.episode_number >= 0
       ? Math.floor(row.episode_number)
       : 0;
+  const previewStoragePath =
+    typeof row.preview_storage_path === "string"
+      ? row.preview_storage_path.trim()
+      : "";
+  const previewMimeType =
+    typeof row.preview_mime_type === "string"
+      ? row.preview_mime_type.trim()
+      : "";
   return {
     id: row.id,
     name: typeof row.name === "string" ? row.name : "",
@@ -44,6 +54,8 @@ function rowToItem(row: WatchRow): WatchItem | null {
         : new Date().toISOString(),
     episodeNumber,
     lang,
+    ...(previewStoragePath ? { previewStoragePath } : {}),
+    ...(previewMimeType ? { previewMimeType } : {}),
   };
 }
 
@@ -52,7 +64,7 @@ export async function fetchWatchItemsFromServer(): Promise<WatchItem[]> {
   const { data, error } = await supabase
     .from("watch_items")
     .select(
-      "id,name,title,youtube_url,note,added_at,episode_number,lang",
+      "id,name,title,youtube_url,note,added_at,episode_number,lang,preview_storage_path,preview_mime_type",
     )
     .order("episode_number", { ascending: true })
     .order("lang", { ascending: true });
@@ -82,6 +94,8 @@ export async function replaceWatchItemsOnServer(
       addedAt: it.addedAt,
       episodeNumber: it.episodeNumber,
       lang: it.lang,
+      previewStoragePath: it.previewStoragePath?.trim() || "",
+      previewMimeType: it.previewMimeType?.trim() || "video/mp4",
     }),
   );
 

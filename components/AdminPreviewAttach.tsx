@@ -11,6 +11,8 @@ type Props = {
   kindHint?: PreviewKind;
   accept?: string;
   onAttached?: () => void;
+  /** 기기 저장 뒤 인터넷에도 올릴 때 (영상보기 등) */
+  onAfterLocalSave?: (itemId: string, file: File) => void | Promise<void>;
   onMessage?: (text: string) => void;
 };
 
@@ -20,6 +22,7 @@ export function AdminPreviewAttach({
   kindHint,
   accept = "image/*,video/*",
   onAttached,
+  onAfterLocalSave,
   onMessage,
 }: Props) {
   const inputId = useId();
@@ -32,7 +35,20 @@ export function AdminPreviewAttach({
     setBusy(true);
     try {
       await saveMediaPreview(itemId, file, kindHint);
-      onMessage?.("미리보기를 넣었어요. 옆에 작은 그림이 보여요.");
+      if (onAfterLocalSave) {
+        try {
+          await onAfterLocalSave(itemId, file);
+          onMessage?.(
+            "미리보기를 넣었고, 인터넷에도 올려 두었어요. 다른 기기에서도 보여요.",
+          );
+        } catch {
+          onMessage?.(
+            "이 기기에는 넣었어요. 인터넷 올리기는 실패했어요. 잠시 후 다시 「미리보기 파일 넣기」를 해 주세요.",
+          );
+        }
+      } else {
+        onMessage?.("미리보기를 넣었어요. 옆에 작은 그림이 보여요.");
+      }
       onAttached?.();
     } catch {
       onMessage?.(

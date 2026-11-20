@@ -16,7 +16,35 @@ export type WatchItem = {
   episodeNumber: number;
   /** 같은 편의 한국어(ko) / 영어(en) */
   lang: WatchLang;
+  /** 관리용 미리보기 인터넷 보관 경로 */
+  previewStoragePath?: string;
+  /** 관리용 미리보기 파일 종류 */
+  previewMimeType?: string;
 };
+
+export const WATCH_PREVIEWS_BUCKET = "watch-previews";
+
+export function watchPreviewStoragePath(
+  id: string,
+  mimeType: string,
+): string {
+  const safeId = id.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const mime = (mimeType || "").toLowerCase();
+  let ext = "mp4";
+  if (mime.includes("webm")) ext = "webm";
+  else if (mime.includes("quicktime") || mime.includes("mov")) ext = "mov";
+  else if (mime.includes("m4v")) ext = "m4v";
+  return `${safeId}.${ext}`;
+}
+
+export function watchPreviewPublicUrl(
+  supabaseUrl: string,
+  storagePath: string,
+): string {
+  const base = supabaseUrl.replace(/\/$/, "");
+  const path = storagePath.replace(/^\//, "");
+  return `${base}/storage/v1/object/public/${WATCH_PREVIEWS_BUCKET}/${path}`;
+}
 
 export type WatchMediaStore = {
   items: WatchItem[];
@@ -387,6 +415,18 @@ function normalizeItem(raw: Partial<WatchItem> & Record<string, unknown>): Watch
   const title = typeof raw.title === "string" ? raw.title.trim() : "";
   if (!title) return null;
   const lang = parseLang(raw.lang) ?? "ko";
+  const previewStoragePathRaw =
+    typeof raw.previewStoragePath === "string"
+      ? raw.previewStoragePath.trim()
+      : typeof raw.preview_storage_path === "string"
+        ? raw.preview_storage_path.trim()
+        : "";
+  const previewMimeTypeRaw =
+    typeof raw.previewMimeType === "string"
+      ? raw.previewMimeType.trim()
+      : typeof raw.preview_mime_type === "string"
+        ? raw.preview_mime_type.trim()
+        : "";
   return {
     id: raw.id,
     name: raw.name,
@@ -398,6 +438,10 @@ function normalizeItem(raw: Partial<WatchItem> & Record<string, unknown>): Watch
       typeof raw.addedAt === "string" ? raw.addedAt : new Date().toISOString(),
     episodeNumber: parseEpisodeNumber(raw.episodeNumber),
     lang,
+    ...(previewStoragePathRaw
+      ? { previewStoragePath: previewStoragePathRaw }
+      : {}),
+    ...(previewMimeTypeRaw ? { previewMimeType: previewMimeTypeRaw } : {}),
   };
 }
 

@@ -24,6 +24,14 @@ function sanitizeItems(raw: WatchItem[]): WatchItem[] {
       Number.isFinite(row.episodeNumber) && row.episodeNumber >= 0
         ? Math.floor(row.episodeNumber)
         : -1;
+    const previewStoragePath =
+      typeof row.previewStoragePath === "string"
+        ? row.previewStoragePath.trim()
+        : "";
+    const previewMimeType =
+      typeof row.previewMimeType === "string"
+        ? row.previewMimeType.trim()
+        : "";
     out.push({
       id: row.id,
       name: typeof row.name === "string" ? row.name : "",
@@ -37,6 +45,8 @@ function sanitizeItems(raw: WatchItem[]): WatchItem[] {
           : new Date().toISOString(),
       episodeNumber,
       lang,
+      ...(previewStoragePath ? { previewStoragePath } : {}),
+      ...(previewMimeType ? { previewMimeType } : {}),
     });
   }
   return sortWatchItemsForPlay(ensureWatchPlaySlots(out));
