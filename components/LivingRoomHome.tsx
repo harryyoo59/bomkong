@@ -1061,18 +1061,18 @@ export function LivingRoomHome({
                     </p>
                   ) : (
                     <p className="muted tiny">
-                      「카카오톡으로」또는 번호를 넣고 「문자로 보내기」를
-                      눌러 주세요. 번호 없이도 문자 앱은 열립니다.
+                      「카카오톡으로」또는 번호를 넣고 「문자로」를 눌러
+                      주세요. 번호 없이도 문자 앱은 열립니다.
                     </p>
                   )}
                 </div>
                 <div className="guardian-actions lobby-share-actions">
                   <button
                     type="button"
-                    className="btn btn-soft"
-                    onClick={() => setShareOpen(false)}
+                    className="btn btn-primary"
+                    onClick={sendShareSms}
                   >
-                    닫기
+                    문자로
                   </button>
                   <button
                     type="button"
@@ -1083,10 +1083,10 @@ export function LivingRoomHome({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-primary"
-                    onClick={sendShareSms}
+                    className="btn btn-soft"
+                    onClick={() => setShareOpen(false)}
                   >
-                    문자로 보내기
+                    닫기
                   </button>
                 </div>
               </div>
