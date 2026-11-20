@@ -2213,25 +2213,44 @@ label.form-row textarea {
   height: clamp(26px, 7vw, 34px);
 }
 
-/* 로비 네 번째 칸: 이모티콘·알리기·제작회사 세 줄 */
+/* 4번째 칸: 같은 크기 3등분 · 8·9·10 */
 .menu-tile-invite-cluster {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 6px;
   width: 100%;
   height: 100%;
   min-height: 0;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr 1fr 1fr;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .menu-tile-invite-cluster .menu-mini {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
   flex-direction: row;
   justify-content: flex-start;
+  align-items: center;
   gap: 8px;
+  border-radius: 14px;
+  border-width: 2px;
   padding: 6px 10px;
 }
 
 .menu-tile-invite-cluster .menu-mini-label {
   text-align: left;
   font-size: clamp(0.58rem, 2.2vw, 0.72rem);
+}
+
+.menu-tile-invite-cluster .menu-tile-icon.is-sm {
+  width: clamp(26px, 7vw, 34px);
+  height: clamp(26px, 7vw, 34px);
+  flex-shrink: 0;
 }
 
 .menu-tile-label {
