@@ -19,7 +19,7 @@ export default async function ParentLoginPage({ searchParams }: Props) {
       <section className="panel">
         <h1 className="section-title">부모 로그인</h1>
         <p className="muted tiny">
-          구글·애플이 기본이에요. 안 되면 이메일이나 전화로도 들어올 수 있어요.
+          지금은 이메일로 로그인해요. 구글·애플은 곧 이어서 열게요.
         </p>
       </section>
       <ParentLoginForm nextPath={next} initialError={error} />
