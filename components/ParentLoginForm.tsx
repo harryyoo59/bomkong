@@ -43,7 +43,14 @@ export function ParentLoginForm({ nextPath = "/", initialError }: Props) {
         },
       });
       if (error) {
-        setMessage(error.message || "이메일을 보내지 못했어요.");
+        const raw = (error.message || "").toLowerCase();
+        if (raw.includes("rate limit")) {
+          setMessage(
+            "지금은 메일 보내기 횟수가 잠시 꽉 찼어요. 조금 기다렸다가 다시 눌러 주세요. 아까 보낸 메일이 있으면 메일함·스팸함도 확인해 보세요.",
+          );
+        } else {
+          setMessage(error.message || "이메일을 보내지 못했어요.");
+        }
         setBusy(false);
         return;
       }
