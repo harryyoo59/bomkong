@@ -61,7 +61,7 @@ type TvScreenMedia =
 const DOOR_KNOCK_GAP_MS = 4000;
 const DOOR_KNOCKS_NEEDED = 5;
 
-export type LivingMenuId = "watch" | "subscribe" | "goods";
+export type LivingMenuId = "watch" | "subscribe" | "goods" | "emoticon";
 
 const MENUS: {
   id: LivingMenuId;
@@ -85,6 +85,12 @@ const MENUS: {
     id: "goods",
     label: "상품구매",
     href: "/goods",
+    needsGuardian: true,
+  },
+  {
+    id: "emoticon",
+    label: "이모티콘 구매및 선물하기",
+    href: "/emoticons",
     needsGuardian: true,
   },
 ];
@@ -156,6 +162,39 @@ function IconYoutube({ className }: { className?: string }) {
       <path
         fill="currentColor"
         d="M23 12.2s0-3.4-.4-5a2.9 2.9 0 0 0-2-2C18.8 4.7 12 4.7 12 4.7s-6.8 0-8.6.5a2.9 2.9 0 0 0-2 2c-.4 1.6-.4 5-.4 5s0 3.4.4 5a2.9 2.9 0 0 0 2 2c1.8.5 8.6.5 8.6.5s6.8 0 8.6-.5a2.9 2.9 0 0 0 2-2c.4-1.6.4-5 .4-5zM9.8 15.5v-7l6.2 3.5-6.2 3.5z"
+      />
+    </svg>
+  );
+}
+
+function IconEmoticon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-3.2 8.2a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4zm6.4 0a1.2 1.2 0 1 1 0-2.4 1.2 1.2 0 0 1 0 2.4zM12 17.2a5 5 0 0 1-4.4-2.6l1.7-1a3.2 3.2 0 0 0 5.4 0l1.7 1A5 5 0 0 1 12 17.2z"
+      />
+    </svg>
+  );
+}
+
+function IconShare({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M18 16.1a2.9 2.9 0 0 0-2 .8l-7.1-4.1a3 3 0 0 0 0-1.6L16 7.1a2.9 2.9 0 1 0-1-1.7L7.9 9.5a2.9 2.9 0 1 0 0 5l7.1 4.1a2.9 2.9 0 1 0 3-2.5z"
+      />
+    </svg>
+  );
+}
+
+function IconCompany({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2.6 3 7v2h18V7l-9-4.4zM5 11v9h4v-6h6v6h4v-9H5zm6 9v-4h2v4h-2z"
       />
     </svg>
   );
@@ -580,6 +619,29 @@ export function LivingRoomHome({
     }
   };
 
+  const shareSite = useCallback(async () => {
+    const url =
+      typeof window !== "undefined"
+        ? window.location.origin
+        : "https://www.bom-kong.com";
+    const title = "봄이콩이";
+    const text = "봄이콩이 사이트 구경해 보세요";
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({ title, text, url });
+        return;
+      }
+    } catch {
+      /* 공유 창을 닫은 경우 등 */
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      window.alert("주소를 복사했어요. 지인에게 붙여 넣어 주세요.");
+    } catch {
+      window.prompt("이 주소를 복사해 지인에게 보내 주세요", url);
+    }
+  }, []);
+
   const showPosterOnly = reduceMotion || !playing;
   const watchItem = progress ? getWatchItemById(progress.episodeId) : undefined;
   const resumeLabel = watchItem ? watchItem.title : null;
@@ -862,6 +924,44 @@ export function LivingRoomHome({
             <span className="menu-mini-label">7. 유튜브 영어 계정</span>
           </a>
         </div>
+
+        <div
+          className="menu-tile menu-tile-cluster menu-tile-invite-cluster"
+          role="group"
+          aria-label="이모티콘·알리기·제작회사"
+        >
+          <button
+            type="button"
+            className="menu-mini menu-mini-emoticon"
+            onClick={() => goFrame("emoticon")}
+          >
+            <TileIcon tone="pink" size="sm">
+              <IconEmoticon />
+            </TileIcon>
+            <span className="menu-mini-label">8. 이모티콘 구매및 선물하기</span>
+          </button>
+          <button
+            type="button"
+            className="menu-mini menu-mini-share"
+            onClick={() => void shareSite()}
+          >
+            <TileIcon tone="blue" size="sm">
+              <IconShare />
+            </TileIcon>
+            <span className="menu-mini-label">9. 지인에게 이 사이트 알리기</span>
+          </button>
+          <a
+            className="menu-mini menu-mini-company"
+            href={COMPANY_HOME}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <TileIcon tone="violet" size="sm">
+              <IconCompany />
+            </TileIcon>
+            <span className="menu-mini-label">10. 제작회사 홈페이지 입장하기</span>
+          </a>
+        </div>
       </nav>
 
       <GuardianGate
@@ -883,10 +983,11 @@ export function LivingRoomHome({
           아이 혼자 구독·구매로 넘어가지 않도록, 보호자가 확인한 뒤에만
           이어가요.
         </p>
-        {guardianFor === "goods" ? (
+        {guardianFor === "goods" || guardianFor === "emoticon" ? (
           <p className="muted tiny">
-            상품 화면에서도 결제가 없으면 상태만 보여 주고, 가짜 결제 완료는
-            없어요.
+            {guardianFor === "emoticon"
+              ? "이모티콘 구매·선물은 아직 준비 중일 수 있어요. 안내 화면으로만 가요. 가짜 결제 완료는 없어요."
+              : "상품 화면에서도 결제가 없으면 상태만 보여 주고, 가짜 결제 완료는 없어요."}
           </p>
         ) : (
           <p className="muted tiny">
