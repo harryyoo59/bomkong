@@ -2051,21 +2051,26 @@ label.form-row textarea {
 }
 
 /* —— Mobile/desktop 2×2 menu under living room (mockup v3) —— */
+/* 로비 메뉴: 같은 크기 4칸 (2×2) */
 .living-menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: minmax(132px, 1fr) minmax(132px, 1fr);
+  grid-template-rows: 1fr 1fr;
   gap: 10px;
   width: 100%;
   flex: 1 1 auto;
   min-height: 280px;
   align-items: stretch;
+  justify-items: stretch;
 }
 
 .living-menu-grid > .menu-tile,
 .living-menu-grid > .menu-tile-cluster {
+  width: 100%;
   height: 100%;
+  min-width: 0;
   min-height: 0;
+  box-sizing: border-box;
 }
 
 .menu-tile {
@@ -2115,14 +2120,16 @@ label.form-row textarea {
   border-color: #8dcf9f;
 }
 
-/* 로비: 구독·상품을 1번과 같은 칸 크기로 꽉 채움 */
+/* 2번째 칸: 위 2번 · 아래 3번으로 반 갈라 채움 */
 .menu-tile-shop-cluster {
+  display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr;
-  gap: 10px;
-  height: 100%;
-  min-height: 0;
-  align-self: stretch;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .menu-tile-shop-cluster .menu-mini {
@@ -2131,22 +2138,29 @@ label.form-row textarea {
   min-height: 0;
   border-radius: 18px;
   border-width: 2px;
-  padding: 14px 10px 12px;
-  gap: 10px;
+  padding: 10px 8px;
+  gap: 6px;
 }
 
 .menu-tile-shop-cluster .menu-mini-label {
-  font-size: clamp(0.95rem, 3.4vw, 1.15rem);
+  font-size: clamp(0.85rem, 3vw, 1.05rem);
 }
 
 .menu-tile-shop-cluster .menu-tile-icon.is-sm {
-  width: clamp(56px, 16vw, 72px);
-  height: clamp(56px, 16vw, 72px);
+  width: clamp(40px, 11vw, 56px);
+  height: clamp(40px, 11vw, 56px);
 }
 
 .menu-tile-shop-cluster .menu-tile-icon.is-sm svg {
   width: 54%;
   height: 54%;
+}
+
+.menu-tile-more-cluster,
+.menu-tile-invite-cluster {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
 }
 
 .menu-mini-subscribe {
