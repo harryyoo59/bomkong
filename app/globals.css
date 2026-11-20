@@ -2136,9 +2136,22 @@ label.form-row textarea {
   box-shadow: none;
 }
 
-/* 댓글·의견·유튜브 칸: 구독·상품 아래 가로로 길게 */
-.living-menu-grid > .menu-tile-more-cluster {
-  grid-column: 1 / -1;
+/* 로비 네 번째 칸: 이모티콘·알리기·제작회사 세 줄 */
+.menu-tile-invite-cluster {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+.menu-tile-invite-cluster .menu-mini {
+  flex-direction: row;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+}
+
+.menu-tile-invite-cluster .menu-mini-label {
+  text-align: left;
+  font-size: clamp(0.58rem, 2.2vw, 0.72rem);
 }
 
 .menu-tile-label {
@@ -2246,6 +2259,21 @@ label.form-row textarea {
 }
 
 .menu-mini-youtube-en {
+  background: #e4e0ff;
+  border-color: #b4aef0;
+}
+
+.menu-mini-emoticon {
+  background: #ffe0f0;
+  border-color: #f0a8c8;
+}
+
+.menu-mini-share {
+  background: #d9f0ff;
+  border-color: #8ec8ef;
+}
+
+.menu-mini-company {
   background: #e4e0ff;
   border-color: #b4aef0;
 }
