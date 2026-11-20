@@ -16,6 +16,7 @@ import { ParentLobbyAuthButton } from "@/components/ParentLobbyAuthButton";
 import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
 import { getMediaPreview } from "@/lib/media-preview-store";
 import {
+  YOUTUBE_CHANNEL_BY_LANG,
   buildYoutubePlayQueueUrl,
   extractYoutubeVideoId,
   getWatchItemById,
@@ -160,17 +161,6 @@ function IconYoutube({ className }: { className?: string }) {
   );
 }
 
-function IconCompany({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 2.6 3 7v2h18V7l-9-4.4zM5 11v9h4v-6h6v6h4v-9H5zm6 9v-4h2v4h-2z"
-      />
-    </svg>
-  );
-}
-
 function TileIcon({
   tone,
   children,
@@ -209,7 +199,9 @@ export function LivingRoomHome({
   const [beatIndex, setBeatIndex] = useState(0);
   const [knockPending, setKnockPending] = useState(false);
   const captionId = useId();
-  const youtubeUrl = youtubeChannelUrl?.trim() || null;
+  const youtubeKoUrl =
+    youtubeChannelUrl?.trim() || YOUTUBE_CHANNEL_BY_LANG.ko;
+  const youtubeEnUrl = YOUTUBE_CHANNEL_BY_LANG.en;
   const beat = LIVING_ROOM_BEATS[beatIndex] ?? LIVING_ROOM_BEATS[0];
   const storyTarget: LivingStoryTarget = beat.target;
   const beatCount = LIVING_ROOM_BEATS.length;
@@ -819,7 +811,11 @@ export function LivingRoomHome({
           </button>
         </div>
 
-        <div className="menu-tile menu-tile-cluster" role="group" aria-label="더 보기">
+        <div
+          className="menu-tile menu-tile-cluster menu-tile-more-cluster"
+          role="group"
+          aria-label="댓글·의견·유튜브"
+        >
           <Link
             href="/comments"
             className="menu-mini menu-mini-comment"
@@ -828,7 +824,7 @@ export function LivingRoomHome({
             <TileIcon tone="pink" size="sm">
               <IconComment />
             </TileIcon>
-            <span className="menu-mini-label">댓글 쓰기</span>
+            <span className="menu-mini-label">4. 댓글 쓰기</span>
           </Link>
 
           <Link
@@ -842,43 +838,28 @@ export function LivingRoomHome({
             <span className="menu-mini-label">5. 관리자에게 의견 보내기</span>
           </Link>
 
-          {youtubeUrl ? (
-            <a
-              className="menu-mini menu-mini-youtube"
-              href={youtubeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <TileIcon tone="coral" size="sm">
-                <IconYoutube />
-              </TileIcon>
-              <span className="menu-mini-label">6. 유튜브 계정으로 들어가기</span>
-            </a>
-          ) : (
-            <button
-              type="button"
-              className="menu-mini menu-mini-youtube is-pending"
-              disabled
-              aria-disabled="true"
-              title="유튜브 주소는 아직 준비 중이에요"
-            >
-              <TileIcon tone="coral" size="sm">
-                <IconYoutube />
-              </TileIcon>
-              <span className="menu-mini-label">6. 유튜브 · 준비 중</span>
-            </button>
-          )}
+          <a
+            className="menu-mini menu-mini-youtube"
+            href={youtubeKoUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <TileIcon tone="coral" size="sm">
+              <IconYoutube />
+            </TileIcon>
+            <span className="menu-mini-label">6. 유튜브 한국어 계정</span>
+          </a>
 
           <a
-            className="menu-mini menu-mini-company"
-            href={COMPANY_HOME}
+            className="menu-mini menu-mini-youtube-en"
+            href={youtubeEnUrl}
             target="_blank"
             rel="noopener noreferrer"
           >
             <TileIcon tone="violet" size="sm">
-              <IconCompany />
+              <IconYoutube />
             </TileIcon>
-            <span className="menu-mini-label">7. 제작회사 홈페이지 입장하기</span>
+            <span className="menu-mini-label">7. 유튜브 영어 계정</span>
           </a>
         </div>
       </nav>
