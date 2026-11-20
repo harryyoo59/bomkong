@@ -32,6 +32,7 @@ import {
   type WatchProgress,
 } from "@/lib/watch-progress";
 import { readWatchResume } from "@/lib/watch-resume";
+import { shareSiteViaKakao } from "@/lib/kakao-share";
 import {
   LIVING_ROOM_BEATS,
   type LivingStoryTarget,
@@ -661,25 +662,13 @@ export function LivingRoomHome({
     setShareOpen(false);
   }, [sharePhone]);
 
-  const shareViaOtherApps = useCallback(async () => {
-    const url = siteShareUrl();
-    const title = "봄이콩이";
-    const text = SHARE_SITE_TEXT;
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title, text, url });
-        setShareOpen(false);
-        return;
-      }
-    } catch {
-      /* 공유 창을 닫은 경우 등 */
+  const shareViaKakao = useCallback(async () => {
+    const note = await shareSiteViaKakao(siteShareUrl(), SHARE_SITE_TEXT);
+    if (note) {
+      setShareNote(note);
+      return;
     }
-    try {
-      await navigator.clipboard.writeText(url);
-      setShareNote("주소를 복사했어요. 지인에게 붙여 넣어 주세요.");
-    } catch {
-      setShareNote(`이 주소를 복사해 주세요: ${url}`);
-    }
+    setShareOpen(false);
   }, []);
 
   const showPosterOnly = reduceMotion || !playing;
@@ -1050,9 +1039,9 @@ export function LivingRoomHome({
                   어떻게 보낼까요?
                 </h2>
                 <div className="guardian-body">
-                  <p>전화 문자로 보내거나, 다른 앱으로도 알릴 수 있어요.</p>
+                  <p>카카오톡이나 전화 문자로만 알릴 수 있어요.</p>
                   <label className="lobby-share-phone-label">
-                    전화번호
+                    전화번호 (문자용)
                     <input
                       className="lobby-share-phone-input"
                       type="tel"
@@ -1072,8 +1061,8 @@ export function LivingRoomHome({
                     </p>
                   ) : (
                     <p className="muted tiny">
-                      번호를 넣고 「문자로 보내기」를 누르면 문자 앱이 열려요.
-                      번호를 비워도 문자 앱은 열립니다.
+                      「카카오톡으로」또는 번호를 넣고 「문자로 보내기」를
+                      눌러 주세요. 번호 없이도 문자 앱은 열립니다.
                     </p>
                   )}
                 </div>
@@ -1088,9 +1077,9 @@ export function LivingRoomHome({
                   <button
                     type="button"
                     className="btn btn-soft"
-                    onClick={() => void shareViaOtherApps()}
+                    onClick={() => void shareViaKakao()}
                   >
-                    다른 앱으로
+                    카카오톡으로
                   </button>
                   <button
                     type="button"
