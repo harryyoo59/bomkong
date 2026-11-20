@@ -18,6 +18,13 @@ export const metadata: Metadata = {
   title: "봄이콩이 | BomKong",
   description:
     "한국어 보고 같은 편 영어, 이어서 다음 한국어. 봄이콩이 시청 사이트 뼈대.",
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png", sizes: "512x512" },
+      { url: "/favicon.png", type: "image/png", sizes: "48x48" },
+    ],
+    apple: [{ url: "/apple-icon.png", type: "image/png", sizes: "180x180" }],
+  },
 };
 
 export default function RootLayout({
