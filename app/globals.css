@@ -2108,6 +2108,22 @@ label.form-row textarea {
   border-color: #8dcf9f;
 }
 
+/* 로비: 구독·상품을 한 칸에 위·아래로 */
+.menu-tile-shop-cluster {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.menu-mini-subscribe {
+  background: #d9f0ff;
+  border-color: #8ec8ef;
+}
+
+.menu-mini-goods {
+  background: #dff5e6;
+  border-color: #8dcf9f;
+}
+
 .menu-tile-cluster {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2118,6 +2134,11 @@ label.form-row textarea {
   background: transparent;
   cursor: default;
   box-shadow: none;
+}
+
+/* 구독·상품 칸 아래: 더보기 칸이 가로로 길게 */
+.living-menu-grid > .menu-tile-cluster:not(.menu-tile-shop-cluster) {
+  grid-column: 1 / -1;
 }
 
 .menu-tile-label {

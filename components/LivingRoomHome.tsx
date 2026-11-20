@@ -792,27 +792,32 @@ export function LivingRoomHome({
           <span className="menu-tile-label">1. 영상보기</span>
         </button>
 
-        <button
-          type="button"
-          className="menu-tile menu-tile-subscribe"
-          onClick={() => goFrame("subscribe")}
+        <div
+          className="menu-tile menu-tile-cluster menu-tile-shop-cluster"
+          role="group"
+          aria-label="구독·상품"
         >
-          <TileIcon tone="blue">
-            <IconBell />
-          </TileIcon>
-          <span className="menu-tile-label">2. 구독하기</span>
-        </button>
-
-        <button
-          type="button"
-          className="menu-tile menu-tile-goods"
-          onClick={() => goFrame("goods")}
-        >
-          <TileIcon tone="green">
-            <IconBag />
-          </TileIcon>
-          <span className="menu-tile-label">3. 상품구매</span>
-        </button>
+          <button
+            type="button"
+            className="menu-mini menu-mini-subscribe"
+            onClick={() => goFrame("subscribe")}
+          >
+            <TileIcon tone="blue" size="sm">
+              <IconBell />
+            </TileIcon>
+            <span className="menu-mini-label">2. 구독하기</span>
+          </button>
+          <button
+            type="button"
+            className="menu-mini menu-mini-goods"
+            onClick={() => goFrame("goods")}
+          >
+            <TileIcon tone="green" size="sm">
+              <IconBag />
+            </TileIcon>
+            <span className="menu-mini-label">3. 상품구매</span>
+          </button>
+        </div>
 
         <div className="menu-tile menu-tile-cluster" role="group" aria-label="더 보기">
           <Link
