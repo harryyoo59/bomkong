@@ -1039,7 +1039,7 @@ export function LivingRoomHome({
                   어떻게 보낼까요?
                 </h2>
                 <div className="guardian-body">
-                  <p>카카오톡이나 전화 문자로만 알릴 수 있어요.</p>
+                  <p>폰에 저장된 전화번호나 카카오톡으로보낼수 있어요</p>
                   <label className="lobby-share-phone-label">
                     전화번호 (문자용)
                     <input
