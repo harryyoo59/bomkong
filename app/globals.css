@@ -863,7 +863,44 @@ span.btn.is-disabled {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+  width: 100%;
+  max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+}
+
+/* 편 번호(숫자칸) 등이 카드 밖으로 삐져나오지 않게 */
+.form-row > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.admin-ep-item .form-row,
+.admin-ep-main .form-row {
+  width: 100%;
+  max-width: 100%;
+}
+
+.admin-ep-main input,
+.admin-ep-main select,
+.admin-ep-main textarea,
+.admin-inline-youtube input {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 /* Comments + mailbox: label above full-width control (label.form-row). */
