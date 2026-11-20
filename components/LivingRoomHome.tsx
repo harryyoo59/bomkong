@@ -10,6 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { createPortal } from "react-dom";
 import { enterAdminByKnock } from "@/app/admin/actions";
 import { GuardianGate } from "@/components/GuardianGate";
 import { ParentLobbyAuthButton } from "@/components/ParentLobbyAuthButton";
@@ -31,6 +32,7 @@ import {
   type WatchProgress,
 } from "@/lib/watch-progress";
 import { readWatchResume } from "@/lib/watch-resume";
+import { shareSiteViaKakao } from "@/lib/kakao-share";
 import {
   LIVING_ROOM_BEATS,
   type LivingStoryTarget,
@@ -99,6 +101,33 @@ const MENUS: {
 const FRAME_MENUS: LivingMenuId[] = ["watch", "subscribe", "goods"];
 
 const COMPANY_HOME = "https://chamzoneinteractive.vercel.app/";
+const SHARE_SITE_URL = "https://www.bom-kong.com";
+const SHARE_SITE_TEXT = "봄이콩이 사이트 구경해 보세요";
+
+function siteShareUrl() {
+  if (typeof window === "undefined") return SHARE_SITE_URL;
+  return window.location.origin || SHARE_SITE_URL;
+}
+
+function siteShareMessage() {
+  return `${SHARE_SITE_TEXT}\n${siteShareUrl()}`;
+}
+
+/** 전화 문자 앱 열기 (번호 없으면 문자 앱만 열고 본문만 채움) */
+function openSmsToFriend(phoneRaw: string) {
+  const phone = phoneRaw.replace(/[^\d+]/g, "");
+  const body = encodeURIComponent(siteShareMessage());
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+  const isIos = /iPhone|iPad|iPod/i.test(ua);
+  const href = phone
+    ? isIos
+      ? `sms:${phone}&body=${body}`
+      : `sms:${phone}?body=${body}`
+    : isIos
+      ? `sms:&body=${body}`
+      : `sms:?body=${body}`;
+  window.location.href = href;
+}
 
 function menuById(id: LivingMenuId) {
   return MENUS.find((m) => m.id === id)!;
@@ -237,6 +266,9 @@ export function LivingRoomHome({
   });
   const [beatIndex, setBeatIndex] = useState(0);
   const [knockPending, setKnockPending] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [sharePhone, setSharePhone] = useState("");
+  const [shareNote, setShareNote] = useState<string | null>(null);
   const captionId = useId();
   const youtubeKoUrl =
     youtubeChannelUrl?.trim() || YOUTUBE_CHANNEL_BY_LANG.ko;
@@ -619,27 +651,24 @@ export function LivingRoomHome({
     }
   };
 
-  const shareSite = useCallback(async () => {
-    const url =
-      typeof window !== "undefined"
-        ? window.location.origin
-        : "https://www.bom-kong.com";
-    const title = "봄이콩이";
-    const text = "봄이콩이 사이트 구경해 보세요";
-    try {
-      if (typeof navigator !== "undefined" && navigator.share) {
-        await navigator.share({ title, text, url });
-        return;
-      }
-    } catch {
-      /* 공유 창을 닫은 경우 등 */
+  const openSharePanel = useCallback(() => {
+    setSharePhone("");
+    setShareNote(null);
+    setShareOpen(true);
+  }, []);
+
+  const sendShareSms = useCallback(() => {
+    openSmsToFriend(sharePhone.trim());
+    setShareOpen(false);
+  }, [sharePhone]);
+
+  const shareViaKakao = useCallback(async () => {
+    const note = await shareSiteViaKakao(siteShareUrl(), SHARE_SITE_TEXT);
+    if (note) {
+      setShareNote(note);
+      return;
     }
-    try {
-      await navigator.clipboard.writeText(url);
-      window.alert("주소를 복사했어요. 지인에게 붙여 넣어 주세요.");
-    } catch {
-      window.prompt("이 주소를 복사해 지인에게 보내 주세요", url);
-    }
+    setShareOpen(false);
   }, []);
 
   const showPosterOnly = reduceMotion || !playing;
@@ -943,7 +972,7 @@ export function LivingRoomHome({
           <button
             type="button"
             className="menu-mini menu-mini-share"
-            onClick={() => void shareSite()}
+            onClick={openSharePanel}
           >
             <TileIcon tone="blue" size="sm">
               <IconShare />
@@ -995,6 +1024,76 @@ export function LivingRoomHome({
           </p>
         )}
       </GuardianGate>
+
+      {shareOpen && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="guardian-backdrop"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="lobby-share-title"
+            >
+              <div className="guardian-card lobby-share-card">
+                <p className="eyebrow">지인에게 알리기</p>
+                <h2 id="lobby-share-title" className="section-title">
+                  어떻게 보낼까요?
+                </h2>
+                <div className="guardian-body">
+                  <p>카카오톡이나 전화 문자로만 알릴 수 있어요.</p>
+                  <label className="lobby-share-phone-label">
+                    전화번호 (문자용)
+                    <input
+                      className="lobby-share-phone-input"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="예: 0412 345 678"
+                      value={sharePhone}
+                      onChange={(e) => {
+                        setSharePhone(e.target.value);
+                        setShareNote(null);
+                      }}
+                    />
+                  </label>
+                  {shareNote ? (
+                    <p className="muted tiny" role="status">
+                      {shareNote}
+                    </p>
+                  ) : (
+                    <p className="muted tiny">
+                      「카카오톡으로」또는 번호를 넣고 「문자로 보내기」를
+                      눌러 주세요. 번호 없이도 문자 앱은 열립니다.
+                    </p>
+                  )}
+                </div>
+                <div className="guardian-actions lobby-share-actions">
+                  <button
+                    type="button"
+                    className="btn btn-soft"
+                    onClick={() => setShareOpen(false)}
+                  >
+                    닫기
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-soft"
+                    onClick={() => void shareViaKakao()}
+                  >
+                    카카오톡으로
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={sendShareSms}
+                  >
+                    문자로 보내기
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }
