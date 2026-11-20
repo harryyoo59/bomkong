@@ -431,14 +431,15 @@ span.btn.is-disabled {
   box-shadow: var(--shadow);
 }
 
-/* 거실 영상보기: 「유튜브에서 보기」 옆 작은 캡쳐(유튜브 썸네일). Shorts도 칸에 맞게 자름 */
+/* 거실 영상보기: 「유튜브에서 보기」 옆 작은 캡쳐 — 양옆 안 자르고 전체 화면 비율로 */
 .ep-thumb {
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
+  flex: 0 0 auto;
+  width: 88px;
+  aspect-ratio: 16 / 9;
+  height: auto;
   border-radius: 8px;
   overflow: hidden;
-  background: #e8eef2;
+  background: #102028;
   border: 1px solid var(--line);
   display: inline-block;
   vertical-align: middle;
@@ -447,7 +448,7 @@ span.btn.is-disabled {
 .ep-thumb-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
   display: block;
 }
