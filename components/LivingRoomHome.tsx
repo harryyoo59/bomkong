@@ -1041,7 +1041,7 @@ export function LivingRoomHome({
                 <div className="guardian-body">
                   <p>폰에 저장된 전화번호나 카카오톡으로보낼수 있어요</p>
                   <label className="lobby-share-phone-label">
-                    전화번호 (문자용)
+                    새로운 전화 번호
                     <input
                       className="lobby-share-phone-input"
                       type="tel"
