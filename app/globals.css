@@ -2120,42 +2120,6 @@ label.form-row textarea {
   border-color: #8dcf9f;
 }
 
-/* 2번째 칸: 위 2번 · 아래 3번으로 반 갈라 채움 */
-.menu-tile-shop-cluster {
-  display: grid;
-  grid-template-columns: 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 6px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-}
-
-.menu-tile-shop-cluster .menu-mini {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-  border-radius: 18px;
-  border-width: 2px;
-  padding: 10px 8px;
-  gap: 6px;
-}
-
-.menu-tile-shop-cluster .menu-mini-label {
-  font-size: clamp(0.85rem, 3vw, 1.05rem);
-}
-
-.menu-tile-shop-cluster .menu-tile-icon.is-sm {
-  width: clamp(40px, 11vw, 56px);
-  height: clamp(40px, 11vw, 56px);
-}
-
-.menu-tile-shop-cluster .menu-tile-icon.is-sm svg {
-  width: 54%;
-  height: 54%;
-}
-
 .menu-mini-subscribe {
   background: #d9f0ff;
   border-color: #8ec8ef;
@@ -2176,6 +2140,42 @@ label.form-row textarea {
   background: transparent;
   cursor: default;
   box-shadow: none;
+}
+
+/* 2번째 칸: 한 칸 안에서 위 구독 · 아래 상품 (반드시 위·아래) */
+.menu-tile-cluster.menu-tile-shop-cluster {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.menu-tile-cluster.menu-tile-shop-cluster .menu-mini {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border-radius: 18px;
+  border-width: 2px;
+  padding: 10px 8px;
+  gap: 6px;
+}
+
+.menu-tile-cluster.menu-tile-shop-cluster .menu-mini-label {
+  font-size: clamp(0.85rem, 3vw, 1.05rem);
+}
+
+.menu-tile-cluster.menu-tile-shop-cluster .menu-tile-icon.is-sm {
+  width: clamp(40px, 11vw, 56px);
+  height: clamp(40px, 11vw, 56px);
+}
+
+.menu-tile-cluster.menu-tile-shop-cluster .menu-tile-icon.is-sm svg {
+  width: 54%;
+  height: 54%;
 }
 
 /* 3번째 칸: 같은 크기 4등분 · 4·5·6·7 */
