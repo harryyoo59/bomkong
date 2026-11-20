@@ -431,11 +431,11 @@ span.btn.is-disabled {
   box-shadow: var(--shadow);
 }
 
-/* 거실 영상보기: 「유튜브에서 보기」 옆 작은 캡쳐 — 양옆 안 자르고 전체 화면 비율로 */
+/* 거실 영상보기: 「유튜브에서 보기」 옆 작은 캡쳐 — 양옆 검정 띠 없이 칸 꽉 채움(쇼츠) */
 .ep-thumb {
   flex: 0 0 auto;
-  width: 88px;
-  aspect-ratio: 16 / 9;
+  width: 52px;
+  aspect-ratio: 9 / 16;
   height: auto;
   border-radius: 8px;
   overflow: hidden;
@@ -448,7 +448,7 @@ span.btn.is-disabled {
 .ep-thumb-image {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   display: block;
 }
