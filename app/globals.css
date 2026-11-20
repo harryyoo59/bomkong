@@ -2435,6 +2435,32 @@ label.form-row textarea {
   flex-wrap: wrap;
 }
 
+.lobby-share-card .lobby-share-phone-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.lobby-share-phone-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.lobby-share-actions {
+  justify-content: stretch;
+}
+
+.lobby-share-actions .btn {
+  flex: 1 1 auto;
+}
+
 .admin-gate {
   min-height: 100vh;
   display: grid;
