@@ -11,6 +11,10 @@ import {
 } from "@/lib/media-preview-store";
 import { askShareBossLock } from "@/lib/share-boss-lock-client";
 import {
+  publishWatchPreviewForItem,
+  watchItemPreviewRemoteUrl,
+} from "@/lib/watch-preview-client";
+import {
   fetchWatchMediaFromServer,
   findWatchSlot,
   makeWatchId,
@@ -323,15 +327,23 @@ export function WatchVideoRoom() {
       lang,
     };
     let previewOk = true;
+    let cloudOk = false;
+    let savedItem = item;
     if (pendingFile) {
       try {
         await saveMediaPreview(item.id, pendingFile, "video");
+        try {
+          savedItem = await publishWatchPreviewForItem(item);
+          cloudOk = Boolean(savedItem.previewStoragePath);
+        } catch {
+          cloudOk = false;
+        }
       } catch {
         previewOk = false;
       }
     }
     // 나중에 넣은 것은 뒤로 — 번호 순으로 정렬해 저장
-    const next = sortWatchItemsForPlay([...items, item]);
+    const next = sortWatchItemsForPlay([...items, savedItem]);
     await persist(next);
     if (pendingFile) {
       setPreviewTicks((prev) => ({
@@ -339,13 +351,15 @@ export function WatchVideoRoom() {
         [item.id]: (prev[item.id] ?? 0) + 1,
       }));
     }
-    const slot = watchSlotLabel(item);
+    const slot = watchSlotLabel(savedItem);
     setMessage(
       pendingFile
         ? previewOk
-          ? `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소는 아래에서 직접 넣어 주세요. 옆에 관리용 미리보기도 있어요.`
+          ? cloudOk
+            ? `「${savedItem.title}」(${slot})을(를) 영상보기 방에 넣었어요. 미리보기는 인터넷에도 올려 두었어요. 유튜브 주소는 아래에서 직접 넣어 주세요.`
+            : `「${savedItem.title}」(${slot})을(를) 영상보기 방에 넣었어요. 이 기기 미리보기는 있어요. 인터넷 올리기는 나중에 「미리보기 파일 넣기」로 다시 해 주세요.`
           : `제목은 넣었어요(${slot}). 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요. 유튜브 주소도 아래에서 넣어 주세요.`
-        : `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소는 아래에서 직접 넣어 주세요.`,
+        : `「${savedItem.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소는 아래에서 직접 넣어 주세요.`,
     );
     setTitle("");
     setPendingFile(null);
@@ -639,11 +653,15 @@ export function WatchVideoRoom() {
                       kindHint="video"
                       label={item.title}
                       refreshToken={previewTicks[item.id] ?? 0}
+                      remoteUrl={watchItemPreviewRemoteUrl(item) || undefined}
                     />
                     <div>
                       <p className="tiny muted">{slot}</p>
-                      {item.name ? (
-                        <p className="tiny muted">파일 · {item.name}</p>
+                      {item.name || item.previewStoragePath ? (
+                        <p className="tiny muted">
+                          파일 · {item.name || "인터넷 미리보기"}
+                          {item.previewStoragePath ? " · 인터넷에도 있음" : ""}
+                        </p>
                       ) : (
                         <p className="tiny muted">미리보기 파일 없음</p>
                       )}
@@ -664,6 +682,19 @@ export function WatchVideoRoom() {
                         kindHint="video"
                         accept="video/*"
                         onMessage={setMessage}
+                        onAfterLocalSave={async (id) => {
+                          const latest = readWatchMediaStore().items;
+                          const current = latest.find((it) => it.id === id);
+                          if (!current) return;
+                          const uploaded =
+                            await publishWatchPreviewForItem(current);
+                          const next = sortWatchItemsForPlay(
+                            latest.map((it) =>
+                              it.id === id ? uploaded : it,
+                            ),
+                          );
+                          await persist(next);
+                        }}
                         onAttached={() =>
                           setPreviewTicks((prev) => ({
                             ...prev,

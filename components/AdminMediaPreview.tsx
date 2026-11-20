@@ -59,11 +59,13 @@ export function AdminMediaPreview({
       if (!record) {
         const fallback = remoteUrl?.trim();
         if (fallback) {
+          const kind = kindHint || "photo";
           setState({
             status: "ready",
             mediaUrl: fallback,
-            thumbUrl: fallback,
-            kind: kindHint || "photo",
+            // 동영상은 섬네일 그림이 없으니 video 태그로 첫 장면 보여 줌
+            thumbUrl: kind === "video" ? null : fallback,
+            kind,
           });
           return;
         }
