@@ -1973,9 +1973,39 @@ label.form-row textarea {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 8px 16px;
   padding: 0 4px;
+}
+
+.living-chrome-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.living-login {
+  min-width: 4.5rem;
+  text-align: center;
+}
+
+.parent-login {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.parent-login-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.parent-login-rule {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 4px 0;
 }
 
 .living-caption {

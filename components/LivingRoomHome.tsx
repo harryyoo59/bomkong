@@ -12,6 +12,7 @@ import {
 } from "react";
 import { enterAdminByKnock } from "@/app/admin/actions";
 import { GuardianGate } from "@/components/GuardianGate";
+import { ParentLobbyAuthButton } from "@/components/ParentLobbyAuthButton";
 import { PLACEHOLDER_VIDEO } from "@/lib/episodes";
 import { getMediaPreview } from "@/lib/media-preview-store";
 import {
@@ -751,6 +752,9 @@ export function LivingRoomHome({
       </div>
 
       <div className="living-chrome">
+        <div className="living-chrome-left">
+          <ParentLobbyAuthButton />
+        </div>
         <p id={captionId} className="living-caption visually-hidden">
           로비 안내 이야기
         </p>
