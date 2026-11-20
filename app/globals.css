@@ -2156,13 +2156,6 @@ label.form-row textarea {
   height: 54%;
 }
 
-.menu-tile-more-cluster,
-.menu-tile-invite-cluster {
-  width: 100%;
-  height: 100%;
-  min-height: 0;
-}
-
 .menu-mini-subscribe {
   background: #d9f0ff;
   border-color: #8ec8ef;
@@ -2185,8 +2178,46 @@ label.form-row textarea {
   box-shadow: none;
 }
 
+/* 3번째 칸: 같은 크기 4등분 · 4·5·6·7 */
+.menu-tile-more-cluster {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.menu-tile-more-cluster .menu-mini {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  border-radius: 14px;
+  border-width: 2px;
+  padding: 6px 4px;
+  gap: 4px;
+}
+
+.menu-tile-more-cluster .menu-mini-label {
+  font-size: clamp(0.55rem, 2.1vw, 0.7rem);
+}
+
+.menu-tile-more-cluster .menu-tile-icon.is-sm {
+  width: clamp(26px, 7vw, 34px);
+  height: clamp(26px, 7vw, 34px);
+}
+
 /* 로비 네 번째 칸: 이모티콘·알리기·제작회사 세 줄 */
 .menu-tile-invite-cluster {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   grid-template-columns: 1fr;
   grid-template-rows: 1fr 1fr 1fr;
 }
