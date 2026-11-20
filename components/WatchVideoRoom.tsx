@@ -552,7 +552,7 @@ export function WatchVideoRoom() {
             : `(번호 입력)-${lang}`}
           {lang === "en"
             ? " (같은 편 한국어와 짝)"
-            : " (다음 영어는 같은 번호로 이어져요)"}
+            : " (기본은 마지막 다음 번호 · 한국어)"}
         </p>
 
         <p className="tiny muted">

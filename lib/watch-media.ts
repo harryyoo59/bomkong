@@ -133,58 +133,25 @@ export function suggestNextEpisodeNumberForLang(
 
 /**
  * 다음에 넣을 자리 추천.
- * - 영어만 있는 편이 있으면 → 그 번호의 한국어 (영어 먼저 넣어도 짝을 맞춤)
- * - 한국어만 있는 편이 있으면 → 그 번호의 영어 (1-ko 다음엔 1-en)
- * - 없으면 → 새 번호의 한국어
+ * 마지막 편 번호 다음 + 한국어 (영어 짝 채우기로 0-en에 멈추지 않음).
+ * 영어가 필요하면 사장님이 언어만 바꾸면 됨.
  */
 export function suggestNextWatchSlot(items: WatchItem[]): {
   episodeNumber: number;
   lang: WatchLang;
 } {
   const ordered = sortWatchItemsForPlay(items);
-  const numbers = [
-    ...new Set(ordered.map((it) => it.episodeNumber)),
-  ].sort((a, b) => a - b);
-
-  for (const n of numbers) {
-    const hasKo = Boolean(findWatchSlot(ordered, n, "ko"));
-    const hasEn = Boolean(findWatchSlot(ordered, n, "en"));
-    if (hasEn && !hasKo) {
-      return { episodeNumber: n, lang: "ko" };
-    }
-  }
-
-  for (const n of numbers) {
-    const hasKo = Boolean(findWatchSlot(ordered, n, "ko"));
-    const hasEn = Boolean(findWatchSlot(ordered, n, "en"));
-    if (hasKo && !hasEn) {
-      return { episodeNumber: n, lang: "en" };
-    }
-  }
-
   return {
     episodeNumber: suggestNextEpisodeNumber(ordered),
     lang: "ko",
   };
 }
 
-/** 방금 넣은 항목 다음에 무엇을 넣을지 (같은 편 짝 맞추기) */
+/** 방금 넣은 뒤에도 항상 「마지막 다음 번호 · 한국어」 */
 export function suggestWatchSlotAfterAdd(
   items: WatchItem[],
-  justAdded: Pick<WatchItem, "episodeNumber" | "lang">,
+  _justAdded: Pick<WatchItem, "episodeNumber" | "lang">,
 ): { episodeNumber: number; lang: WatchLang } {
-  if (
-    justAdded.lang === "ko" &&
-    !findWatchSlot(items, justAdded.episodeNumber, "en")
-  ) {
-    return { episodeNumber: justAdded.episodeNumber, lang: "en" };
-  }
-  if (
-    justAdded.lang === "en" &&
-    !findWatchSlot(items, justAdded.episodeNumber, "ko")
-  ) {
-    return { episodeNumber: justAdded.episodeNumber, lang: "ko" };
-  }
   return suggestNextWatchSlot(items);
 }
 
