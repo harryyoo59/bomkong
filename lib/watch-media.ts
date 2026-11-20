@@ -290,6 +290,13 @@ export function hasPlayableYoutubeUrl(raw: string): boolean {
   return Boolean(extractYoutubeVideoId(raw));
 }
 
+/** 로비·관리실 옆 작은 화면용 유튜브 캡쳐 주소 */
+export function watchYoutubeThumbUrl(youtubeUrl: string): string | null {
+  const ytId = extractYoutubeVideoId(youtubeUrl);
+  if (!ytId) return null;
+  return `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
+}
+
 /**
  * 지금 영상부터 재생 순서대로 유튜브 아이디 목록.
  * 1-ko → 1-en → 2-ko … (주소 없는 칸은 건너뜀)
