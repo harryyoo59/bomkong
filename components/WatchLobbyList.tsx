@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { WatchYoutubeCapture } from "@/components/WatchYoutubeCapture";
 import {
   buildYoutubePlayQueueUrl,
-  extractYoutubeVideoId,
   hasPlayableYoutubeUrl,
   openYoutubePlayQueue,
   syncWatchMediaWithServer,
@@ -15,12 +15,6 @@ import {
   readWatchResume,
   writeWatchResume,
 } from "@/lib/watch-resume";
-
-function youtubeThumbUrl(item: WatchItem): string | null {
-  const ytId = extractYoutubeVideoId(item.youtubeUrl);
-  if (!ytId) return null;
-  return `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg`;
-}
 
 export function WatchLobbyList() {
   const [items, setItems] = useState<WatchItem[]>([]);
@@ -88,7 +82,6 @@ export function WatchLobbyList() {
             queueUrl && hasPlayableYoutubeUrl(item.youtubeUrl),
           );
           const slot = watchSlotLabel(item);
-          const thumb = youtubeThumbUrl(item);
           return (
             <li
               key={item.id}
@@ -140,23 +133,7 @@ export function WatchLobbyList() {
                     유튜브 주소 없음
                   </span>
                 )}
-                <span
-                  className="ep-thumb"
-                  aria-hidden={thumb ? undefined : true}
-                >
-                  {thumb ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      className="ep-thumb-image"
-                      src={thumb}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
-                  ) : (
-                    <span className="ep-thumb-empty" />
-                  )}
-                </span>
+                <WatchYoutubeCapture youtubeUrl={item.youtubeUrl} />
               </div>
             </li>
           );

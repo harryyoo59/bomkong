@@ -3,17 +3,8 @@
 import { useEffect, useState } from "react";
 import { publishWatchCatalogAction } from "@/app/admin/watch/actions";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
-import { AdminMediaPreview } from "@/components/AdminMediaPreview";
-import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
-import {
-  deleteMediaPreview,
-  saveMediaPreview,
-} from "@/lib/media-preview-store";
+import { WatchYoutubeCapture } from "@/components/WatchYoutubeCapture";
 import { askShareBossLock } from "@/lib/share-boss-lock-client";
-import {
-  publishWatchPreviewForItem,
-  watchItemPreviewRemoteUrl,
-} from "@/lib/watch-preview-client";
 import {
   fetchWatchMediaFromServer,
   findWatchSlot,
@@ -68,8 +59,6 @@ export function WatchVideoRoom() {
   /** 글자로 둬서 지울 때 빈칸이 되게 함 (숫자면 지우자마자 1로 고정됨) */
   const [episodeNumberText, setEpisodeNumberText] = useState("0");
   const [lang, setLang] = useState<WatchLang>("ko");
-  const [fileLabel, setFileLabel] = useState("");
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [message, setMessage] = useState("");
   const [copyMessage, setCopyMessage] = useState("");
   const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
@@ -79,9 +68,6 @@ export function WatchVideoRoom() {
   const [editSlots, setEditSlots] = useState<
     Record<string, { episodeNumberText: string; lang: WatchLang }>
   >({});
-  const [previewTicks, setPreviewTicks] = useState<Record<string, number>>(
-    {},
-  );
   const [shareBusy, setShareBusy] = useState(false);
   const [sharedOk, setSharedOk] = useState(false);
 
@@ -287,17 +273,6 @@ export function WatchVideoRoom() {
     }
   }
 
-  function onPickFile(fileList: FileList | null) {
-    if (!fileList || fileList.length === 0) {
-      setPendingFile(null);
-      setFileLabel("");
-      return;
-    }
-    const file = fileList[0];
-    setPendingFile(file);
-    setFileLabel(file.name);
-  }
-
   async function onAdd(e: React.FormEvent) {
     e.preventDefault();
     const trimmedTitle = title.trim();
@@ -318,7 +293,7 @@ export function WatchVideoRoom() {
     }
     const item: WatchItem = {
       id: makeWatchId(),
-      name: pendingFile?.name ?? "",
+      name: "",
       title: trimmedTitle,
       youtubeUrl: "",
       note: "",
@@ -326,44 +301,14 @@ export function WatchVideoRoom() {
       episodeNumber: num,
       lang,
     };
-    let previewOk = true;
-    let cloudOk = false;
-    let savedItem = item;
-    if (pendingFile) {
-      try {
-        await saveMediaPreview(item.id, pendingFile, "video");
-        try {
-          savedItem = await publishWatchPreviewForItem(item);
-          cloudOk = Boolean(savedItem.previewStoragePath);
-        } catch {
-          cloudOk = false;
-        }
-      } catch {
-        previewOk = false;
-      }
-    }
     // 나중에 넣은 것은 뒤로 — 번호 순으로 정렬해 저장
-    const next = sortWatchItemsForPlay([...items, savedItem]);
+    const next = sortWatchItemsForPlay([...items, item]);
     await persist(next);
-    if (pendingFile) {
-      setPreviewTicks((prev) => ({
-        ...prev,
-        [item.id]: (prev[item.id] ?? 0) + 1,
-      }));
-    }
-    const slot = watchSlotLabel(savedItem);
+    const slot = watchSlotLabel(item);
     setMessage(
-      pendingFile
-        ? previewOk
-          ? cloudOk
-            ? `「${savedItem.title}」(${slot})을(를) 영상보기 방에 넣었어요. 미리보기는 인터넷에도 올려 두었어요. 유튜브 주소는 아래에서 직접 넣어 주세요.`
-            : `「${savedItem.title}」(${slot})을(를) 영상보기 방에 넣었어요. 이 기기 미리보기는 있어요. 인터넷 올리기는 나중에 「미리보기 파일 넣기」로 다시 해 주세요.`
-          : `제목은 넣었어요(${slot}). 미리보기는 저장하지 못했어요. 「미리보기 파일 넣기」로 다시 해 주세요. 유튜브 주소도 아래에서 넣어 주세요.`
-        : `「${savedItem.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소는 아래에서 직접 넣어 주세요.`,
+      `「${item.title}」(${slot})을(를) 영상보기 방에 넣었어요. 유튜브 주소를 넣으면 옆에 화면이 나와요.`,
     );
     setTitle("");
-    setPendingFile(null);
-    setFileLabel("");
     // 한국어 넣었으면 같은 번호 영어가 다음 · 영어까지 넣었으면 다음 번호 한국어
     const nextSlot = suggestWatchSlotAfterAdd(next, item);
     setEpisodeNumberText(String(nextSlot.episodeNumber));
@@ -475,7 +420,6 @@ export function WatchVideoRoom() {
   async function onRemove(id: string) {
     const target = items.find((it) => it.id === id);
     if (!target) return;
-    await deleteMediaPreview(id);
     const next = items.filter((it) => it.id !== id);
     await persist(next);
     const nextSlot = suggestNextWatchSlot(next);
@@ -611,19 +555,10 @@ export function WatchVideoRoom() {
             : " (다음 영어는 같은 번호로 이어져요)"}
         </p>
 
-        <label>
-          동영상 미리보기 (선택 · 관리용)
-          <input
-            type="file"
-            accept="video/*"
-            onChange={(e) => onPickFile(e.target.files)}
-          />
-          <span className="file-note">
-            {fileLabel
-              ? `선택: ${fileLabel}`
-              : "없어도 돼요. 제목·유튜브만으로도 넣어요."}
-          </span>
-        </label>
+        <p className="tiny muted">
+          미리보기 파일은 쓰지 않아요. 유튜브 주소를 넣으면 로비처럼 옆에 화면이
+          자동으로 나와요.
+        </p>
 
         <button type="submit" className="btn btn-primary btn-wide">
           영상보기 방에 넣기
@@ -648,27 +583,18 @@ export function WatchVideoRoom() {
               return (
                 <li key={item.id} className="admin-ep-item">
                   <div className="admin-ep-main">
-                    <AdminMediaPreview
-                      itemId={item.id}
-                      kindHint="video"
-                      label={item.title}
-                      refreshToken={previewTicks[item.id] ?? 0}
-                      remoteUrl={watchItemPreviewRemoteUrl(item) || undefined}
+                    <WatchYoutubeCapture
+                      youtubeUrl={item.youtubeUrl}
+                      size="admin"
                     />
                     <div>
                       <p className="tiny muted">{slot}</p>
-                      {item.name || item.previewStoragePath ? (
-                        <p className="tiny muted">
-                          파일 · {item.name || "인터넷 미리보기"}
-                          {item.previewStoragePath ? " · 인터넷에도 있음" : ""}
-                        </p>
-                      ) : (
-                        <p className="tiny muted">미리보기 파일 없음</p>
-                      )}
                       {resolved ? (
                         <p className="tiny muted">유튜브 · {resolved}</p>
                       ) : (
-                        <p className="tiny muted">유튜브 주소 없음</p>
+                        <p className="tiny muted">
+                          유튜브 주소 없음 · 주소 넣으면 옆에 화면이 나와요
+                        </p>
                       )}
                       <p className="tiny muted">
                         넣은 날{" "}
@@ -677,31 +603,6 @@ export function WatchVideoRoom() {
                           timeStyle: "short",
                         })}
                       </p>
-                      <AdminPreviewAttach
-                        itemId={item.id}
-                        kindHint="video"
-                        accept="video/*"
-                        onMessage={setMessage}
-                        onAfterLocalSave={async (id) => {
-                          const latest = readWatchMediaStore().items;
-                          const current = latest.find((it) => it.id === id);
-                          if (!current) return;
-                          const uploaded =
-                            await publishWatchPreviewForItem(current);
-                          const next = sortWatchItemsForPlay(
-                            latest.map((it) =>
-                              it.id === id ? uploaded : it,
-                            ),
-                          );
-                          await persist(next);
-                        }}
-                        onAttached={() =>
-                          setPreviewTicks((prev) => ({
-                            ...prev,
-                            [item.id]: (prev[item.id] ?? 0) + 1,
-                          }))
-                        }
-                      />
                       <label className="admin-inline-youtube">
                         영상 제목
                         <input

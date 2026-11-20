@@ -460,6 +460,11 @@ span.btn.is-disabled {
   background: #e8eef2;
 }
 
+/* 관리실 영상보기: 로비와 같은 유튜브 캡쳐, 조금 더 크게 */
+.admin-watch-yt-thumb {
+  width: 64px;
+}
+
 .ep-row.is-resume {
   border-color: #e09a3a;
   background: #fff8ee;
