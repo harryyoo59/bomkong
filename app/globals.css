@@ -2136,8 +2136,8 @@ label.form-row textarea {
   box-shadow: none;
 }
 
-/* 구독·상품 칸 아래: 더보기 칸이 가로로 길게 */
-.living-menu-grid > .menu-tile-cluster:not(.menu-tile-shop-cluster) {
+/* 댓글·의견·유튜브 칸: 구독·상품 아래 가로로 길게 */
+.living-menu-grid > .menu-tile-more-cluster {
   grid-column: 1 / -1;
 }
 
@@ -2245,7 +2245,7 @@ label.form-row textarea {
   border-color: #f0a898;
 }
 
-.menu-mini-company {
+.menu-mini-youtube-en {
   background: #e4e0ff;
   border-color: #b4aef0;
 }
