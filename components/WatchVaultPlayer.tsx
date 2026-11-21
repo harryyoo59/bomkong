@@ -27,7 +27,6 @@ export function WatchVaultPlayer({
   const [queueUrl, setQueueUrl] = useState<string | null>(null);
   const [nextItem, setNextItem] = useState<WatchItem | null>(null);
   const [wrapsToFirst, setWrapsToFirst] = useState(false);
-  const [guideEmbedSrc, setGuideEmbedSrc] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -41,7 +40,6 @@ export function WatchVaultPlayer({
         setQueueUrl(null);
         setNextItem(null);
         setWrapsToFirst(false);
-        setGuideEmbedSrc(null);
         return;
       }
 
@@ -55,21 +53,10 @@ export function WatchVaultPlayer({
           found.id !== ordered[0]?.id,
       );
 
-      const guide = isWatchSubscribeGuide(found);
-      if (guide) {
-        setQueueUrl(null);
-        const ytId = extractYoutubeVideoId(found.youtubeUrl);
-        setGuideEmbedSrc(
-          ytId
-            ? `https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1`
-            : null,
-        );
-        return;
-      }
-
-      setGuideEmbedSrc(null);
       const url = buildYoutubePlayQueueUrl(ordered, found.id);
       setQueueUrl(url);
+      // 안내·일반 편 모두 유튜브 이어보기 목록으로 열면
+      // 20 → 정기 구독 안내 → 21 이 자동으로 이어짐
       if (url) {
         openYoutubePlayQueue(url);
       }
@@ -99,31 +86,21 @@ export function WatchVaultPlayer({
   }
 
   const guide = isWatchSubscribeGuide(item);
+  const hasGuideYoutube = guide && Boolean(extractYoutubeVideoId(item.youtubeUrl));
 
-  if (guide) {
+  if (guide && !hasGuideYoutube) {
     return (
       <section
         className="watch-internal-fullscreen"
         aria-label={item.title}
         aria-live="polite"
       >
-        {guideEmbedSrc ? (
-          <iframe
-            className="watch-internal-video-full"
-            src={guideEmbedSrc}
-            title={item.title}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-          />
-        ) : (
-          <div className="watch-internal-fullscreen-empty">
-            <p className="muted" role="status">
-              아직 유튜브 주소가 없어요. 사장님이 관리자실에서 유튜브 주소를
-              넣어 주시면 여기서 볼 수 있어요.
-            </p>
-          </div>
-        )}
+        <div className="watch-internal-fullscreen-empty">
+          <p className="muted" role="status">
+            아직 유튜브 주소가 없어요. 사장님이 관리자실에서 유튜브 주소를 넣어
+            주시면 여기서 볼 수 있어요.
+          </p>
+        </div>
         <div className="watch-internal-fullscreen-bar">
           <p className="watch-internal-fullscreen-title">{item.title}</p>
           <div className="watch-internal-fullscreen-actions">
@@ -154,6 +131,7 @@ export function WatchVaultPlayer({
             <p className="muted">
               유튜브로 열고 있어요. 「다음 동영상 자동재생」을 켜 두면 다음 편도
               이어서 나와요.
+              {guide ? " 안내가 끝나면 21번으로 이어져요." : ""}
             </p>
             <p>
               <a

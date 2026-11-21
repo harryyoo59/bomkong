@@ -290,9 +290,9 @@ export function watchYoutubeThumbUrl(youtubeUrl: string): string | null {
 
 /**
  * 지금 영상부터 재생 순서대로 유튜브 아이디 목록.
- * 1-ko → 1-en → 2-ko … (주소 없는 칸은 건너뜀)
- * 「정기 구독 안내」를 만나면 목록을 끊음 → 20 다음 21로 유튜브가 바로 안 넘어감.
- * (안내는 앱 안에서만 보고, 그다음 21번)
+ * 1-ko → 1-en → 2-ko … → 20 뒤 「정기 구독 안내」→ 21 …
+ * (주소 없는 칸은 건너뜀. 안내에 유튜브가 있으면 넣고 이어서 21번)
+ * 안내 주소가 아직 없으면 그 앞에서 끊어서 21로 바로 넘어가지 않음.
  */
 export function collectPlayableYoutubeIdsFrom(
   items: WatchItem[],
@@ -306,7 +306,12 @@ export function collectPlayableYoutubeIdsFrom(
   for (let offset = 0; offset < ordered.length; offset += 1) {
     const it = ordered[(start + offset) % ordered.length];
     if (isWatchSubscribeGuide(it)) {
-      // 안내 칸에서 시작했으면 건너뛰고 21부터, 중간에 만나면 여기서 끊기
+      const guideId = extractYoutubeVideoId(it.youtubeUrl);
+      if (guideId) {
+        ids.push(guideId);
+        continue;
+      }
+      // 안내 유튜브가 없으면 20 다음 21로 바로 넘기지 않음
       if (offset === 0) continue;
       break;
     }
