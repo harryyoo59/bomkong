@@ -654,6 +654,14 @@ span.btn.is-disabled {
   background: #102028;
 }
 
+.watch-internal-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #102028;
+  border: 0;
+}
+
 .lang-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;

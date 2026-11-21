@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { getMediaPreview } from "@/lib/media-preview-store";
+import { watchItemPreviewRemoteUrl } from "@/lib/watch-preview-client";
 import {
   buildYoutubePlayQueueUrl,
+  isWatchSubscribeGuide,
   openYoutubePlayQueue,
   sortWatchItemsForPlay,
   syncWatchMediaWithServer,
@@ -25,9 +28,12 @@ export function WatchVaultPlayer({
   const [queueUrl, setQueueUrl] = useState<string | null>(null);
   const [nextItem, setNextItem] = useState<WatchItem | null>(null);
   const [wrapsToFirst, setWrapsToFirst] = useState(false);
+  const [internalSrc, setInternalSrc] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
+    let localObjectUrl: string | null = null;
+
     (async () => {
       const ordered = sortWatchItemsForPlay(await syncWatchMediaWithServer());
       if (cancelled) return;
@@ -37,12 +43,11 @@ export function WatchVaultPlayer({
         setQueueUrl(null);
         setNextItem(null);
         setWrapsToFirst(false);
+        setInternalSrc(null);
         return;
       }
 
       writeWatchResume(found.id);
-      const url = buildYoutubePlayQueueUrl(ordered, found.id);
-      setQueueUrl(url);
       const next = nextPlayableWatchItemAfter(ordered, id);
       setNextItem(next);
       setWrapsToFirst(
@@ -52,13 +57,36 @@ export function WatchVaultPlayer({
           found.id !== ordered[0]?.id,
       );
 
-      // 유튜브로 바로 열기 (조회수·큰 화면 · 다음 편 이어서 · 같은 화면)
+      const guide = isWatchSubscribeGuide(found);
+      if (guide) {
+        setQueueUrl(null);
+        const remote = watchItemPreviewRemoteUrl(found);
+        if (remote) {
+          setInternalSrc(remote);
+          return;
+        }
+        const preview = await getMediaPreview(found.id);
+        if (cancelled) return;
+        if (preview?.blob && preview.blob.size > 0) {
+          localObjectUrl = URL.createObjectURL(preview.blob);
+          setInternalSrc(localObjectUrl);
+          return;
+        }
+        setInternalSrc(null);
+        return;
+      }
+
+      const url = buildYoutubePlayQueueUrl(ordered, found.id);
+      setQueueUrl(url);
+      setInternalSrc(null);
       if (url) {
         openYoutubePlayQueue(url);
       }
     })();
+
     return () => {
       cancelled = true;
+      if (localObjectUrl) URL.revokeObjectURL(localObjectUrl);
     };
   }, [id]);
 
@@ -77,6 +105,58 @@ export function WatchVaultPlayer({
           영상 목록으로
         </Link>
       </section>
+    );
+  }
+
+  const guide = isWatchSubscribeGuide(item);
+
+  if (guide) {
+    return (
+      <>
+        <section className="panel watch-player-panel" aria-live="polite">
+          <p className="eyebrow">영상보기 · {watchSlotLabel(item)}</p>
+          <h1 className="section-title ep-title">{item.title}</h1>
+          <p className="muted tiny">이 영상은 앱 안에서만 재생돼요. 유튜브에는 안 올라가요.</p>
+          {internalSrc ? (
+            <div className="yt-embed-wrap">
+              <video
+                className="watch-internal-video"
+                src={internalSrc}
+                controls
+                playsInline
+                autoPlay
+              />
+            </div>
+          ) : (
+            <p className="muted" role="status">
+              아직 안쪽 영상이 없어요. 사장님이 관리자실에서 영상 파일을 넣어
+              주시면 여기서 볼 수 있어요.
+            </p>
+          )}
+          <p>
+            <Link className="btn btn-soft" href="/subscribe">
+              구독 안내 글 보기
+            </Link>
+          </p>
+        </section>
+
+        <section className="panel">
+          <h2 className="section-title">이어보기</h2>
+          {nextItem && nextItem.id !== item.id ? (
+            <p className="queue-note">
+              {wrapsToFirst ? "끝나면 → 처음으로 · " : "끝나면 → "}
+              {watchSlotLabel(nextItem)} · {nextItem.title}
+            </p>
+          ) : (
+            <p className="muted">이 다음 영상이 아직 없어요.</p>
+          )}
+          <p>
+            <Link className="btn btn-soft" href="/episodes">
+              영상 목록으로
+            </Link>
+          </p>
+        </section>
+      </>
     );
   }
 

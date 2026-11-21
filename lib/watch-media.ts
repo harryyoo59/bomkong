@@ -58,34 +58,58 @@ export const EMPTY_WATCH_STORE: WatchMediaStore = {
   items: [],
 };
 
-/** 화면·목록에 쓸 자리 이름 예: 1-ko, 2-en */
+/** 20번 뒤에 번호 없이 고정하는 「정기 구독 안내」칸 */
+export const WATCH_SUBSCRIBE_GUIDE_AFTER_EPISODE = 20;
+
+export function isWatchSubscribeGuide(
+  item: Pick<WatchItem, "id" | "title">,
+): boolean {
+  const title = item.title.trim();
+  return (
+    item.id === "wv-1795263828606-w78cdu" ||
+    title === "정기 구독 안내" ||
+    title === "구독 안내"
+  );
+}
+
+/** 화면·목록에 쓸 자리 이름 예: 1-ko, 2-en · 구독 안내는 번호 없음 */
 export function watchSlotLabel(
-  item: Pick<WatchItem, "episodeNumber" | "lang">,
+  item: Pick<WatchItem, "id" | "title" | "episodeNumber" | "lang">,
 ): string {
+  if (isWatchSubscribeGuide(item)) return "안내";
   return `${item.episodeNumber}-${item.lang}`;
 }
 
-export function compareWatchPlayOrder(a: WatchItem, b: WatchItem): number {
-  if (a.episodeNumber !== b.episodeNumber) {
-    return a.episodeNumber - b.episodeNumber;
+/** 재생 순서용 키: 일반 편은 번호·언어, 구독 안내는 20번 바로 뒤 */
+function watchPlayOrderKey(item: WatchItem): [number, number, string] {
+  if (isWatchSubscribeGuide(item)) {
+    // 20-ko(0) → 20-en(1) → 안내(2) → 21-ko …
+    return [WATCH_SUBSCRIBE_GUIDE_AFTER_EPISODE, 2, item.id];
   }
-  if (a.lang === b.lang) return a.id.localeCompare(b.id);
-  return a.lang === "ko" ? -1 : 1;
+  return [item.episodeNumber, item.lang === "ko" ? 0 : 1, item.id];
 }
 
-/** 재생·손님 목록 순서: 1-ko → 1-en → 2-ko → 2-en … */
+export function compareWatchPlayOrder(a: WatchItem, b: WatchItem): number {
+  const ka = watchPlayOrderKey(a);
+  const kb = watchPlayOrderKey(b);
+  if (ka[0] !== kb[0]) return ka[0] - kb[0];
+  if (ka[1] !== kb[1]) return ka[1] - kb[1];
+  return ka[2].localeCompare(kb[2]);
+}
+
+/** 재생·손님 목록 순서: 1-ko → 1-en → … → 20 뒤 구독 안내 → 21 … */
 export function sortWatchItemsForPlay(items: WatchItem[]): WatchItem[] {
   return [...items].sort(compareWatchPlayOrder);
 }
 
-/** 관리자 목록용: 번호 큰 것이 위, 1번은 맨 아래. 같은 번호는 한국어 → 영어 */
+/** 관리자 목록용: 번호 큰 것이 위. 구독 안내는 20번 바로 위(21과 20 사이) */
 export function sortWatchItemsNumberDesc(items: WatchItem[]): WatchItem[] {
   return [...items].sort((a, b) => {
-    if (a.episodeNumber !== b.episodeNumber) {
-      return b.episodeNumber - a.episodeNumber;
-    }
-    if (a.lang === b.lang) return a.id.localeCompare(b.id);
-    return a.lang === "ko" ? -1 : 1;
+    const ka = watchPlayOrderKey(a);
+    const kb = watchPlayOrderKey(b);
+    if (ka[0] !== kb[0]) return kb[0] - ka[0];
+    if (ka[1] !== kb[1]) return ka[1] - kb[1];
+    return ka[2].localeCompare(kb[2]);
   });
 }
 
@@ -110,10 +134,10 @@ export function findWatchSlot(
 
 /** 새로 넣을 때 쓸 다음 편 번호(한국어 기준 최대+1). 비어 있으면 0 */
 export function suggestNextEpisodeNumber(items: WatchItem[]): number {
-  const max = items.reduce(
-    (acc, it) => (it.episodeNumber > acc ? it.episodeNumber : acc),
-    -1,
-  );
+  const max = items.reduce((acc, it) => {
+    if (isWatchSubscribeGuide(it)) return acc;
+    return it.episodeNumber > acc ? it.episodeNumber : acc;
+  }, -1);
   return max + 1;
 }
 
@@ -279,6 +303,8 @@ export function collectPlayableYoutubeIdsFrom(
   const ids: string[] = [];
   for (let offset = 0; offset < ordered.length; offset += 1) {
     const it = ordered[(start + offset) % ordered.length];
+    // 구독 안내는 유튜브 재생 목록에 넣지 않음 (앱 안에서만)
+    if (isWatchSubscribeGuide(it)) continue;
     const videoId = extractYoutubeVideoId(it.youtubeUrl);
     if (videoId) ids.push(videoId);
   }

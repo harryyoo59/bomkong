@@ -5,11 +5,13 @@ import { WatchYoutubeCapture } from "@/components/WatchYoutubeCapture";
 import {
   buildYoutubePlayQueueUrl,
   hasPlayableYoutubeUrl,
+  isWatchSubscribeGuide,
   openYoutubePlayQueue,
   syncWatchMediaWithServer,
   watchSlotLabel,
   type WatchItem,
 } from "@/lib/watch-media";
+import Link from "next/link";
 import {
   orderWatchItemsForResume,
   readWatchResume,
@@ -77,6 +79,7 @@ export function WatchLobbyList() {
     <>
       <ul className="ep-list" aria-label="영상 목록">
         {ordered.map(({ item, isResume }) => {
+          const isGuide = isWatchSubscribeGuide(item);
           const queueUrl = buildYoutubePlayQueueUrl(items, item.id);
           const canPlay = Boolean(
             queueUrl && hasPlayableYoutubeUrl(item.youtubeUrl),
@@ -85,7 +88,7 @@ export function WatchLobbyList() {
           return (
             <li
               key={item.id}
-              className={`ep-row${isResume ? " is-resume" : ""}`}
+              className={`ep-row${isResume ? " is-resume" : ""}${isGuide ? " is-subscribe-guide" : ""}`}
               ref={isResume ? resumeRowRef : undefined}
             >
               <div className="ep-meta">
@@ -98,21 +101,33 @@ export function WatchLobbyList() {
                     </span>
                   ) : (
                     <span className="badge badge-free">
-                      {item.lang === "en" ? "영어" : "한국어"}
+                      {isGuide
+                        ? "고정"
+                        : item.lang === "en"
+                          ? "영어"
+                          : "한국어"}
                     </span>
                   )}
                 </div>
                 <strong className="ep-title" title={item.title}>
                   {item.title}
                 </strong>
-                {!canPlay ? (
+                {!canPlay && !isGuide ? (
                   <p className="muted tiny" role="status">
                     유튜브 주소 없음
                   </p>
                 ) : null}
               </div>
               <div className="ep-actions">
-                {canPlay && queueUrl ? (
+                {isGuide ? (
+                  <Link
+                    className="btn btn-primary"
+                    href={`/watch/${encodeURIComponent(item.id)}`}
+                    onClick={() => markOpened(item.id)}
+                  >
+                    안에서 보기
+                  </Link>
+                ) : canPlay && queueUrl ? (
                   <a
                     className="btn btn-primary"
                     href={queueUrl}
@@ -133,7 +148,9 @@ export function WatchLobbyList() {
                     유튜브 주소 없음
                   </span>
                 )}
-                <WatchYoutubeCapture youtubeUrl={item.youtubeUrl} />
+                {!isGuide ? (
+                  <WatchYoutubeCapture youtubeUrl={item.youtubeUrl} />
+                ) : null}
               </div>
             </li>
           );
