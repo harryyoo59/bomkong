@@ -3,11 +3,18 @@
 import { useEffect, useState } from "react";
 import { publishWatchCatalogAction } from "@/app/admin/watch/actions";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
+import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import { WatchYoutubeCapture } from "@/components/WatchYoutubeCapture";
 import { askShareBossLock } from "@/lib/share-boss-lock-client";
+import { saveMediaPreview } from "@/lib/media-preview-store";
+import {
+  publishWatchPreviewForItem,
+  watchItemPreviewRemoteUrl,
+} from "@/lib/watch-preview-client";
 import {
   fetchWatchMediaFromServer,
   findWatchSlot,
+  isWatchSubscribeGuide,
   makeWatchId,
   pushWatchMediaToServer,
   readWatchMediaStore,
@@ -578,18 +585,38 @@ export function WatchVideoRoom() {
         ) : (
           <ul className="admin-ep-list">
             {adminList.map((item) => {
+              const isGuide = isWatchSubscribeGuide(item);
               const resolved = resolveYoutubeWatchUrl(item.youtubeUrl);
               const slot = watchSlotLabel(item);
+              const internalUrl = watchItemPreviewRemoteUrl(item);
               return (
                 <li key={item.id} className="admin-ep-item">
                   <div className="admin-ep-main">
-                    <WatchYoutubeCapture
-                      youtubeUrl={item.youtubeUrl}
-                      size="admin"
-                    />
+                    {isGuide ? (
+                      <span
+                        className="ep-thumb admin-watch-yt-thumb"
+                        aria-hidden
+                        title="앱 안 영상"
+                      >
+                        <span className="ep-thumb-empty" />
+                      </span>
+                    ) : (
+                      <WatchYoutubeCapture
+                        youtubeUrl={item.youtubeUrl}
+                        size="admin"
+                      />
+                    )}
                     <div>
                       <p className="tiny muted">{slot}</p>
-                      {resolved ? (
+                      {isGuide ? (
+                        <p className="tiny muted">
+                          앱 안에서만 재생 · 유튜브 안 씀
+                          {internalUrl || item.previewStoragePath
+                            ? " · 안쪽 영상 있음"
+                            : " · 안쪽 영상 파일 필요"}
+                          {item.name ? ` · ${item.name}` : ""}
+                        </p>
+                      ) : resolved ? (
                         <p className="tiny muted">유튜브 · {resolved}</p>
                       ) : (
                         <p className="tiny muted">
@@ -623,89 +650,129 @@ export function WatchVideoRoom() {
                       >
                         제목 저장
                       </button>
-                      <label className="admin-inline-youtube">
-                        유튜브 주소
-                        <input
-                          value={editUrls[item.id] ?? ""}
-                          onChange={(e) =>
-                            setEditUrls((prev) => ({
-                              ...prev,
-                              [item.id]: e.target.value,
-                            }))
-                          }
-                          placeholder="숏츠·영상 주소를 직접 붙여 넣기"
-                          inputMode="url"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        className="btn btn-soft"
-                        onClick={() => onSaveYoutube(item.id)}
-                      >
-                        유튜브 주소 저장
-                      </button>
-                      <div className="form-row">
-                        <label>
-                          편 번호
-                          <input
-                            type="number"
-                            min={0}
-                            step={1}
-                            value={
-                              editSlots[item.id]?.episodeNumberText ??
-                              String(item.episodeNumber)
-                            }
-                            onChange={(e) =>
-                              setEditSlots((prev) => ({
-                                ...prev,
-                                [item.id]: {
-                                  episodeNumberText: e.target.value,
-                                  lang:
-                                    prev[item.id]?.lang ?? item.lang,
-                                },
-                              }))
-                            }
-                            inputMode="numeric"
+                      {isGuide ? (
+                        <>
+                          <p className="tiny muted">
+                            20번 뒤에 번호 없이 고정이에요. 영상 파일을 넣으면
+                            로비에서 「안에서 보기」로 재생돼요.
+                          </p>
+                          <AdminPreviewAttach
+                            itemId={item.id}
+                            kindHint="video"
+                            accept="video/*,.mp4,.mov,.m4v,.webm"
+                            onMessage={setMessage}
+                            onAfterLocalSave={async (id, file) => {
+                              await saveMediaPreview(id, file, "video");
+                              const latest = readWatchMediaStore().items;
+                              const current = latest.find((it) => it.id === id);
+                              if (!current) {
+                                throw new Error(
+                                  "목록에서 이 영상을 찾지 못했어요.",
+                                );
+                              }
+                              const uploaded = await publishWatchPreviewForItem(
+                                { ...current, youtubeUrl: "" },
+                                file,
+                                file.name,
+                              );
+                              const next = sortWatchItemsForPlay(
+                                latest.map((it) =>
+                                  it.id === id
+                                    ? { ...uploaded, youtubeUrl: "" }
+                                    : it,
+                                ),
+                              );
+                              await persist(next);
+                            }}
                           />
-                        </label>
-                        <label>
-                          언어
-                          <select
-                            value={editSlots[item.id]?.lang ?? item.lang}
-                            onChange={(e) =>
-                              setEditSlots((prev) => ({
-                                ...prev,
-                                [item.id]: {
-                                  episodeNumberText:
-                                    prev[item.id]?.episodeNumberText ??
-                                    String(item.episodeNumber),
-                                  lang: e.target.value as WatchLang,
-                                },
-                              }))
-                            }
+                        </>
+                      ) : (
+                        <>
+                          <label className="admin-inline-youtube">
+                            유튜브 주소
+                            <input
+                              value={editUrls[item.id] ?? ""}
+                              onChange={(e) =>
+                                setEditUrls((prev) => ({
+                                  ...prev,
+                                  [item.id]: e.target.value,
+                                }))
+                              }
+                              placeholder="숏츠·영상 주소를 직접 붙여 넣기"
+                              inputMode="url"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="btn btn-soft"
+                            onClick={() => onSaveYoutube(item.id)}
                           >
-                            <option value="ko">한국어 (ko)</option>
-                            <option value="en">영어 (en)</option>
-                          </select>
-                        </label>
-                      </div>
-                      <button
-                        type="button"
-                        className="btn btn-soft"
-                        onClick={() => {
-                          const slotEdit = editSlots[item.id] ?? {
-                            episodeNumberText: String(item.episodeNumber),
-                            lang: item.lang,
-                          };
-                          onSaveSlot(
-                            item.id,
-                            slotEdit.episodeNumberText,
-                            slotEdit.lang,
-                          );
-                        }}
-                      >
-                        번호·언어 저장
-                      </button>
+                            유튜브 주소 저장
+                          </button>
+                          <div className="form-row">
+                            <label>
+                              편 번호
+                              <input
+                                type="number"
+                                min={0}
+                                step={1}
+                                value={
+                                  editSlots[item.id]?.episodeNumberText ??
+                                  String(item.episodeNumber)
+                                }
+                                onChange={(e) =>
+                                  setEditSlots((prev) => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      episodeNumberText: e.target.value,
+                                      lang:
+                                        prev[item.id]?.lang ?? item.lang,
+                                    },
+                                  }))
+                                }
+                                inputMode="numeric"
+                              />
+                            </label>
+                            <label>
+                              언어
+                              <select
+                                value={editSlots[item.id]?.lang ?? item.lang}
+                                onChange={(e) =>
+                                  setEditSlots((prev) => ({
+                                    ...prev,
+                                    [item.id]: {
+                                      episodeNumberText:
+                                        prev[item.id]?.episodeNumberText ??
+                                        String(item.episodeNumber),
+                                      lang: e.target.value as WatchLang,
+                                    },
+                                  }))
+                                }
+                              >
+                                <option value="ko">한국어 (ko)</option>
+                                <option value="en">영어 (en)</option>
+                              </select>
+                            </label>
+                          </div>
+                          <button
+                            type="button"
+                            className="btn btn-soft"
+                            onClick={() => {
+                              const slotEdit = editSlots[item.id] ?? {
+                                episodeNumberText: String(item.episodeNumber),
+                                lang: item.lang,
+                              };
+                              onSaveSlot(
+                                item.id,
+                                slotEdit.episodeNumberText,
+                                slotEdit.lang,
+                              );
+                            }}
+                          >
+                            번호·언어 저장
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="vault-action-row">

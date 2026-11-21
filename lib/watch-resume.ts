@@ -103,10 +103,9 @@ export function orderWatchItemsForResume(
 }
 
 /**
- * 지금 영상 다음:
- * - 한국어면 같은 번호 영어(있으면)
- * - 영어 없거나 영어를 봤으면 다음 번호(있으면 그 번호의 한국어부터)
- * - 끝이면 첫 영상으로
+ * 지금 영상 다음(재생 목록 순서 그대로).
+ * 20번 뒤 구독 안내 고정 칸도 순서에 포함.
+ * 끝이면 첫 영상으로.
  */
 export function nextWatchItemAfter(
   items: WatchItem[],
@@ -116,22 +115,7 @@ export function nextWatchItemAfter(
   if (ordered.length === 0) return null;
   const index = ordered.findIndex((it) => it.id === currentId);
   if (index < 0) return ordered[0] ?? null;
-
-  const current = ordered[index];
-  if (current.lang === "ko") {
-    const sameEn = ordered.find(
-      (it) =>
-        it.episodeNumber === current.episodeNumber && it.lang === "en",
-    );
-    if (sameEn) return sameEn;
-  }
-
-  const nextNumber = ordered.find(
-    (it) => it.episodeNumber > current.episodeNumber,
-  );
-  if (nextNumber) return nextNumber;
-
-  return ordered[0] ?? null;
+  return ordered[(index + 1) % ordered.length] ?? null;
 }
 
 /**
