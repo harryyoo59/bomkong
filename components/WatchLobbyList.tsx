@@ -119,15 +119,7 @@ export function WatchLobbyList() {
                 ) : null}
               </div>
               <div className="ep-actions">
-                {isGuide ? (
-                  <Link
-                    className="btn btn-primary"
-                    href={`/watch/${encodeURIComponent(item.id)}`}
-                    onClick={() => markOpened(item.id)}
-                  >
-                    안에서 보기
-                  </Link>
-                ) : canPlay && queueUrl ? (
+                {canPlay && queueUrl ? (
                   <a
                     className="btn btn-primary"
                     href={queueUrl}
@@ -139,6 +131,14 @@ export function WatchLobbyList() {
                   >
                     유튜브에서 보기
                   </a>
+                ) : isGuide ? (
+                  <Link
+                    className="btn btn-primary"
+                    href={`/watch/${encodeURIComponent(item.id)}`}
+                    onClick={() => markOpened(item.id)}
+                  >
+                    안에서 보기
+                  </Link>
                 ) : (
                   <span
                     className="btn btn-soft is-disabled"
@@ -148,9 +148,7 @@ export function WatchLobbyList() {
                     유튜브 주소 없음
                   </span>
                 )}
-                {!isGuide ? (
-                  <WatchYoutubeCapture youtubeUrl={item.youtubeUrl} />
-                ) : null}
+                <WatchYoutubeCapture youtubeUrl={item.youtubeUrl} />
               </div>
             </li>
           );
