@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getMediaPreview } from "@/lib/media-preview-store";
-import { watchItemPreviewRemoteUrl } from "@/lib/watch-preview-client";
 import {
   buildYoutubePlayQueueUrl,
+  extractYoutubeVideoId,
   isWatchSubscribeGuide,
   openYoutubePlayQueue,
   sortWatchItemsForPlay,
@@ -28,11 +27,10 @@ export function WatchVaultPlayer({
   const [queueUrl, setQueueUrl] = useState<string | null>(null);
   const [nextItem, setNextItem] = useState<WatchItem | null>(null);
   const [wrapsToFirst, setWrapsToFirst] = useState(false);
-  const [internalSrc, setInternalSrc] = useState<string | null>(null);
+  const [guideEmbedSrc, setGuideEmbedSrc] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    let localObjectUrl: string | null = null;
 
     (async () => {
       const ordered = sortWatchItemsForPlay(await syncWatchMediaWithServer());
@@ -43,7 +41,7 @@ export function WatchVaultPlayer({
         setQueueUrl(null);
         setNextItem(null);
         setWrapsToFirst(false);
-        setInternalSrc(null);
+        setGuideEmbedSrc(null);
         return;
       }
 
@@ -60,25 +58,18 @@ export function WatchVaultPlayer({
       const guide = isWatchSubscribeGuide(found);
       if (guide) {
         setQueueUrl(null);
-        const remote = watchItemPreviewRemoteUrl(found);
-        if (remote) {
-          setInternalSrc(remote);
-          return;
-        }
-        const preview = await getMediaPreview(found.id);
-        if (cancelled) return;
-        if (preview?.blob && preview.blob.size > 0) {
-          localObjectUrl = URL.createObjectURL(preview.blob);
-          setInternalSrc(localObjectUrl);
-          return;
-        }
-        setInternalSrc(null);
+        const ytId = extractYoutubeVideoId(found.youtubeUrl);
+        setGuideEmbedSrc(
+          ytId
+            ? `https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1&playsinline=1`
+            : null,
+        );
         return;
       }
 
+      setGuideEmbedSrc(null);
       const url = buildYoutubePlayQueueUrl(ordered, found.id);
       setQueueUrl(url);
-      setInternalSrc(null);
       if (url) {
         openYoutubePlayQueue(url);
       }
@@ -86,7 +77,6 @@ export function WatchVaultPlayer({
 
     return () => {
       cancelled = true;
-      if (localObjectUrl) URL.revokeObjectURL(localObjectUrl);
     };
   }, [id]);
 
@@ -117,19 +107,20 @@ export function WatchVaultPlayer({
         aria-label={item.title}
         aria-live="polite"
       >
-        {internalSrc ? (
-          <video
+        {guideEmbedSrc ? (
+          <iframe
             className="watch-internal-video-full"
-            src={internalSrc}
-            controls
-            playsInline
-            autoPlay
+            src={guideEmbedSrc}
+            title={item.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
           />
         ) : (
           <div className="watch-internal-fullscreen-empty">
             <p className="muted" role="status">
-              아직 안쪽 영상이 없어요. 사장님이 관리자실에서 영상 파일을 넣어
-              주시면 여기서 볼 수 있어요.
+              아직 유튜브 주소가 없어요. 사장님이 관리자실에서 유튜브 주소를
+              넣어 주시면 여기서 볼 수 있어요.
             </p>
           </div>
         )}
