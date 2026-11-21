@@ -1,5 +1,6 @@
 import {
   extractYoutubeVideoId,
+  isWatchSubscribeGuide,
   sortWatchItemsForPlay,
   type WatchItem,
 } from "@/lib/watch-media";
@@ -118,9 +119,16 @@ export function nextWatchItemAfter(
   return ordered[(index + 1) % ordered.length] ?? null;
 }
 
+/** 다음으로 열어 줄 수 있는 칸인지 (구독 안내는 유튜브 없어도 필수) */
+function isPlayableNextWatchItem(item: WatchItem): boolean {
+  if (isWatchSubscribeGuide(item)) return true;
+  return Boolean(extractYoutubeVideoId(item.youtubeUrl));
+}
+
 /**
- * 유튜브 주소가 있는 다음 영상.
- * 주소 없는 칸은 건너뛰고, 한 바퀴 돌아 자기 자신만 남으면 null.
+ * 다음에 열어 줄 영상.
+ * 유튜브 주소 없는 칸은 건너뛰되, 「정기 구독 안내」는 반드시 끼움
+ * (20번 다음 → 안내 → 21번). 한 바퀴 돌아 자기만 남으면 null.
  */
 export function nextPlayableWatchItemAfter(
   items: WatchItem[],
@@ -133,7 +141,7 @@ export function nextPlayableWatchItemAfter(
   for (let step = 0; step < ordered.length; step += 1) {
     const next = nextWatchItemAfter(ordered, cursor);
     if (!next || next.id === currentId) return null;
-    if (extractYoutubeVideoId(next.youtubeUrl)) return next;
+    if (isPlayableNextWatchItem(next)) return next;
     cursor = next.id;
   }
   return null;
