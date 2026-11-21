@@ -112,51 +112,44 @@ export function WatchVaultPlayer({
 
   if (guide) {
     return (
-      <>
-        <section className="panel watch-player-panel" aria-live="polite">
-          <p className="eyebrow">영상보기 · {watchSlotLabel(item)}</p>
-          <h1 className="section-title ep-title">{item.title}</h1>
-          <p className="muted tiny">이 영상은 앱 안에서만 재생돼요. 유튜브에는 안 올라가요.</p>
-          {internalSrc ? (
-            <div className="yt-embed-wrap">
-              <video
-                className="watch-internal-video"
-                src={internalSrc}
-                controls
-                playsInline
-                autoPlay
-              />
-            </div>
-          ) : (
+      <section
+        className="watch-internal-fullscreen"
+        aria-label={item.title}
+        aria-live="polite"
+      >
+        {internalSrc ? (
+          <video
+            className="watch-internal-video-full"
+            src={internalSrc}
+            controls
+            playsInline
+            autoPlay
+          />
+        ) : (
+          <div className="watch-internal-fullscreen-empty">
             <p className="muted" role="status">
               아직 안쪽 영상이 없어요. 사장님이 관리자실에서 영상 파일을 넣어
               주시면 여기서 볼 수 있어요.
             </p>
-          )}
-          <p>
-            <Link className="btn btn-soft" href="/subscribe">
-              구독 안내 글 보기
-            </Link>
-          </p>
-        </section>
-
-        <section className="panel">
-          <h2 className="section-title">이어보기</h2>
-          {nextItem && nextItem.id !== item.id ? (
-            <p className="queue-note">
-              {wrapsToFirst ? "끝나면 → 처음으로 · " : "끝나면 → "}
-              {watchSlotLabel(nextItem)} · {nextItem.title}
-            </p>
-          ) : (
-            <p className="muted">이 다음 영상이 아직 없어요.</p>
-          )}
-          <p>
+          </div>
+        )}
+        <div className="watch-internal-fullscreen-bar">
+          <p className="watch-internal-fullscreen-title">{item.title}</p>
+          <div className="watch-internal-fullscreen-actions">
             <Link className="btn btn-soft" href="/episodes">
-              영상 목록으로
+              목록으로
             </Link>
-          </p>
-        </section>
-      </>
+            {nextItem && nextItem.id !== item.id ? (
+              <Link
+                className="btn btn-primary"
+                href={`/watch/${encodeURIComponent(nextItem.id)}`}
+              >
+                다음 · {watchSlotLabel(nextItem)}
+              </Link>
+            ) : null}
+          </div>
+        </div>
+      </section>
     );
   }
 

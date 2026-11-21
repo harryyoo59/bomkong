@@ -662,6 +662,57 @@ span.btn.is-disabled {
   border: 0;
 }
 
+/* 정기 구독 안내: 화면 전체로 재생 */
+.watch-internal-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  background: #000;
+}
+
+.watch-internal-video-full {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  border: 0;
+}
+
+.watch-internal-fullscreen-empty {
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: #111;
+}
+
+.watch-internal-fullscreen-bar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: rgba(10, 14, 20, 0.92);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.watch-internal-fullscreen-title {
+  margin: 0;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.watch-internal-fullscreen-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .lang-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
