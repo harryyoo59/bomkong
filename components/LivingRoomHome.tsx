@@ -1015,7 +1015,7 @@ export function LivingRoomHome({
         {guardianFor === "goods" || guardianFor === "emoticon" ? (
           <p className="muted tiny">
             {guardianFor === "emoticon"
-              ? "이모티콘 구매·선물은 아직 준비 중일 수 있어요. 안내 화면으로만 가요. 가짜 결제 완료는 없어요."
+              ? "이모티콘을 고른 뒤 「복사하기」로 카톡·메시지에 붙여 넣을 수 있어요. 결제는 아직 없어요."
               : "상품 화면에서도 결제가 없으면 상태만 보여 주고, 가짜 결제 완료는 없어요."}
           </p>
         ) : (
