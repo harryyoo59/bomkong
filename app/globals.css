@@ -1177,30 +1177,33 @@ label.form-row textarea {
 .public-emoticon-tile {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
   gap: 6px;
-  padding: 8px;
-  border-radius: 14px;
-  background: white;
-  border: 1px solid var(--line);
+  padding: 4px;
+  border-radius: 0;
+  background: transparent;
+  border: 0;
   min-width: 0;
 }
 
 .public-emoticon-thumb {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 12px;
-  overflow: hidden;
-  background: #102028;
+  width: 64px;
+  height: 64px;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
   display: grid;
   place-items: center;
 }
 
 .public-emoticon-thumb img {
-  width: 100%;
-  height: 100%;
+  width: auto;
+  height: auto;
+  max-width: 64px;
+  max-height: 64px;
   object-fit: contain;
   display: block;
+  background: transparent;
 }
 
 .public-emoticon-empty {
@@ -1248,6 +1251,38 @@ label.form-row textarea {
   height: auto;
   aspect-ratio: 1 / 1;
   border-radius: 12px;
+}
+
+/* 관리자 이모티콘: 원래 크기(64px) · 투명 배경 */
+.emoticon-shelf-gallery .character-photo-tile {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  padding: 4px;
+}
+
+.emoticon-shelf-gallery .character-photo-tile .admin-media-preview {
+  width: 64px;
+  height: 64px;
+  aspect-ratio: auto;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.emoticon-shelf-gallery .admin-media-preview-media {
+  width: auto;
+  height: auto;
+  max-width: 64px;
+  max-height: 64px;
+  object-fit: contain;
+  background: transparent;
+}
+
+.emoticon-shelf-gallery .admin-media-preview-missing,
+.emoticon-shelf-gallery .admin-media-preview-loading {
+  background: transparent;
 }
 
 .character-photo-caption {
