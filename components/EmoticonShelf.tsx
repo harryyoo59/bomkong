@@ -85,22 +85,23 @@ async function blobToPng(blob: Blob): Promise<Blob> {
 }
 
 async function resolvePhotoBlob(item: EmoticonItem): Promise<Blob> {
+  // 기기 옛 미리보기보다 인터넷에 올린 최신 그림(64px 투명 PNG)을 우선
+  const remote = item.publicUrl?.trim();
+  if (remote) {
+    const res = await fetch(remote, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("인터넷 이모티콘을 읽지 못했어요.");
+    }
+    const blob = await res.blob();
+    if (!blob.size) {
+      throw new Error("인터넷 이모티콘이 비어 있어요.");
+    }
+    await saveMediaPreview(item.id, blob, "photo", item.name || "photo");
+    return blob;
+  }
   const record = await getMediaPreview(item.id);
   if (record?.blob) return record.blob;
-  const remote = item.publicUrl?.trim();
-  if (!remote) {
-    throw new Error("이모티콘이 없어요. 갤러리에 이모티콘을 다시 넣어 주세요.");
-  }
-  const res = await fetch(remote);
-  if (!res.ok) {
-    throw new Error("인터넷 이모티콘을 읽지 못했어요.");
-  }
-  const blob = await res.blob();
-  if (!blob.size) {
-    throw new Error("인터넷 이모티콘이 비어 있어요.");
-  }
-  await saveMediaPreview(item.id, blob, "photo", item.name || "photo");
-  return blob;
+  throw new Error("이모티콘이 없어요. 갤러리에 이모티콘을 다시 넣어 주세요.");
 }
 
 async function preparePngBlob(item: EmoticonItem): Promise<Blob> {
@@ -632,7 +633,7 @@ export function EmoticonShelf({ shelf }: Props) {
         {items.length === 0 ? (
           <AdminEmptyText roomKey={emoticonRoomKey(shelf)} />
         ) : (
-          <ul className="character-photo-gallery">
+          <ul className="character-photo-gallery emoticon-shelf-gallery">
             {items.map((item) => (
               <li key={item.id} className="character-photo-tile">
                 <AdminMediaPreview
@@ -641,6 +642,7 @@ export function EmoticonShelf({ shelf }: Props) {
                   label={item.name}
                   refreshToken={previewTicks[item.id] ?? 0}
                   remoteUrl={item.publicUrl}
+                  preferRemote
                 />
                 <p className="tiny muted character-photo-caption" title={item.name}>
                   {item.name}

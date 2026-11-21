@@ -37,22 +37,23 @@ async function blobToPng(blob: Blob): Promise<Blob> {
 }
 
 async function resolvePhotoBlob(item: EmoticonItem): Promise<Blob> {
+  // 기기 옛 미리보기보다 인터넷에 올린 최신 그림(64px 투명 PNG)을 우선
+  const remote = item.publicUrl?.trim();
+  if (remote) {
+    const res = await fetch(remote, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error("이모티콘을 읽지 못했어요.");
+    }
+    const blob = await res.blob();
+    if (!blob.size) {
+      throw new Error("이모티콘이 비어 있어요.");
+    }
+    await saveMediaPreview(item.id, blob, "photo", item.name || "photo");
+    return blob;
+  }
   const record = await getMediaPreview(item.id);
   if (record?.blob) return record.blob;
-  const remote = item.publicUrl?.trim();
-  if (!remote) {
-    throw new Error("이모티콘이 없어요. 잠시 후 다시 해 주세요.");
-  }
-  const res = await fetch(remote);
-  if (!res.ok) {
-    throw new Error("이모티콘을 읽지 못했어요.");
-  }
-  const blob = await res.blob();
-  if (!blob.size) {
-    throw new Error("이모티콘이 비어 있어요.");
-  }
-  await saveMediaPreview(item.id, blob, "photo", item.name || "photo");
-  return blob;
+  throw new Error("이모티콘이 없어요. 잠시 후 다시 해 주세요.");
 }
 
 async function preparePngBlob(item: EmoticonItem): Promise<Blob> {

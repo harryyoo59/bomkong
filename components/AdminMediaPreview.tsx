@@ -15,6 +15,8 @@ type Props = {
   refreshToken?: number;
   /** 이 기기에 파일이 없을 때 인터넷 사진 주소로 보여 줌 (사진은 지우지 않음) */
   remoteUrl?: string;
+  /** true면 기기 옛 미리보기보다 인터넷 주소를 먼저 씀 (이모티콘 최신 그림) */
+  preferRemote?: boolean;
 };
 
 type PreviewState =
@@ -33,6 +35,7 @@ export function AdminMediaPreview({
   label,
   refreshToken = 0,
   remoteUrl,
+  preferRemote = false,
 }: Props) {
   const dialogId = useId();
   const [state, setState] = useState<PreviewState>({ status: "loading" });
@@ -46,8 +49,6 @@ export function AdminMediaPreview({
 
     async function load() {
       setState({ status: "loading" });
-      const record = await getMediaPreview(itemId);
-      if (cancelled) return;
       if (mediaUrlRef.current) {
         URL.revokeObjectURL(mediaUrlRef.current);
         mediaUrlRef.current = null;
@@ -56,6 +57,21 @@ export function AdminMediaPreview({
         URL.revokeObjectURL(thumbUrlRef.current);
         thumbUrlRef.current = null;
       }
+
+      const preferredRemote = preferRemote ? remoteUrl?.trim() : "";
+      if (preferredRemote) {
+        const kind = kindHint || "photo";
+        setState({
+          status: "ready",
+          mediaUrl: preferredRemote,
+          thumbUrl: kind === "video" ? null : preferredRemote,
+          kind,
+        });
+        return;
+      }
+
+      const record = await getMediaPreview(itemId);
+      if (cancelled) return;
       if (!record) {
         const fallback = remoteUrl?.trim();
         if (fallback) {
@@ -102,7 +118,7 @@ export function AdminMediaPreview({
         thumbUrlRef.current = null;
       }
     };
-  }, [itemId, kindHint, refreshToken, remoteUrl]);
+  }, [itemId, kindHint, refreshToken, remoteUrl, preferRemote]);
 
   useEffect(() => {
     const dialog = dialogRef.current;
