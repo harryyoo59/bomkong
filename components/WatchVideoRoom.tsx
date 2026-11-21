@@ -3,14 +3,8 @@
 import { useEffect, useState } from "react";
 import { publishWatchCatalogAction } from "@/app/admin/watch/actions";
 import { AdminEmptyText } from "@/components/AdminEmptyText";
-import { AdminPreviewAttach } from "@/components/AdminPreviewAttach";
 import { WatchYoutubeCapture } from "@/components/WatchYoutubeCapture";
 import { askShareBossLock } from "@/lib/share-boss-lock-client";
-import { saveMediaPreview } from "@/lib/media-preview-store";
-import {
-  publishWatchPreviewForItem,
-  watchItemPreviewRemoteUrl,
-} from "@/lib/watch-preview-client";
 import {
   fetchWatchMediaFromServer,
   findWatchSlot,
@@ -588,32 +582,21 @@ export function WatchVideoRoom() {
               const isGuide = isWatchSubscribeGuide(item);
               const resolved = resolveYoutubeWatchUrl(item.youtubeUrl);
               const slot = watchSlotLabel(item);
-              const internalUrl = watchItemPreviewRemoteUrl(item);
               return (
                 <li key={item.id} className="admin-ep-item">
                   <div className="admin-ep-main">
-                    {isGuide ? (
-                      <span
-                        className="ep-thumb admin-watch-yt-thumb"
-                        aria-hidden
-                        title="앱 안 영상"
-                      >
-                        <span className="ep-thumb-empty" />
-                      </span>
-                    ) : (
-                      <WatchYoutubeCapture
-                        youtubeUrl={item.youtubeUrl}
-                        size="admin"
-                      />
-                    )}
+                    <WatchYoutubeCapture
+                      youtubeUrl={item.youtubeUrl}
+                      size="admin"
+                    />
                     <div>
                       <p className="tiny muted">{slot}</p>
                       {isGuide ? (
                         <p className="tiny muted">
-                          앱 안에서만 재생 · 유튜브 안 씀
-                          {internalUrl || item.previewStoragePath
-                            ? " · 안쪽 영상 있음"
-                            : " · 안쪽 영상 파일 필요"}
+                          20번 뒤 고정 · 손님 안내 화면에 유튜브로 재생
+                          {resolved
+                            ? ` · ${resolved}`
+                            : " · 유튜브 주소를 넣어 주세요"}
                           {item.name ? ` · ${item.name}` : ""}
                         </p>
                       ) : resolved ? (
@@ -653,38 +636,30 @@ export function WatchVideoRoom() {
                       {isGuide ? (
                         <>
                           <p className="tiny muted">
-                            20번 뒤에 번호 없이 고정이에요. 영상 파일을 넣으면
-                            로비에서 「안에서 보기」로 재생돼요.
+                            20번 뒤에 번호 없이 고정이에요. 유튜브 주소를 넣으면
+                            손님 안내 화면에서 재생돼요.
                           </p>
-                          <AdminPreviewAttach
-                            itemId={item.id}
-                            kindHint="video"
-                            accept="video/*,.mp4,.mov,.m4v,.webm"
-                            onMessage={setMessage}
-                            onAfterLocalSave={async (id, file) => {
-                              await saveMediaPreview(id, file, "video");
-                              const latest = readWatchMediaStore().items;
-                              const current = latest.find((it) => it.id === id);
-                              if (!current) {
-                                throw new Error(
-                                  "목록에서 이 영상을 찾지 못했어요.",
-                                );
+                          <label className="admin-inline-youtube">
+                            유튜브 주소
+                            <input
+                              value={editUrls[item.id] ?? ""}
+                              onChange={(e) =>
+                                setEditUrls((prev) => ({
+                                  ...prev,
+                                  [item.id]: e.target.value,
+                                }))
                               }
-                              const uploaded = await publishWatchPreviewForItem(
-                                { ...current, youtubeUrl: "" },
-                                file,
-                                file.name,
-                              );
-                              const next = sortWatchItemsForPlay(
-                                latest.map((it) =>
-                                  it.id === id
-                                    ? { ...uploaded, youtubeUrl: "" }
-                                    : it,
-                                ),
-                              );
-                              await persist(next);
-                            }}
-                          />
+                              placeholder="숏츠·영상 주소를 직접 붙여 넣기"
+                              inputMode="url"
+                            />
+                          </label>
+                          <button
+                            type="button"
+                            className="btn btn-soft"
+                            onClick={() => onSaveYoutube(item.id)}
+                          >
+                            유튜브 주소 저장
+                          </button>
                         </>
                       ) : (
                         <>
