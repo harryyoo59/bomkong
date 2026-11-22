@@ -61,6 +61,12 @@ export const EMPTY_WATCH_STORE: WatchMediaStore = {
 /** 20번 뒤에 번호 없이 고정하는 「정기 구독 안내」칸 */
 export const WATCH_SUBSCRIBE_GUIDE_AFTER_EPISODE = 20;
 
+/**
+ * 안내 칸이 실제 편 번호(29 등)를 차지하지 않도록 쓰는 안쪽 자리 번호.
+ * 화면에는 「안내」만 보이고, 다음 편 추천에서도 빠짐.
+ */
+export const WATCH_SUBSCRIBE_GUIDE_SLOT_NUMBER = 9000;
+
 export function isWatchSubscribeGuide(
   item: Pick<WatchItem, "id" | "title">,
 ): boolean {
@@ -460,14 +466,24 @@ function normalizeItem(raw: Partial<WatchItem> & Record<string, unknown>): Watch
  * 이미 번호가 있는 항목은 그대로 두고, 없는 것만 뒤에 번호를 붙임.
  */
 export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
-  const stamped = items.map((it) => ({
-    ...it,
-    lang: it.lang === "en" ? ("en" as const) : ("ko" as const),
-    episodeNumber:
-      Number.isFinite(it.episodeNumber) && it.episodeNumber >= 0
-        ? Math.floor(it.episodeNumber)
-        : -1,
-  }));
+  const stamped = items.map((it) => {
+    const lang = it.lang === "en" ? ("en" as const) : ("ko" as const);
+    if (isWatchSubscribeGuide(it)) {
+      return {
+        ...it,
+        lang,
+        episodeNumber: WATCH_SUBSCRIBE_GUIDE_SLOT_NUMBER,
+      };
+    }
+    return {
+      ...it,
+      lang,
+      episodeNumber:
+        Number.isFinite(it.episodeNumber) && it.episodeNumber >= 0
+          ? Math.floor(it.episodeNumber)
+          : -1,
+    };
+  });
 
   const missing = stamped.filter((it) => it.episodeNumber < 0);
   if (missing.length === 0) {
@@ -480,19 +496,27 @@ export function ensureWatchPlaySlots(items: WatchItem[]): WatchItem[] {
       return byTime !== 0 ? byTime : a.id.localeCompare(b.id);
     });
     return sortWatchItemsForPlay(
-      chronological.map((it, index) => ({
-        ...it,
-        episodeNumber: index,
-        lang: "ko" as const,
-      })),
+      chronological.map((it, index) =>
+        isWatchSubscribeGuide(it)
+          ? {
+              ...it,
+              episodeNumber: WATCH_SUBSCRIBE_GUIDE_SLOT_NUMBER,
+              lang: "ko" as const,
+            }
+          : {
+              ...it,
+              episodeNumber: index,
+              lang: "ko" as const,
+            },
+      ),
     );
   }
 
   let next =
-    stamped.reduce(
-      (acc, it) => (it.episodeNumber > acc ? it.episodeNumber : acc),
-      -1,
-    ) + 1;
+    stamped.reduce((acc, it) => {
+      if (isWatchSubscribeGuide(it)) return acc;
+      return it.episodeNumber > acc ? it.episodeNumber : acc;
+    }, -1) + 1;
   const assigned = new Map<string, number>();
   const missingChrono = [...missing].sort((a, b) => {
     const byTime = a.addedAt.localeCompare(b.addedAt);
