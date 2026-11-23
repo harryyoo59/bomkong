@@ -1298,6 +1298,13 @@ label.form-row textarea {
   gap: 6px;
 }
 
+.text-link {
+  color: var(--accent, #c45c26);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .character-copy-box {
   margin-top: 14px;
   display: flex;

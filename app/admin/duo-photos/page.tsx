@@ -20,7 +20,7 @@ export default async function AdminDuoPhotosPage() {
     <div className="study-room">
       <AdminRoomHeader roomKey="duo-photos" />
       <section className="panel">
-        <CharacterPhotoShelf shelf="duo" />
+        <CharacterPhotoShelf shelf="duo" mediaKind="photo" />
       </section>
       <div className="vault-nav-row">
         <Link className="btn btn-soft" href="/characters/duo">
