@@ -627,7 +627,7 @@ export function EmoticonShelf({ shelf }: Props) {
       <section>
         <h2 className="section-title">이모티콘 갤러리</h2>
         <p className="muted tiny">
-          {who} 이모티콘 보관이에요. 「복사하기」로 이모티콘을 복사한 뒤 필요한 곳에
+          {who} 이모티콘 보관이에요. 「복사」로 이모티콘을 복사한 뒤 필요한 곳에
           붙여 넣으면 돼요.
         </p>
         {items.length === 0 ? (
@@ -653,7 +653,7 @@ export function EmoticonShelf({ shelf }: Props) {
                     className="btn btn-primary btn-wide"
                     onClick={() => void onCopy(item)}
                   >
-                    복사하기
+                    복사
                   </button>
                   <button
                     type="button"
