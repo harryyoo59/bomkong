@@ -1429,7 +1429,13 @@ label.form-row textarea {
   height: 100%;
   object-fit: cover;
   display: block;
-  background: #111827;
+  background: #e8edf3;
+}
+
+/* 첫 장면 그림 나오기 전 video 칸 — 검게 보이지 않게 */
+.admin-media-preview-video-fallback {
+  background: #e8edf3;
+  object-fit: cover;
 }
 
 .admin-media-preview-ph {
