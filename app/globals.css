@@ -1186,9 +1186,10 @@ label.form-row textarea {
   min-width: 0;
 }
 
+/* 원본 파일은 36×36. 화면에서는 2배로 키워 보기 쉽게 (복사는 원본 그대로) */
 .public-emoticon-thumb {
-  width: 64px;
-  height: 64px;
+  width: 72px;
+  height: 72px;
   border-radius: 0;
   overflow: visible;
   background: transparent;
@@ -1197,13 +1198,14 @@ label.form-row textarea {
 }
 
 .public-emoticon-thumb img {
-  width: auto;
-  height: auto;
-  max-width: 64px;
-  max-height: 64px;
+  width: 72px;
+  height: 72px;
+  max-width: 72px;
+  max-height: 72px;
   object-fit: contain;
   display: block;
   background: transparent;
+  image-rendering: auto;
 }
 
 .public-emoticon-empty {
