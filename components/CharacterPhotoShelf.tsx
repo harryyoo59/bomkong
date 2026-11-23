@@ -232,6 +232,10 @@ export function CharacterPhotoShelf({
 }: Props) {
   const who = characterShelfLabel(shelf);
   const kindLabel = characterMediaKindLabel(mediaKind);
+  /** 사진 칸 화면 이름만: 이모티콘 사진 보관 (기능·저장은 그대로) */
+  const vaultLabel =
+    mediaKind === "photo" ? "이모티콘 사진 보관" : `${kindLabel} 보관함`;
+  const vaultName = `${who} ${vaultLabel}`;
   const unit = mediaKind === "video" ? "개" : "장";
   const countText = (n: number) => `${kindLabel} ${n}${unit}`;
   const canShare = SHARE_ENABLED[shelf];
@@ -647,9 +651,13 @@ export function CharacterPhotoShelf({
   return (
     <div className="admin-wrap">
       <p className="tiny muted">
-        지금 칸은 <strong>{who} {kindLabel} 보관함</strong>이에요.{" "}
+        지금 칸은 <strong>{vaultName}</strong>이에요.{" "}
         <a className="text-link" href={otherHref}>
-          {who} {characterMediaKindLabel(otherKind)} 보관함으로
+          {who}{" "}
+          {otherKind === "photo"
+            ? "이모티콘 사진 보관"
+            : `${characterMediaKindLabel(otherKind)} 보관함`}
+          으로
         </a>
       </p>
 
@@ -679,9 +687,11 @@ export function CharacterPhotoShelf({
 
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          {who} 영상규칙에 쓸 {kindLabel}을 <strong>갤러리</strong>처럼 모아
-          두는 방이에요. 여러 {unit === "장" ? "장" : "개"}를 한 번에 고르면,
-          한 칸에 {kindLabel}
+          {mediaKind === "photo"
+            ? `${vaultName}이에요. 이모티콘용 사진을 `
+            : `${who} 영상규칙에 쓸 ${kindLabel}을 `}
+          <strong>갤러리</strong>처럼 모아 두는 방이에요. 여러{" "}
+          {unit === "장" ? "장" : "개"}를 한 번에 고르면, 한 칸에 {kindLabel}
           {mediaKind === "video" ? "으로 미리보기·재생" : "으로 보여 줘요"}.
         </p>
 
@@ -710,16 +720,20 @@ export function CharacterPhotoShelf({
             ? "넣는 중…"
             : pendingFiles.length > 1
               ? `${pendingFiles.length}${unit} 갤러리에 넣기`
-              : `${who} ${kindLabel} 보관에 넣기`}
+              : mediaKind === "photo"
+                ? `${vaultName}에 넣기`
+                : `${who} ${kindLabel} 보관에 넣기`}
         </button>
       </form>
 
       {message ? <p className="form-msg">{message}</p> : null}
 
       <section>
-        <h2 className="section-title">{kindLabel} 갤러리</h2>
+        <h2 className="section-title">
+          {mediaKind === "photo" ? "이모티콘 사진 갤러리" : `${kindLabel} 갤러리`}
+        </h2>
         <p className="muted tiny">
-          {who} {kindLabel} 보관함이에요.
+          {vaultName}이에요.
           {mediaKind === "photo"
             ? " 「복사하기」로 사진을 복사한 뒤 AI에게 붙여 넣으면 돼요."
             : " 칸을 누르면 미리보기·재생할 수 있어요."}

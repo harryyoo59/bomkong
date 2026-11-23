@@ -70,11 +70,11 @@ const REMOVED_DOOR_IDS = new Set([
 ]);
 
 export const ROOM_LABELS: Record<RoomKey, string> = {
-  "bomi-photos": "봄이 사진 보관",
+  "bomi-photos": "봄이 이모티콘 사진 보관",
   "bomi-videos": "봄이 동영상 보관",
-  "kongi-photos": "콩이 사진 보관",
+  "kongi-photos": "콩이 이모티콘 사진 보관",
   "kongi-videos": "콩이 동영상 보관",
-  "duo-photos": "봄이·콩이 사진 보관",
+  "duo-photos": "봄이·콩이 이모티콘 사진 보관",
   "duo-videos": "봄이·콩이 동영상 보관",
   rules: "영상제작 규칙",
   logos: "로고 관리",
@@ -117,8 +117,8 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   {
     id: "door-bomi-photos",
     number: "·",
-    title: "봄이 사진 보관함",
-    body: "봄이 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
+    title: "봄이 이모티콘 사진 보관",
+    body: "봄이 칸 아래예요. 이모티콘용 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/bomi-photos",
     kind: "photo",
@@ -150,8 +150,8 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   {
     id: "door-kongi-photos",
     number: "·",
-    title: "콩이 사진 보관함",
-    body: "콩이 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
+    title: "콩이 이모티콘 사진 보관",
+    body: "콩이 칸 아래예요. 이모티콘용 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/kongi-photos",
     kind: "photo",
@@ -183,8 +183,8 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   {
     id: "door-duo-photos",
     number: "·",
-    title: "봄이·콩이 사진 보관함",
-    body: "둘이 함께 있는 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
+    title: "봄이·콩이 이모티콘 사진 보관",
+    body: "둘이 함께 있는 칸 아래예요. 이모티콘용 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/duo-photos",
     kind: "photo",
@@ -284,9 +284,9 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
 export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   "bomi-photos": {
     eyebrow: "관리자실 · 봄이 칸 아래",
-    title: "봄이 사진 보관함",
+    title: "봄이 이모티콘 사진 보관",
     intro:
-      "봄이 영상규칙에 쓸 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
+      "봄이 이모티콘용 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
   "bomi-videos": {
@@ -298,9 +298,9 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   },
   "kongi-photos": {
     eyebrow: "관리자실 · 콩이 칸 아래",
-    title: "콩이 사진 보관함",
+    title: "콩이 이모티콘 사진 보관",
     intro:
-      "콩이 영상규칙에 쓸 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
+      "콩이 이모티콘용 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
   "kongi-videos": {
@@ -312,9 +312,9 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   },
   "duo-photos": {
     eyebrow: "관리자실 · 봄이·콩이 함께 칸 아래",
-    title: "봄이·콩이 사진 보관함",
+    title: "봄이·콩이 이모티콘 사진 보관",
     intro:
-      "둘이 함께 있는 영상규칙용 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
+      "둘이 함께 있는 이모티콘용 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
   "duo-videos": {
@@ -456,6 +456,29 @@ function migrateBuiltInDoor(
     door = { ...door, groupId: fallback.groupId };
   }
 
+  // 사진 보관함 → 이모티콘 사진 보관 (예전 이름만 새 이름으로)
+  if (
+    door.id === "door-bomi-photos" ||
+    door.id === "door-kongi-photos" ||
+    door.id === "door-duo-photos"
+  ) {
+    const oldTitle =
+      door.title === "봄이 사진 보관함" ||
+      door.title === "콩이 사진 보관함" ||
+      door.title === "봄이·콩이 사진 보관함" ||
+      door.title === "영상규칙에 쓸 사진 보관" ||
+      door.title.includes("영상규칙") ||
+      (door.title.includes("사진 보관") && !door.title.includes("이모티콘"));
+    if (oldTitle) {
+      door = {
+        ...door,
+        title: fallback.title,
+        body: fallback.body,
+        note: fallback.note || door.note,
+      };
+    }
+  }
+
   if (door.id === "door-rules") {
     if (door.href) return door;
 
@@ -587,6 +610,21 @@ export function normalizeAdminCopyStore(
       (room.eyebrow.includes("7번") || room.eyebrow.includes("9번"))
     ) {
       room = { ...room, eyebrow: fallback.eyebrow };
+    }
+    // 사진 보관함 → 이모티콘 사진 보관
+    if (
+      (key === "bomi-photos" ||
+        key === "kongi-photos" ||
+        key === "duo-photos") &&
+      (!room.title.includes("이모티콘") ||
+        room.intro.includes("영상규칙"))
+    ) {
+      room = {
+        ...room,
+        title: fallback.title,
+        intro: fallback.intro,
+        empty: fallback.empty || room.empty,
+      };
     }
     rooms[key] = room;
   }
