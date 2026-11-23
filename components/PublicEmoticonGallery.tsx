@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { listPublicEmoticonsAction } from "@/app/emoticons/actions";
-import { copyEmoticonToClipboard } from "@/lib/emoticon-copy-client";
+import {
+  prefetchEmoticonBlobs,
+  shareEmoticonFile,
+} from "@/lib/emoticon-share-client";
 import {
   emoticonShelfLabel,
   type EmoticonItem,
@@ -16,12 +19,14 @@ export function PublicEmoticonGallery() {
   const [items, setItems] = useState<EmoticonItem[]>([]);
   const [ready, setReady] = useState(false);
   const [message, setMessage] = useState("");
-  const [copyBusyId, setCopyBusyId] = useState<string | null>(null);
+  const [shareBusyId, setShareBusyId] = useState<string | null>(null);
+  const prefetchRef = useRef<Map<string, Promise<Blob>>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
     setReady(false);
     setMessage("");
+    prefetchRef.current = new Map();
     (async () => {
       const result = await listPublicEmoticonsAction(shelf);
       if (cancelled) return;
@@ -32,6 +37,7 @@ export function PublicEmoticonGallery() {
         return;
       }
       setItems(result.items);
+      prefetchRef.current = prefetchEmoticonBlobs(result.items);
       setReady(true);
     })();
     return () => {
@@ -39,23 +45,32 @@ export function PublicEmoticonGallery() {
     };
   }, [shelf]);
 
-  async function onCopy(item: EmoticonItem) {
-    if (copyBusyId) return;
-    setCopyBusyId(item.id);
+  async function onShare(item: EmoticonItem) {
+    if (shareBusyId) return;
+    setShareBusyId(item.id);
     setMessage("");
     try {
-      await copyEmoticonToClipboard(item, item.name || "emoticon");
-      setMessage(
-        "복사했어요. 카톡이나 메시지 창에 붙여 넣으면 돼요.",
+      const outcome = await shareEmoticonFile(
+        item,
+        item.name || "emoticon",
+        { blobPromise: prefetchRef.current.get(item.id) ?? null },
       );
+      if (outcome === "shared") {
+        setMessage("공유 창을 열었어요. 카톡·메시지를 골라 보내면 돼요.");
+      } else if (outcome === "copied") {
+        setMessage(
+          "이 기기에서는 공유 창이 안 열려서, 예전처럼 복사해 두었어요. 붙여 넣거나 받은 파일을 쓰면 돼요.",
+        );
+      }
+      // cancelled: 메시지 없음
     } catch (err) {
       setMessage(
         err instanceof Error
           ? err.message
-          : "복사하지 못했어요. 다시 해 주세요.",
+          : "공유하지 못했어요. 다시 해 주세요.",
       );
     } finally {
-      setCopyBusyId(null);
+      setShareBusyId(null);
     }
   }
 
@@ -63,11 +78,11 @@ export function PublicEmoticonGallery() {
 
   return (
     <section className="panel public-emoticon-panel" aria-label="이모티콘 목록">
-      <p className="eyebrow">복사 · 붙여 넣기</p>
+      <p className="eyebrow">공유 · 보내기</p>
       <h1 className="section-title">이모티콘 구매및 선물하기</h1>
       <p className="muted">
-        마음에 드는 이모티콘을 「복사」한 뒤, 카톡이나 메시지 창에 붙여
-        넣으세요. (결제는 아직 없어요.)
+        마음에 드는 이모티콘을 「공유」하면 휴대폰 공유 창이 열려요. 카톡·메시지로
+        바로 보낼 수 있어요. (결제는 아직 없어요.)
       </p>
 
       <div className="public-emoticon-tabs" role="tablist" aria-label="누구 이모티콘">
@@ -112,10 +127,10 @@ export function PublicEmoticonGallery() {
                 <button
                   type="button"
                   className="btn btn-primary btn-wide"
-                  disabled={Boolean(copyBusyId) || !src}
-                  onClick={() => void onCopy(item)}
+                  disabled={Boolean(shareBusyId) || !src}
+                  onClick={() => void onShare(item)}
                 >
-                  {copyBusyId === item.id ? "복사 중…" : "복사"}
+                  {shareBusyId === item.id ? "공유 중…" : "공유"}
                 </button>
               </li>
             );
