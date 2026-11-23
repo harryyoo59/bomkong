@@ -735,7 +735,7 @@ export function CharacterPhotoShelf({
         <p className="muted tiny">
           {vaultName}이에요.
           {mediaKind === "photo"
-            ? " 「복사하기」로 사진을 복사한 뒤 AI에게 붙여 넣으면 돼요."
+            ? " 「복사」로 사진을 복사한 뒤 AI에게 붙여 넣으면 돼요."
             : " 칸을 누르면 미리보기·재생할 수 있어요."}
         </p>
         {items.length === 0 ? (
@@ -767,7 +767,7 @@ export function CharacterPhotoShelf({
                         className="btn btn-primary btn-wide"
                         onClick={() => void onCopy(item)}
                       >
-                        복사하기
+                        복사
                       </button>
                     ) : null}
                     <button
