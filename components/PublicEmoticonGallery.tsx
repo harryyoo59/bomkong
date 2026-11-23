@@ -9,7 +9,7 @@ import {
   type EmoticonShelf,
 } from "@/lib/emoticons";
 
-const SHELVES: EmoticonShelf[] = ["bomi", "kongi"];
+const SHELVES: EmoticonShelf[] = ["bomi", "kongi", "etc"];
 
 export function PublicEmoticonGallery() {
   const [shelf, setShelf] = useState<EmoticonShelf>("bomi");
