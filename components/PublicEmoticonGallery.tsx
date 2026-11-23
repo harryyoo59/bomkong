@@ -66,7 +66,7 @@ export function PublicEmoticonGallery() {
       <p className="eyebrow">복사 · 붙여 넣기</p>
       <h1 className="section-title">이모티콘 구매및 선물하기</h1>
       <p className="muted">
-        마음에 드는 이모티콘을 「복사하기」한 뒤, 카톡이나 메시지 창에 붙여
+        마음에 드는 이모티콘을 「복사」한 뒤, 카톡이나 메시지 창에 붙여
         넣으세요. (결제는 아직 없어요.)
       </p>
 
@@ -115,7 +115,7 @@ export function PublicEmoticonGallery() {
                   disabled={Boolean(copyBusyId) || !src}
                   onClick={() => void onCopy(item)}
                 >
-                  {copyBusyId === item.id ? "복사 중…" : "복사하기"}
+                  {copyBusyId === item.id ? "복사 중…" : "복사"}
                 </button>
               </li>
             );
