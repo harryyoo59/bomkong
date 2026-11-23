@@ -52,6 +52,7 @@ export const ROOM_KEYS = [
   "emoticons",
   "bomi-emoticons",
   "kongi-emoticons",
+  "etc-emoticons",
   "unreleased",
   "unreleased-ko",
   "unreleased-en",
@@ -81,6 +82,7 @@ export const ROOM_LABELS: Record<RoomKey, string> = {
   emoticons: "이모티콘 제작",
   "bomi-emoticons": "봄이 이모티콘",
   "kongi-emoticons": "콩이 이모티콘",
+  "etc-emoticons": "기타 이모티콘 보관",
   unreleased: "미공개 영상실",
   "unreleased-ko": "미공개 영상실 · 한국어",
   "unreleased-en": "미공개 영상실 · 영어",
@@ -228,8 +230,8 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
     id: "door-emoticons",
     number: "·",
     title: "이모티콘 제작",
-    body: "로고 관리 아래예요. 봄이·콩이 이모티콘을 나눠 모아 둬요.",
-    note: "봄이 · 콩이",
+    body: "로고 관리 아래예요. 봄이·콩이·기타 이모티콘을 나눠 모아 둬요.",
+    note: "봄이 · 콩이 · 기타",
     href: "/admin/emoticons",
     kind: "photo",
     groupId: "logos",
@@ -341,7 +343,7 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     eyebrow: "관리자실 · 로고 관리 아래",
     title: "이모티콘 제작",
     intro:
-      "봄이 이모티콘·콩이 이모티콘을 따로 모아 둬요. 아래 문 중 하나를 눌러 들어가세요.",
+      "봄이·콩이·기타 이모티콘을 따로 모아 둬요. 아래 문 중 하나를 눌러 들어가세요.",
     empty: "",
   },
   "bomi-emoticons": {
@@ -357,6 +359,13 @@ export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
     intro:
       "콩이 이모티콘을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 콩이 이모티콘이 없어요.",
+  },
+  "etc-emoticons": {
+    eyebrow: "관리자실 · 이모티콘 제작 · 기타",
+    title: "기타 이모티콘 보관",
+    intro:
+      "봄이·콩이 말고 다른 이모티콘을 모아 두는 방이에요. 움직이는 그림도 그대로 보고 복사할 수 있어요.",
+    empty: "아직 넣어 둔 기타 이모티콘이 없어요.",
   },
   unreleased: {
     eyebrow: "관리자실 · 5번 칸",

@@ -9,7 +9,7 @@ import {
 } from "@/lib/emoticons-server";
 
 function asShelf(value: FormDataEntryValue | null): EmoticonShelf | null {
-  if (value === "bomi" || value === "kongi") return value;
+  if (value === "bomi" || value === "kongi" || value === "etc") return value;
   return null;
 }
 
@@ -89,7 +89,7 @@ export async function listEmoticonsAction(
       message: "관리자 문이 풀렸어요. 다시 들어간 뒤 확인해 주세요.",
     };
   }
-  if (shelf !== "bomi" && shelf !== "kongi") {
+  if (shelf !== "bomi" && shelf !== "kongi" && shelf !== "etc") {
     return { ok: false, message: "이모티콘 방을 찾지 못했어요." };
   }
   try {

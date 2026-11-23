@@ -24,16 +24,18 @@ import {
   type EmoticonItem,
   type EmoticonShelf,
 } from "@/lib/emoticons";
+import { copyEmoticonToClipboard } from "@/lib/emoticon-copy-client";
 import { askShareBossLock } from "@/lib/share-boss-lock-client";
 
 type Props = {
   shelf: EmoticonShelf;
 };
 
-/** 봄이·콩이 이모티콘 다른 기기 공유 (넣을 때 자동 올리기) */
+/** 봄이·콩이·기타 이모티콘 다른 기기 공유 (넣을 때 자동 올리기) */
 const SHARE_ENABLED: Record<EmoticonShelf, boolean> = {
   bomi: true,
   kongi: true,
+  etc: true,
 };
 
 function isImageFile(file: File): boolean {
@@ -54,38 +56,7 @@ function tellResult(
   }
 }
 
-/** AI 채팅에 붙여 넣을 수 있게 이모티콘을 PNG로 만듦 */
-async function blobToPng(blob: Blob): Promise<Blob> {
-  if (blob.type === "image/png") return blob;
-  const url = URL.createObjectURL(blob);
-  try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = () => reject(new Error("이모티콘을 읽지 못했어요."));
-      el.src = url;
-    });
-    const canvas = document.createElement("canvas");
-    canvas.width = img.naturalWidth || img.width;
-    canvas.height = img.naturalHeight || img.height;
-    if (canvas.width < 1 || canvas.height < 1) {
-      throw new Error("이모티콘을 복사하지 못했어요.");
-    }
-    const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("이모티콘을 복사하지 못했어요.");
-    ctx.drawImage(img, 0, 0);
-    const png = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((b) => resolve(b), "image/png");
-    });
-    if (!png) throw new Error("이모티콘을 복사하지 못했어요.");
-    return png;
-  } finally {
-    URL.revokeObjectURL(url);
-  }
-}
-
 async function resolvePhotoBlob(item: EmoticonItem): Promise<Blob> {
-  // 기기 옛 미리보기보다 인터넷에 올린 최신 그림(64px 투명 PNG)을 우선
   const remote = item.publicUrl?.trim();
   if (remote) {
     const res = await fetch(remote, { cache: "no-store" });
@@ -102,75 +73,6 @@ async function resolvePhotoBlob(item: EmoticonItem): Promise<Blob> {
   const record = await getMediaPreview(item.id);
   if (record?.blob) return record.blob;
   throw new Error("이모티콘이 없어요. 갤러리에 이모티콘을 다시 넣어 주세요.");
-}
-
-async function preparePngBlob(item: EmoticonItem): Promise<Blob> {
-  const blob = await resolvePhotoBlob(item);
-  return blobToPng(blob);
-}
-
-async function downloadPngFallback(
-  item: EmoticonItem,
-  fileName: string,
-): Promise<void> {
-  const png = await preparePngBlob(item);
-  const url = URL.createObjectURL(png);
-  try {
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = fileName.replace(/\.[^.]+$/, "") + ".png" || "photo.png";
-    a.rel = "noopener";
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-  } finally {
-    setTimeout(() => URL.revokeObjectURL(url), 1500);
-  }
-}
-
-/**
- * 이모티콘 복사.
- * 사파리 등은 클릭 직후에 clipboard.write를 바로 호출해야 함.
- */
-function copyPhotoToClipboard(
-  item: EmoticonItem,
-  fileName: string,
-): Promise<void> {
-  const canWriteImage =
-    typeof navigator !== "undefined" &&
-    Boolean(navigator.clipboard?.write) &&
-    typeof ClipboardItem !== "undefined" &&
-    !/firefox/i.test(navigator.userAgent || "");
-
-  const pngPromise = preparePngBlob(item);
-
-  if (!canWriteImage) {
-    return downloadPngFallback(item, fileName).then(() => {
-      throw new Error(
-        "이 기기에서는 복사가 안 돼서 이모티콘 파일로 받아 두었어요. AI에 그 파일을 넣어 주세요.",
-      );
-    });
-  }
-
-  return navigator.clipboard
-    .write([
-      new ClipboardItem({
-        "image/png": pngPromise,
-      }),
-    ])
-    .catch(async () => {
-      try {
-        const png = await pngPromise;
-        await navigator.clipboard.write([
-          new ClipboardItem({ "image/png": png }),
-        ]);
-      } catch {
-        await downloadPngFallback(item, fileName);
-        throw new Error(
-          "복사가 안 돼서 이모티콘 파일로 받아 두었어요. AI에 그 파일을 넣어 주세요.",
-        );
-      }
-    });
 }
 
 async function cacheRemotePhotoIfNeeded(item: EmoticonItem): Promise<void> {
@@ -309,6 +211,7 @@ export function EmoticonShelf({ shelf }: Props) {
       ...item,
       publicUrl: result.item.publicUrl,
       storagePath: result.item.storagePath,
+      mimeType: result.item.mimeType || item.mimeType,
     };
   }
 
@@ -367,6 +270,7 @@ export function EmoticonShelf({ shelf }: Props) {
           name: snap.name,
           note: "",
           addedAt: new Date().toISOString(),
+          mimeType: snap.blob.type || undefined,
         };
         try {
           await saveMediaPreview(item.id, snap.blob, "photo", snap.name);
@@ -551,7 +455,7 @@ export function EmoticonShelf({ shelf }: Props) {
 
   async function onCopy(item: EmoticonItem) {
     try {
-      await copyPhotoToClipboard(item, item.name);
+      await copyEmoticonToClipboard(item, item.name);
       setMessage("이모티콘을 복사했어요. AI 채팅에 붙여 넣으면 돼요.");
     } catch (err) {
       setMessage(

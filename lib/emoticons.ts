@@ -1,6 +1,6 @@
-/** 로고 관리 아래 · 봄이·콩이 이모티콘 보관 */
+/** 로고 관리 아래 · 봄이·콩이·기타 이모티콘 보관 */
 
-export type EmoticonShelf = "bomi" | "kongi";
+export type EmoticonShelf = "bomi" | "kongi" | "etc";
 
 export type EmoticonItem = {
   id: string;
@@ -10,6 +10,8 @@ export type EmoticonItem = {
   /** 인터넷에 올린 뒤 다른 기기에서 보는 주소 */
   publicUrl?: string;
   storagePath?: string;
+  /** image/png · image/gif 등 — 움직이는 GIF 복사·표시에 씀 */
+  mimeType?: string;
 };
 
 export type EmoticonStore = {
@@ -19,6 +21,7 @@ export type EmoticonStore = {
 const STORAGE_KEYS: Record<EmoticonShelf, string> = {
   bomi: "bomkong_emoticons_bomi_v1",
   kongi: "bomkong_emoticons_kongi_v1",
+  etc: "bomkong_emoticons_etc_v1",
 };
 
 export const EMPTY_EMOTICON_STORE: EmoticonStore = {
@@ -27,7 +30,22 @@ export const EMPTY_EMOTICON_STORE: EmoticonStore = {
 
 export function emoticonShelfLabel(shelf: EmoticonShelf): string {
   if (shelf === "bomi") return "봄이";
-  return "콩이";
+  if (shelf === "kongi") return "콩이";
+  return "기타";
+}
+
+export function isEmoticonShelf(value: string): value is EmoticonShelf {
+  return value === "bomi" || value === "kongi" || value === "etc";
+}
+
+export function isGifEmoticon(
+  item: Pick<EmoticonItem, "mimeType" | "name" | "storagePath" | "publicUrl">,
+  blob?: Blob | null,
+): boolean {
+  const mime = (blob?.type || item.mimeType || "").toLowerCase();
+  if (mime.includes("gif")) return true;
+  const path = `${item.storagePath || ""} ${item.name || ""} ${item.publicUrl || ""}`.toLowerCase();
+  return /\.gif(\?|$)/i.test(path);
 }
 
 function normalizeItem(raw: Partial<EmoticonItem>): EmoticonItem | null {
@@ -47,6 +65,10 @@ function normalizeItem(raw: Partial<EmoticonItem>): EmoticonItem | null {
     storagePath:
       typeof raw.storagePath === "string" && raw.storagePath.trim()
         ? raw.storagePath.trim()
+        : undefined,
+    mimeType:
+      typeof raw.mimeType === "string" && raw.mimeType.trim()
+        ? raw.mimeType.trim()
         : undefined,
   };
 }
@@ -96,8 +118,10 @@ export function makeEmoticonId(shelf: EmoticonShelf): string {
 
 export function emoticonRoomKey(
   shelf: EmoticonShelf,
-): "bomi-emoticons" | "kongi-emoticons" {
-  return shelf === "bomi" ? "bomi-emoticons" : "kongi-emoticons";
+): "bomi-emoticons" | "kongi-emoticons" | "etc-emoticons" {
+  if (shelf === "bomi") return "bomi-emoticons";
+  if (shelf === "kongi") return "kongi-emoticons";
+  return "etc-emoticons";
 }
 
 /**
@@ -128,6 +152,7 @@ export function mergeEmoticonLists(
       addedAt: prev.addedAt || item.addedAt,
       publicUrl: item.publicUrl || prev.publicUrl,
       storagePath: item.storagePath || prev.storagePath,
+      mimeType: item.mimeType || prev.mimeType,
     });
   }
   return Array.from(map.values()).sort((a, b) => {
