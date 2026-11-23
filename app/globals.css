@@ -1255,7 +1255,7 @@ label.form-row textarea {
   border-radius: 12px;
 }
 
-/* 관리자 이모티콘: 원래 크기(64px) · 투명 배경 */
+/* 관리자 이모티콘: 가로로 긴 스티커도 잘 보이게 (투명 배경 유지) */
 .emoticon-shelf-gallery .character-photo-tile {
   align-items: center;
   background: transparent;
@@ -1264,27 +1264,30 @@ label.form-row textarea {
 }
 
 .emoticon-shelf-gallery .character-photo-tile .admin-media-preview {
-  width: 64px;
-  height: 64px;
+  width: 100%;
+  height: auto;
+  min-height: 120px;
+  max-height: 180px;
   aspect-ratio: auto;
-  border-radius: 0;
+  border-radius: 12px;
   border: 0;
-  background: transparent;
-  overflow: visible;
+  background: #f3f5f8;
+  overflow: hidden;
 }
 
 .emoticon-shelf-gallery .admin-media-preview-media {
-  width: auto;
+  width: 100%;
   height: auto;
-  max-width: 64px;
-  max-height: 64px;
+  max-width: 100%;
+  max-height: 180px;
   object-fit: contain;
   background: transparent;
 }
 
 .emoticon-shelf-gallery .admin-media-preview-missing,
 .emoticon-shelf-gallery .admin-media-preview-loading {
-  background: transparent;
+  background: #f3f5f8;
+  min-height: 120px;
 }
 
 .character-photo-caption {
