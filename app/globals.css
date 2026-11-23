@@ -1296,8 +1296,16 @@ label.form-row textarea {
 
 .character-photo-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: stretch;
   gap: 6px;
+}
+
+.character-photo-actions .btn {
+  flex: 1 1 0;
+  width: auto;
+  min-width: 0;
 }
 
 .text-link {
