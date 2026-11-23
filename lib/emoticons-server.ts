@@ -14,7 +14,7 @@ type EmoticonRow = {
 };
 
 function isShelf(value: string): value is EmoticonShelf {
-  return value === "bomi" || value === "kongi";
+  return value === "bomi" || value === "kongi" || value === "etc";
 }
 
 export function emoticonPublicUrl(storagePath: string): string {
@@ -34,6 +34,10 @@ function rowToItem(row: EmoticonRow): EmoticonItem | null {
         : new Date().toISOString(),
     publicUrl: emoticonPublicUrl(row.storage_path),
     storagePath: row.storage_path,
+    mimeType:
+      typeof row.mime_type === "string" && row.mime_type.trim()
+        ? row.mime_type.trim()
+        : undefined,
   };
 }
 
@@ -139,6 +143,7 @@ export async function upsertEmoticonOnServer(input: {
     addedAt,
     publicUrl: emoticonPublicUrl(storagePath),
     storagePath,
+    mimeType,
   };
 }
 
