@@ -42,8 +42,11 @@ export type AdminCopyStore = {
 
 export const ROOM_KEYS = [
   "bomi-photos",
+  "bomi-videos",
   "kongi-photos",
+  "kongi-videos",
   "duo-photos",
+  "duo-videos",
   "rules",
   "logos",
   "emoticons",
@@ -68,8 +71,11 @@ const REMOVED_DOOR_IDS = new Set([
 
 export const ROOM_LABELS: Record<RoomKey, string> = {
   "bomi-photos": "봄이 사진 보관",
+  "bomi-videos": "봄이 동영상 보관",
   "kongi-photos": "콩이 사진 보관",
+  "kongi-videos": "콩이 동영상 보관",
   "duo-photos": "봄이·콩이 사진 보관",
+  "duo-videos": "봄이·콩이 동영상 보관",
   rules: "영상제작 규칙",
   logos: "로고 관리",
   emoticons: "이모티콘 제작",
@@ -111,10 +117,21 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   {
     id: "door-bomi-photos",
     number: "·",
-    title: "영상규칙에 쓸 사진 보관",
+    title: "봄이 사진 보관함",
     body: "봄이 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/bomi-photos",
+    kind: "photo",
+    groupId: "bomi",
+    builtIn: true,
+  },
+  {
+    id: "door-bomi-videos",
+    number: "·",
+    title: "봄이 동영상 보관함",
+    body: "봄이 칸 아래예요. 동영상을 모아 보고 미리보기·재생해요.",
+    note: "동영상 올리기 열림",
+    href: "/admin/bomi-videos",
     kind: "photo",
     groupId: "bomi",
     builtIn: true,
@@ -133,10 +150,21 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   {
     id: "door-kongi-photos",
     number: "·",
-    title: "영상규칙에 쓸 사진 보관",
+    title: "콩이 사진 보관함",
     body: "콩이 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/kongi-photos",
+    kind: "photo",
+    groupId: "kongi",
+    builtIn: true,
+  },
+  {
+    id: "door-kongi-videos",
+    number: "·",
+    title: "콩이 동영상 보관함",
+    body: "콩이 칸 아래예요. 동영상을 모아 보고 미리보기·재생해요.",
+    note: "동영상 올리기 열림",
+    href: "/admin/kongi-videos",
     kind: "photo",
     groupId: "kongi",
     builtIn: true,
@@ -155,10 +183,21 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
   {
     id: "door-duo-photos",
     number: "·",
-    title: "영상규칙에 쓸 사진 보관",
+    title: "봄이·콩이 사진 보관함",
     body: "둘이 함께 있는 칸 아래예요. 사진을 여러 장 갤러리로 모아 봐요.",
     note: "사진 올리기 열림",
     href: "/admin/duo-photos",
+    kind: "photo",
+    groupId: "duo",
+    builtIn: true,
+  },
+  {
+    id: "door-duo-videos",
+    number: "·",
+    title: "봄이·콩이 동영상 보관함",
+    body: "둘이 함께 있는 칸 아래예요. 동영상을 모아 보고 미리보기·재생해요.",
+    note: "동영상 올리기 열림",
+    href: "/admin/duo-videos",
     kind: "photo",
     groupId: "duo",
     builtIn: true,
@@ -245,24 +284,45 @@ export const DEFAULT_DOORS: ClinicDoor[] = [
 export const DEFAULT_ROOMS: Record<RoomKey, RoomCopy> = {
   "bomi-photos": {
     eyebrow: "관리자실 · 봄이 칸 아래",
-    title: "영상규칙에 쓸 사진 보관",
+    title: "봄이 사진 보관함",
     intro:
       "봄이 영상규칙에 쓸 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
+  "bomi-videos": {
+    eyebrow: "관리자실 · 봄이 칸 아래",
+    title: "봄이 동영상 보관함",
+    intro:
+      "봄이 영상규칙에 쓸 동영상을 모아 두는 방이에요. 여러 개를 한 번에 넣고 미리보기·재생할 수 있어요.",
+    empty: "아직 넣어 둔 동영상이 없어요.",
+  },
   "kongi-photos": {
     eyebrow: "관리자실 · 콩이 칸 아래",
-    title: "영상규칙에 쓸 사진 보관",
+    title: "콩이 사진 보관함",
     intro:
       "콩이 영상규칙에 쓸 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
   },
+  "kongi-videos": {
+    eyebrow: "관리자실 · 콩이 칸 아래",
+    title: "콩이 동영상 보관함",
+    intro:
+      "콩이 영상규칙에 쓸 동영상을 모아 두는 방이에요. 여러 개를 한 번에 넣고 미리보기·재생할 수 있어요.",
+    empty: "아직 넣어 둔 동영상이 없어요.",
+  },
   "duo-photos": {
     eyebrow: "관리자실 · 봄이·콩이 함께 칸 아래",
-    title: "영상규칙에 쓸 사진 보관",
+    title: "봄이·콩이 사진 보관함",
     intro:
       "둘이 함께 있는 영상규칙용 사진을 갤러리처럼 모아 두는 방이에요. 여러 장을 한 번에 넣을 수 있어요.",
     empty: "아직 넣어 둔 사진이 없어요.",
+  },
+  "duo-videos": {
+    eyebrow: "관리자실 · 봄이·콩이 함께 칸 아래",
+    title: "봄이·콩이 동영상 보관함",
+    intro:
+      "둘이 함께 있는 영상규칙용 동영상을 모아 두는 방이에요. 여러 개를 한 번에 넣고 미리보기·재생할 수 있어요.",
+    empty: "아직 넣어 둔 동영상이 없어요.",
   },
   rules: {
     eyebrow: "관리자실 · 3번 칸",

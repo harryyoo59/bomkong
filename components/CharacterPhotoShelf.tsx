@@ -14,13 +14,17 @@ import {
   saveMediaPreview,
 } from "@/lib/media-preview-store";
 import {
+  characterIntroPath,
+  characterMediaKind,
+  characterMediaKindLabel,
   characterPhotoRoomKey,
   characterShelfLabel,
+  filterCharacterItemsByMediaKind,
   makeCharacterPhotoId,
   mergeCharacterPhotoLists,
   readCharacterPhotoStore,
-  writeCharacterPhotoStore,
-  writeCharacterPhotoStoreAllowEmpty,
+  replaceCharacterItemsForMediaKind,
+  type CharacterMediaKind,
   type CharacterPhotoItem,
   type CharacterShelf,
 } from "@/lib/character-photos";
@@ -28,9 +32,11 @@ import { askShareBossLock } from "@/lib/share-boss-lock-client";
 
 type Props = {
   shelf: CharacterShelf;
+  /** 기본은 사진 칸. 동영상 칸은 video */
+  mediaKind?: CharacterMediaKind;
 };
 
-/** 봄이·콩이·함께 사진보관 다른 기기 공유 (넣을 때 자동 올리기) */
+/** 봄이·콩이·함께 보관함 다른 기기 공유 (넣을 때 자동 올리기) */
 const SHARE_ENABLED: Record<CharacterShelf, boolean> = {
   bomi: true,
   kongi: true,
@@ -41,6 +47,13 @@ function isImageFile(file: File): boolean {
   return (
     file.type.startsWith("image/") ||
     /\.(png|jpe?g|gif|webp|heic|bmp|avif)$/i.test(file.name)
+  );
+}
+
+function isVideoFile(file: File): boolean {
+  return (
+    file.type.startsWith("video/") ||
+    /\.(mp4|mov|m4v|webm|avi|mkv)$/i.test(file.name)
   );
 }
 
@@ -85,27 +98,47 @@ async function blobToPng(blob: Blob): Promise<Blob> {
   }
 }
 
-async function resolvePhotoBlob(item: CharacterPhotoItem): Promise<Blob> {
+async function resolveMediaBlob(
+  item: CharacterPhotoItem,
+  mediaKind: CharacterMediaKind,
+): Promise<Blob> {
   const record = await getMediaPreview(item.id);
   if (record?.blob) return record.blob;
   const remote = item.publicUrl?.trim();
   if (!remote) {
-    throw new Error("사진이 없어요. 갤러리에 사진을 다시 넣어 주세요.");
+    throw new Error(
+      mediaKind === "video"
+        ? "동영상이 없어요. 갤러리에 영상을 다시 넣어 주세요."
+        : "사진이 없어요. 갤러리에 사진을 다시 넣어 주세요.",
+    );
   }
   const res = await fetch(remote);
   if (!res.ok) {
-    throw new Error("인터넷 사진을 읽지 못했어요.");
+    throw new Error(
+      mediaKind === "video"
+        ? "인터넷 동영상을 읽지 못했어요."
+        : "인터넷 사진을 읽지 못했어요.",
+    );
   }
   const blob = await res.blob();
   if (!blob.size) {
-    throw new Error("인터넷 사진이 비어 있어요.");
+    throw new Error(
+      mediaKind === "video"
+        ? "인터넷 동영상이 비어 있어요."
+        : "인터넷 사진이 비어 있어요.",
+    );
   }
-  await saveMediaPreview(item.id, blob, "photo", item.name || "photo");
+  await saveMediaPreview(
+    item.id,
+    blob,
+    mediaKind === "video" ? "video" : "photo",
+    item.name || mediaKind,
+  );
   return blob;
 }
 
 async function preparePngBlob(item: CharacterPhotoItem): Promise<Blob> {
-  const blob = await resolvePhotoBlob(item);
+  const blob = await resolveMediaBlob(item, "photo");
   return blobToPng(blob);
 }
 
@@ -128,10 +161,6 @@ async function downloadPngFallback(
   }
 }
 
-/**
- * 사진 복사.
- * 사파리 등은 클릭 직후에 clipboard.write를 바로 호출해야 함.
- */
 function copyPhotoToClipboard(
   item: CharacterPhotoItem,
   fileName: string,
@@ -173,7 +202,10 @@ function copyPhotoToClipboard(
     });
 }
 
-async function cacheRemotePhotoIfNeeded(item: CharacterPhotoItem): Promise<void> {
+async function cacheRemoteMediaIfNeeded(
+  item: CharacterPhotoItem,
+  mediaKind: CharacterMediaKind,
+): Promise<void> {
   const existing = await getMediaPreview(item.id);
   if (existing?.blob) return;
   const remote = item.publicUrl?.trim();
@@ -183,14 +215,25 @@ async function cacheRemotePhotoIfNeeded(item: CharacterPhotoItem): Promise<void>
     if (!res.ok) return;
     const blob = await res.blob();
     if (!blob.size) return;
-    await saveMediaPreview(item.id, blob, "photo", item.name || "photo");
+    await saveMediaPreview(
+      item.id,
+      blob,
+      mediaKind === "video" ? "video" : "photo",
+      item.name || mediaKind,
+    );
   } catch {
     /* 미리보기만 인터넷 주소로 보여 줌 */
   }
 }
 
-export function CharacterPhotoShelf({ shelf }: Props) {
+export function CharacterPhotoShelf({
+  shelf,
+  mediaKind = "photo",
+}: Props) {
   const who = characterShelfLabel(shelf);
+  const kindLabel = characterMediaKindLabel(mediaKind);
+  const unit = mediaKind === "video" ? "개" : "장";
+  const countText = (n: number) => `${kindLabel} ${n}${unit}`;
   const canShare = SHARE_ENABLED[shelf];
   const [items, setItems] = useState<CharacterPhotoItem[]>([]);
   const [ready, setReady] = useState(false);
@@ -208,7 +251,8 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     let cancelled = false;
 
     async function boot() {
-      const local = readCharacterPhotoStore(shelf).items;
+      const localAll = readCharacterPhotoStore(shelf).items;
+      const local = filterCharacterItemsByMediaKind(localAll, mediaKind);
       if (!cancelled) {
         setItems(local);
         setReady(true);
@@ -219,28 +263,30 @@ export function CharacterPhotoShelf({ shelf }: Props) {
 
       if (!canShare) return;
 
-      const remoteResult = await listCharacterPhotosAction(shelf);
+      const remoteResult = await listCharacterPhotosAction(shelf, mediaKind);
       if (cancelled) return;
 
       if (!remoteResult.ok) {
         setSharedOk(false);
         if (local.length > 0) {
           setMessage(
-            `이 기기에 ${local.length}장이 있어요. 인터넷 목록은 아직 확인하지 못했어요.`,
+            `이 기기에 ${countText(local.length)} 있어요. 인터넷 목록은 아직 확인하지 못했어요.`,
           );
         }
         return;
       }
 
-      const merged = mergeCharacterPhotoLists(local, remoteResult.items);
-      // 인터넷이 비어 있어도 이 기기 사진은 그대로 둠
+      const merged = filterCharacterItemsByMediaKind(
+        mergeCharacterPhotoLists(local, remoteResult.items),
+        mediaKind,
+      );
       if (merged.length > 0) {
-        writeCharacterPhotoStore(shelf, { items: merged });
+        replaceCharacterItemsForMediaKind(shelf, mediaKind, merged);
         setItems(merged);
       }
 
       for (const item of remoteResult.items) {
-        await cacheRemotePhotoIfNeeded(item);
+        await cacheRemoteMediaIfNeeded(item, mediaKind);
       }
       if (cancelled) return;
 
@@ -255,17 +301,17 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       if (remoteResult.count === 0 && merged.length > 0) {
         setSharedOk(false);
         setMessage(
-          `이 기기에 ${merged.length}장이 있어요. 아직 인터넷에는 없어요. 아래 「예전에 안 올린 사진 다시 맞추기」를 한 번만 눌러 주세요. 앞으로 새 사진은 자동으로 올라가요.`,
+          `이 기기에 ${countText(merged.length)} 있어요. 아직 인터넷에는 없어요. 아래 「다시 맞추기」를 한 번만 눌러 주세요. 앞으로 새 ${kindLabel}은 자동으로 올라가요.`,
         );
       } else if (remoteResult.count > 0 && remoteResult.count >= merged.length) {
         setSharedOk(true);
         setMessage(
-          `사진 ${merged.length}장이에요. 인터넷에도 같아서 다른 기기에서도 봐요. 새 사진은 넣을 때 자동으로 올라가요.`,
+          `${countText(merged.length)}이에요. 인터넷에도 같아서 다른 기기에서도 봐요. 새 ${kindLabel}은 넣을 때 자동으로 올라가요.`,
         );
       } else if (remoteResult.count > 0) {
         setSharedOk(false);
         setMessage(
-          `이 기기 ${merged.length}장 · 인터넷 ${remoteResult.count}장이에요. 아래 「다시 맞추기」로 한 번만 맞추면 돼요.`,
+          `이 기기 ${countText(merged.length)} · 인터넷 ${countText(remoteResult.count)}이에요. 아래 「다시 맞추기」로 한 번만 맞추면 돼요.`,
         );
       } else {
         setSharedOk(true);
@@ -276,31 +322,38 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [shelf, canShare]);
+  }, [shelf, mediaKind, canShare, kindLabel, unit]);
 
-  function persist(next: CharacterPhotoItem[]) {
-    if (next.length === 0) {
-      writeCharacterPhotoStoreAllowEmpty(shelf, { items: next });
-    } else {
-      writeCharacterPhotoStore(shelf, { items: next });
-    }
-    setItems(next);
+  function persist(nextKindItems: CharacterPhotoItem[]) {
+    replaceCharacterItemsForMediaKind(
+      shelf,
+      mediaKind,
+      nextKindItems,
+      nextKindItems.length === 0,
+    );
+    setItems(nextKindItems);
   }
 
-  /** 한 장을 인터넷에 올림. 실패해도 이 기기 사진은 그대로 둠. */
   async function publishOneItem(
     item: CharacterPhotoItem,
   ): Promise<CharacterPhotoItem | null> {
-    const blob = await resolvePhotoBlob(item);
-    const file = new File([blob], item.name || "photo.jpg", {
-      type: blob.type || "image/jpeg",
-    });
+    const blob = await resolveMediaBlob(item, mediaKind);
+    const fallbackMime =
+      mediaKind === "video"
+        ? "video/mp4"
+        : "image/jpeg";
+    const file = new File(
+      [blob],
+      item.name || (mediaKind === "video" ? "clip.mp4" : "photo.jpg"),
+      { type: blob.type || item.mimeType || fallbackMime },
+    );
     const form = new FormData();
     form.set("shelf", shelf);
     form.set("id", item.id);
     form.set("name", item.name || file.name);
     form.set("note", item.note || "");
     form.set("addedAt", item.addedAt || new Date().toISOString());
+    form.set("mediaKind", mediaKind);
     form.set("file", file);
 
     const result = await publishOneCharacterPhotoAction(form);
@@ -309,6 +362,7 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       ...item,
       publicUrl: result.item.publicUrl,
       storagePath: result.item.storagePath,
+      mimeType: result.item.mimeType || file.type || fallbackMime,
     };
   }
 
@@ -317,15 +371,23 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       setPendingFiles([]);
       return;
     }
-    const picked = Array.from(fileList).filter(isImageFile);
+    const picked = Array.from(fileList).filter(
+      mediaKind === "video" ? isVideoFile : isImageFile,
+    );
     if (picked.length === 0) {
-      setMessage("사진 파일만 넣을 수 있어요.");
+      setMessage(
+        mediaKind === "video"
+          ? "동영상 파일만 넣을 수 있어요."
+          : "사진 파일만 넣을 수 있어요.",
+      );
       setPendingFiles([]);
       return;
     }
     if (picked.length < fileList.length) {
       setMessage(
-        `사진만 ${picked.length}장 골랐어요. (사진이 아닌 파일은 빼 두었어요.)`,
+        mediaKind === "video"
+          ? `동영상만 ${picked.length}개 골랐어요. (영상이 아닌 파일은 빼 두었어요.)`
+          : `사진만 ${picked.length}장 골랐어요. (사진이 아닌 파일은 빼 두었어요.)`,
       );
     } else {
       setMessage("");
@@ -337,7 +399,11 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     e.preventDefault();
     if (saving) return;
     if (pendingFiles.length === 0) {
-      setMessage("사진을 먼저 골라 주세요. 여러 장도 한 번에 고를 수 있어요.");
+      setMessage(
+        mediaKind === "video"
+          ? "동영상을 먼저 골라 주세요. 여러 개도 한 번에 고를 수 있어요."
+          : "사진을 먼저 골라 주세요. 여러 장도 한 번에 고를 수 있어요.",
+      );
       return;
     }
 
@@ -346,18 +412,20 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     const failNames: string[] = [];
 
     try {
-      const snapshots: { name: string; blob: Blob }[] = [];
+      const snapshots: { name: string; blob: Blob; mimeType: string }[] = [];
       for (const file of pendingFiles) {
         try {
           const buffer = await file.arrayBuffer();
+          const mimeType =
+            file.type ||
+            (mediaKind === "video" ? "video/mp4" : "image/jpeg");
           snapshots.push({
             name: file.name,
-            blob: new Blob([buffer], {
-              type: file.type || "application/octet-stream",
-            }),
+            blob: new Blob([buffer], { type: mimeType }),
+            mimeType,
           });
         } catch {
-          failNames.push(file.name || "사진");
+          failNames.push(file.name || kindLabel);
         }
       }
 
@@ -367,12 +435,18 @@ export function CharacterPhotoShelf({ shelf }: Props) {
           name: snap.name,
           note: "",
           addedAt: new Date().toISOString(),
+          mimeType: snap.mimeType,
         };
         try {
-          await saveMediaPreview(item.id, snap.blob, "photo", snap.name);
+          await saveMediaPreview(
+            item.id,
+            snap.blob,
+            mediaKind === "video" ? "video" : "photo",
+            snap.name,
+          );
           added.push(item);
         } catch (err) {
-          failNames.push(snap.name || "사진");
+          failNames.push(snap.name || kindLabel);
           if (
             err instanceof Error &&
             err.message.includes("자리가 부족")
@@ -397,11 +471,12 @@ export function CharacterPhotoShelf({ shelf }: Props) {
         });
       }
 
-      // 봄이: 넣자마자 자동으로 인터넷에도 올림 (매번 버튼 안 눌러도 됨)
       let autoOk = 0;
       let autoFail = 0;
       if (canShare && added.length > 0) {
-        setMessage(`${added.length}장 넣는 중… 다른 기기에도 자동으로 올리는 중이에요.`);
+        setMessage(
+          `${countText(added.length)} 넣는 중… 다른 기기에도 자동으로 올리는 중이에요.`,
+        );
         const published = [...nextItems];
         for (let i = 0; i < added.length; i += 1) {
           const localItem = added[i];
@@ -430,28 +505,28 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       if (added.length > 0 && failNames.length === 0) {
         if (!canShare) {
           setMessage(
-            `${who} 사진 보관에 ${added.length}장을 갤러리에 넣었어요.`,
+            `${who} ${kindLabel} 보관에 ${countText(added.length)} 넣었어요.`,
           );
         } else if (autoOk > 0 && autoFail === 0) {
           setMessage(
-            `${who} 사진 ${autoOk}장을 넣었고, 다른 기기에도 자동으로 올려 두었어요.`,
+            `${who} ${countText(autoOk)} 넣었고, 다른 기기에도 자동으로 올려 두었어요.`,
           );
         } else if (autoOk > 0 && autoFail > 0) {
           setMessage(
-            `${autoOk}장은 다른 기기에도 올렸어요. ${autoFail}장은 자동 올리기에 실패해서, 아래 「다시 맞추기」를 눌러 주세요.`,
+            `${countText(autoOk)} 다른 기기에도 올렸어요. ${countText(autoFail)} 자동 올리기에 실패해서, 아래 「다시 맞추기」를 눌러 주세요.`,
           );
         } else {
           setMessage(
-            `${added.length}장은 이 기기에 넣었어요. 자동 올리기는 실패했어요. 아래 「다시 맞추기」를 눌러 주세요.`,
+            `${countText(added.length)} 이 기기에 넣었어요. 자동 올리기는 실패했어요. 아래 「다시 맞추기」를 눌러 주세요.`,
           );
         }
       } else if (added.length > 0 && failNames.length > 0) {
         setMessage(
-          `${added.length}장은 넣었어요. ${failNames.length}장은 못 넣었어요. 다시 골라 주세요.`,
+          `${countText(added.length)} 넣었어요. ${countText(failNames.length)} 못 넣었어요. 다시 골라 주세요.`,
         );
       } else if (failNames.length > 0) {
         setMessage(
-          "사진을 넣지 못했어요. 파일이 너무 크거나, 이 기기 자리가 부족할 수 있어요. 다시 해 주세요.",
+          `${kindLabel}을 넣지 못했어요. 파일이 너무 크거나, 이 기기 자리가 부족할 수 있어요. 다시 해 주세요.`,
         );
       }
 
@@ -461,7 +536,7 @@ export function CharacterPhotoShelf({ shelf }: Props) {
       setMessage(
         err instanceof Error
           ? err.message
-          : "사진을 넣지 못했어요. 다시 해 주세요.",
+          : `${kindLabel}을 넣지 못했어요. 다시 해 주세요.`,
       );
     } finally {
       setSaving(false);
@@ -471,7 +546,7 @@ export function CharacterPhotoShelf({ shelf }: Props) {
   async function onShareToOtherDevices() {
     if (!canShare || shareBusy) return;
     if (items.length === 0) {
-      tellResult(setMessage, "올릴 사진이 없어요.", true);
+      tellResult(setMessage, `올릴 ${kindLabel}이 없어요.`, true);
       return;
     }
     const lock = await askShareBossLock();
@@ -488,7 +563,6 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     try {
       for (let i = 0; i < nextItems.length; i += 1) {
         const item = nextItems[i];
-        // 이미 인터넷에 있는 건 건너뛰고, 안 올린 것만 / 실패 복구용
         if (item.publicUrl && item.storagePath) {
           okCount += 1;
           continue;
@@ -512,14 +586,14 @@ export function CharacterPhotoShelf({ shelf }: Props) {
         setSharedOk(true);
         tellResult(
           setMessage,
-          `확인했어요. 인터넷에 사진 ${okCount}장이 있어요. 다른 기기에서 새로고침 해 보세요.`,
+          `확인했어요. 인터넷에 ${countText(okCount)} 있어요. 다른 기기에서 새로고침 해 보세요.`,
           true,
         );
       } else if (okCount > 0) {
         setSharedOk(false);
         tellResult(
           setMessage,
-          `${okCount}장은 올렸어요. ${failNames.length}장은 못 올렸어요. 다시 눌러 주세요.`,
+          `${countText(okCount)} 올렸어요. ${countText(failNames.length)} 못 올렸어요. 다시 눌러 주세요.`,
           true,
         );
       } else {
@@ -527,8 +601,8 @@ export function CharacterPhotoShelf({ shelf }: Props) {
         tellResult(
           setMessage,
           failNames.length > 0
-            ? "사진을 올리지 못했어요. 관리자 문을 다시 연 뒤 한 번 더 해 주세요."
-            : "사진을 올리지 못했어요. 다시 해 주세요.",
+            ? `${kindLabel}을 올리지 못했어요. 관리자 문을 다시 연 뒤 한 번 더 해 주세요.`
+            : `${kindLabel}을 올리지 못했어요. 다시 해 주세요.`,
           true,
         );
       }
@@ -540,13 +614,12 @@ export function CharacterPhotoShelf({ shelf }: Props) {
   async function onRemove(id: string) {
     const target = items.find((it) => it.id === id);
     if (!target) return;
-    // 사진 미리보기만 뺌. 원본 영상(다른 id)은 절대 건드리지 않음.
     await deleteMediaPreview(id);
     if (canShare) {
       await removeCharacterPhotoAction(shelf, id, target.storagePath);
     }
     persist(items.filter((it) => it.id !== id));
-    setMessage("사진을 갤러리에서 빼 두었어요.");
+    setMessage(`${kindLabel}을 갤러리에서 빼 두었어요.`);
   }
 
   async function onCopy(item: CharacterPhotoItem) {
@@ -566,46 +639,65 @@ export function CharacterPhotoShelf({ shelf }: Props) {
     return <p className="muted">목록을 불러오는 중이에요…</p>;
   }
 
+  const introHref = characterIntroPath(shelf);
+  const otherKind: CharacterMediaKind =
+    mediaKind === "photo" ? "video" : "photo";
+  const otherHref = `/admin/${characterPhotoRoomKey(shelf, otherKind)}`;
+
   return (
     <div className="admin-wrap">
+      <p className="tiny muted">
+        지금 칸은 <strong>{who} {kindLabel} 보관함</strong>이에요.{" "}
+        <a className="text-link" href={otherHref}>
+          {who} {characterMediaKindLabel(otherKind)} 보관함으로
+        </a>
+      </p>
+
       {canShare ? (
         <div className="watch-share-box" aria-label="다른 기기에 보이기">
           <p className="tiny muted">
             {sharedOk
-              ? "새 사진은 넣을 때 자동으로 다른 기기에도 올라가요. 지금 인터넷과 같아요."
-              : "새 사진은 넣을 때 자동으로 올라가요. 예전에 안 올린 사진만 아래 「다시 맞추기」로 한 번 맞추면 돼요. 사진은 지우지 않아요."}
+              ? `새 ${kindLabel}은 넣을 때 자동으로 다른 기기에도 올라가요. 지금 인터넷과 같아요.`
+              : `새 ${kindLabel}은 넣을 때 자동으로 올라가요. 예전에 안 올린 것만 아래 「다시 맞추기」로 한 번 맞추면 돼요. 이미 있는 ${kindLabel}은 지우지 않아요.`}
           </p>
-          <p className="tiny muted">지금 이 기기 사진 {items.length}장</p>
+          <p className="tiny muted">
+            지금 이 기기 {kindLabel} {items.length}
+            {unit}
+          </p>
           <button
             type="button"
             className="btn btn-soft btn-wide"
             disabled={shareBusy || items.length === 0}
             onClick={() => void onShareToOtherDevices()}
           >
-            {shareBusy ? "맞추는 중…" : "예전에 안 올린 사진 다시 맞추기"}
+            {shareBusy
+              ? "맞추는 중…"
+              : `예전에 안 올린 ${kindLabel} 다시 맞추기`}
           </button>
         </div>
       ) : null}
 
       <form key={formKey} className="admin-form" onSubmit={onAdd}>
         <p className="form-hint">
-          {who} 영상규칙에 쓸 사진을 <strong>갤러리</strong>처럼 모아 두는
-          방이에요. 여러 장을 한 번에 고르면, 한 칸에 사진으로 보여 줘요.
+          {who} 영상규칙에 쓸 {kindLabel}을 <strong>갤러리</strong>처럼 모아
+          두는 방이에요. 여러 {unit === "장" ? "장" : "개"}를 한 번에 고르면,
+          한 칸에 {kindLabel}
+          {mediaKind === "video" ? "으로 미리보기·재생" : "으로 보여 줘요"}.
         </p>
 
         <label>
-          사진 고르기 (여러 장 가능)
+          {kindLabel} 고르기 (여러 {unit === "장" ? "장" : "개"} 가능)
           <input
             type="file"
-            accept="image/*"
+            accept={mediaKind === "video" ? "video/*" : "image/*"}
             multiple
             onChange={(e) => onPickFiles(e.target.files)}
             disabled={saving}
           />
           <span className="file-note">
             {pendingFiles.length > 0
-              ? `${pendingFiles.length}장 선택됨`
-              : "아직 안 고름 · 여러 장 한꺼번에 골라도 돼요"}
+              ? `${pendingFiles.length}${unit} 선택됨`
+              : `아직 안 고름 · 여러 ${unit === "장" ? "장" : "개"} 한꺼번에 골라도 돼요`}
           </span>
         </label>
 
@@ -617,56 +709,73 @@ export function CharacterPhotoShelf({ shelf }: Props) {
           {saving
             ? "넣는 중…"
             : pendingFiles.length > 1
-              ? `${pendingFiles.length}장 갤러리에 넣기`
-              : `${who} 사진 보관에 넣기`}
+              ? `${pendingFiles.length}${unit} 갤러리에 넣기`
+              : `${who} ${kindLabel} 보관에 넣기`}
         </button>
       </form>
 
       {message ? <p className="form-msg">{message}</p> : null}
 
       <section>
-        <h2 className="section-title">사진 갤러리</h2>
+        <h2 className="section-title">{kindLabel} 갤러리</h2>
         <p className="muted tiny">
-          {who} 칸 아래 사진 보관이에요. 「복사하기」로 사진을 복사한 뒤 AI에게
-          붙여 넣으면 돼요.
+          {who} {kindLabel} 보관함이에요.
+          {mediaKind === "photo"
+            ? " 「복사하기」로 사진을 복사한 뒤 AI에게 붙여 넣으면 돼요."
+            : " 칸을 누르면 미리보기·재생할 수 있어요."}
         </p>
         {items.length === 0 ? (
-          <AdminEmptyText roomKey={characterPhotoRoomKey(shelf)} />
+          <AdminEmptyText roomKey={characterPhotoRoomKey(shelf, mediaKind)} />
         ) : (
           <ul className="character-photo-gallery">
-            {items.map((item) => (
-              <li key={item.id} className="character-photo-tile">
-                <AdminMediaPreview
-                  itemId={item.id}
-                  kindHint="photo"
-                  label={item.name}
-                  refreshToken={previewTicks[item.id] ?? 0}
-                  remoteUrl={item.publicUrl}
-                />
-                <p className="tiny muted character-photo-caption" title={item.name}>
-                  {item.name}
-                </p>
-                <div className="character-photo-actions">
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-wide"
-                    onClick={() => void onCopy(item)}
+            {items.map((item) => {
+              const kind = characterMediaKind(item);
+              return (
+                <li key={item.id} className="character-photo-tile">
+                  <AdminMediaPreview
+                    itemId={item.id}
+                    kindHint={kind === "video" ? "video" : "photo"}
+                    label={item.name}
+                    refreshToken={previewTicks[item.id] ?? 0}
+                    remoteUrl={item.publicUrl}
+                    preferRemote={Boolean(item.publicUrl)}
+                  />
+                  <p
+                    className="tiny muted character-photo-caption"
+                    title={item.name}
                   >
-                    복사하기
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-soft btn-wide"
-                    onClick={() => void onRemove(item.id)}
-                  >
-                    빼기
-                  </button>
-                </div>
-              </li>
-            ))}
+                    {item.name}
+                  </p>
+                  <div className="character-photo-actions">
+                    {kind === "photo" ? (
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-wide"
+                        onClick={() => void onCopy(item)}
+                      >
+                        복사하기
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn btn-soft btn-wide"
+                      onClick={() => void onRemove(item.id)}
+                    >
+                      빼기
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
+
+      <p className="tiny muted">
+        <a className="text-link" href={introHref}>
+          {who} 소개로
+        </a>
+      </p>
     </div>
   );
 }

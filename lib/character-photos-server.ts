@@ -1,5 +1,10 @@
 import { createSupabaseServerClient, SUPABASE_URL } from "@/lib/supabase-public";
-import type { CharacterPhotoItem, CharacterShelf } from "@/lib/character-photos";
+import {
+  filterCharacterItemsByMediaKind,
+  type CharacterMediaKind,
+  type CharacterPhotoItem,
+  type CharacterShelf,
+} from "@/lib/character-photos";
 
 export const CHARACTER_PHOTOS_BUCKET = "character-photos";
 
@@ -34,6 +39,10 @@ function rowToItem(row: CharacterPhotoRow): CharacterPhotoItem | null {
         : new Date().toISOString(),
     publicUrl: characterPhotoPublicUrl(row.storage_path),
     storagePath: row.storage_path,
+    mimeType:
+      typeof row.mime_type === "string" && row.mime_type.trim()
+        ? row.mime_type.trim()
+        : "image/jpeg",
   };
 }
 
@@ -50,11 +59,17 @@ export function characterPhotoStoragePath(
   else if (mime.includes("gif")) ext = "gif";
   else if (mime.includes("avif")) ext = "avif";
   else if (mime.includes("heic")) ext = "heic";
+  else if (mime.includes("mp4") || mime === "video/mp4") ext = "mp4";
+  else if (mime.includes("webm")) ext = "webm";
+  else if (mime.includes("quicktime") || mime.includes("mov")) ext = "mov";
+  else if (mime.includes("m4v")) ext = "m4v";
+  else if (mime.startsWith("video/")) ext = "mp4";
   return `${shelf}/${safeId}.${ext}`;
 }
 
 export async function fetchCharacterPhotosFromServer(
   shelf: CharacterShelf,
+  mediaKind?: CharacterMediaKind,
 ): Promise<CharacterPhotoItem[]> {
   const supabase = createSupabaseServerClient();
   const { data, error } = await supabase
@@ -64,12 +79,15 @@ export async function fetchCharacterPhotosFromServer(
     .order("added_at", { ascending: false });
 
   if (error) {
-    throw new Error(error.message || "사진 목록을 불러오지 못했어요.");
+    throw new Error(error.message || "보관함 목록을 불러오지 못했어요.");
   }
 
-  return ((data as CharacterPhotoRow[] | null) ?? [])
+  const items = ((data as CharacterPhotoRow[] | null) ?? [])
     .map(rowToItem)
     .filter((it): it is CharacterPhotoItem => Boolean(it));
+
+  if (!mediaKind) return items;
+  return filterCharacterItemsByMediaKind(items, mediaKind);
 }
 
 export async function upsertCharacterPhotoOnServer(input: {
@@ -105,7 +123,7 @@ export async function upsertCharacterPhotoOnServer(input: {
     });
 
   if (uploadError) {
-    throw new Error(uploadError.message || "사진을 인터넷에 올리지 못했어요.");
+    throw new Error(uploadError.message || "파일을 인터넷에 올리지 못했어요.");
   }
 
   const addedAt =
@@ -128,7 +146,7 @@ export async function upsertCharacterPhotoOnServer(input: {
   );
 
   if (upsertError) {
-    throw new Error(upsertError.message || "사진 정보를 저장하지 못했어요.");
+    throw new Error(upsertError.message || "보관함 정보를 저장하지 못했어요.");
   }
 
   return {
@@ -138,6 +156,7 @@ export async function upsertCharacterPhotoOnServer(input: {
     addedAt,
     publicUrl: characterPhotoPublicUrl(storagePath),
     storagePath,
+    mimeType,
   };
 }
 
@@ -168,7 +187,7 @@ export async function deleteCharacterPhotoOnServer(
     .eq("shelf", shelf);
 
   if (error) {
-    throw new Error(error.message || "사진 정보를 빼지 못했어요.");
+    throw new Error(error.message || "보관함 정보를 빼지 못했어요.");
   }
 
   if (path) {

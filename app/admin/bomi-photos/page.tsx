@@ -20,7 +20,7 @@ export default async function AdminBomiPhotosPage() {
     <div className="study-room">
       <AdminRoomHeader roomKey="bomi-photos" />
       <section className="panel">
-        <CharacterPhotoShelf shelf="bomi" />
+        <CharacterPhotoShelf shelf="bomi" mediaKind="photo" />
       </section>
       <div className="vault-nav-row">
         <Link className="btn btn-soft" href="/characters/bomi">

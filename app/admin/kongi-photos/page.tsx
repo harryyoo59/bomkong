@@ -20,7 +20,7 @@ export default async function AdminKongiPhotosPage() {
     <div className="study-room">
       <AdminRoomHeader roomKey="kongi-photos" />
       <section className="panel">
-        <CharacterPhotoShelf shelf="kongi" />
+        <CharacterPhotoShelf shelf="kongi" mediaKind="photo" />
       </section>
       <div className="vault-nav-row">
         <Link className="btn btn-soft" href="/characters/kongi">
