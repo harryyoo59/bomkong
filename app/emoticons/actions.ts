@@ -10,7 +10,7 @@ export async function listPublicEmoticonsAction(
   | { ok: true; items: EmoticonItem[]; count: number }
   | { ok: false; message: string }
 > {
-  if (shelf !== "bomi" && shelf !== "kongi") {
+  if (shelf !== "bomi" && shelf !== "kongi" && shelf !== "etc") {
     return { ok: false, message: "이모티콘 방을 찾지 못했어요." };
   }
   try {
