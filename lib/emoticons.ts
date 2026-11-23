@@ -48,6 +48,18 @@ export function isGifEmoticon(
   return /\.gif(\?|$)/i.test(path);
 }
 
+/** 손님용: 움직이는 것(GIF·영상)만 공유 버튼 — 정지 PNG/JPG 등은 복사 */
+export function isMotionEmoticon(
+  item: Pick<EmoticonItem, "mimeType" | "name" | "storagePath" | "publicUrl">,
+  blob?: Blob | null,
+): boolean {
+  const mime = (blob?.type || item.mimeType || "").toLowerCase();
+  if (mime === "image/gif" || mime.startsWith("video/")) return true;
+  if (mime.includes("gif")) return true;
+  const path = `${item.storagePath || ""} ${item.name || ""} ${item.publicUrl || ""}`.toLowerCase();
+  return /\.(gif|mp4|webm|mov|m4v)(\?|$)/i.test(path);
+}
+
 function normalizeItem(raw: Partial<EmoticonItem>): EmoticonItem | null {
   if (!raw || typeof raw.id !== "string" || !raw.id.trim()) return null;
   return {

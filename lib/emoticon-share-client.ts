@@ -1,7 +1,10 @@
 "use client";
 
-import { copyEmoticonToClipboard } from "@/lib/emoticon-copy-client";
-import { isGifEmoticon, type EmoticonItem } from "@/lib/emoticons";
+import {
+  isGifEmoticon,
+  isMotionEmoticon,
+  type EmoticonItem,
+} from "@/lib/emoticons";
 
 function safeBaseName(fileName: string): string {
   const raw = (fileName || "emoticon").trim() || "emoticon";
@@ -12,21 +15,21 @@ function mimeAndExt(
   item: EmoticonItem,
   blob: Blob,
 ): { mime: string; ext: string } {
-  if (isGifEmoticon(item, blob) || blob.type === "image/gif") {
+  const hint = (blob.type || item.mimeType || "").toLowerCase();
+  if (hint.startsWith("video/")) {
+    const sub = hint.split("/")[1]?.split(";")[0] || "mp4";
+    const ext =
+      sub === "quicktime" ? "mov" : sub === "x-m4v" ? "m4v" : sub || "mp4";
+    return { mime: hint.split(";")[0] || "video/mp4", ext };
+  }
+  if (isGifEmoticon(item, blob) || hint === "image/gif") {
     return { mime: "image/gif", ext: "gif" };
   }
-  const mime = (blob.type || item.mimeType || "image/png").toLowerCase();
-  if (mime.includes("png")) return { mime: "image/png", ext: "png" };
-  if (mime.includes("jpeg") || mime.includes("jpg")) {
-    return { mime: "image/jpeg", ext: "jpg" };
-  }
-  if (mime.includes("webp")) return { mime: "image/webp", ext: "webp" };
-  // 손님 공유·복사용: 알 수 없으면 PNG로 맞춤하지 않고 원본 타입 유지
-  if (mime.startsWith("image/") && mime !== "image/") {
-    const ext = mime.split("/")[1]?.split("+")[0] || "png";
-    return { mime, ext };
-  }
-  return { mime: "image/png", ext: "png" };
+  const path = `${item.storagePath || ""} ${item.name || ""} ${item.publicUrl || ""}`.toLowerCase();
+  if (/\.mp4(\?|$)/i.test(path)) return { mime: "video/mp4", ext: "mp4" };
+  if (/\.webm(\?|$)/i.test(path)) return { mime: "video/webm", ext: "webm" };
+  if (/\.mov(\?|$)/i.test(path)) return { mime: "video/quicktime", ext: "mov" };
+  return { mime: "image/gif", ext: "gif" };
 }
 
 async function fetchEmoticonBlob(item: EmoticonItem): Promise<Blob> {
@@ -43,6 +46,21 @@ async function fetchEmoticonBlob(item: EmoticonItem): Promise<Blob> {
     throw new Error("이모티콘이 비어 있어요.");
   }
   return blob;
+}
+
+function downloadFile(file: File): void {
+  const url = URL.createObjectURL(file);
+  try {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
 }
 
 export async function buildEmoticonShareFile(
@@ -70,21 +88,19 @@ function canShareFiles(file: File): boolean {
       return false;
     }
   }
-  // canShare 없는 일부 기기: share만 있으면 파일 공유 시도
   return true;
 }
 
 /**
- * 손님용: 휴대폰 공유 창으로 이모티콘 파일 보내기.
- * PNG는 PNG, GIF는 움직이는 GIF 그대로.
- * 파일 공유가 안 되면 예전 복사(또는 받기)로 대신함.
- * 사용자 클릭 안에서 호출해야 함. blobPromise를 넘기면 미리 받아 둔 파일을 씀.
+ * 움직이는 이모티콘(GIF·영상)만: 휴대폰 공유 창으로 파일 보내기.
+ * 파일 공유가 안 되면 다운로드로 대신함.
+ * 사용자 클릭 안에서 호출해야 함.
  */
 export async function shareEmoticonFile(
   item: EmoticonItem,
   fileName: string,
   options?: { blobPromise?: Promise<Blob> | null },
-): Promise<"shared" | "copied" | "cancelled"> {
+): Promise<"shared" | "downloaded" | "cancelled"> {
   let cached: Blob | null = null;
   if (options?.blobPromise) {
     try {
@@ -104,25 +120,25 @@ export async function shareEmoticonFile(
       });
       return "shared";
     } catch (err) {
-      // 사용자가 공유 창을 닫음
       if (err instanceof DOMException && err.name === "AbortError") {
         return "cancelled";
       }
-      // share 실패 시 아래 복사로 이어감
+      // share 실패 → 아래로 다운로드
     }
   }
 
-  await copyEmoticonToClipboard(item, fileName);
-  return "copied";
+  downloadFile(file);
+  return "downloaded";
 }
 
-/** 목록을 불러온 뒤 파일을 미리 받아 두면, 공유 버튼 클릭 직후 바로 창을 띄우기 쉬움 */
+/** 움직이는 것만 미리 받아 두면, 공유 클릭 직후 창을 띄우기 쉬움 */
 export function prefetchEmoticonBlobs(
   items: EmoticonItem[],
 ): Map<string, Promise<Blob>> {
   const map = new Map<string, Promise<Blob>>();
   for (const item of items) {
     if (!item.publicUrl?.trim()) continue;
+    if (!isMotionEmoticon(item)) continue;
     map.set(
       item.id,
       fetchEmoticonBlob(item).catch((err) => {
