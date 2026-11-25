@@ -13,9 +13,13 @@ import {
 
 type Props = {
   signupCountsLine?: string;
+  activeCountsLine?: string;
 };
 
-export function MembersRoomHome({ signupCountsLine }: Props) {
+export function MembersRoomHome({
+  signupCountsLine,
+  activeCountsLine,
+}: Props) {
   const [text, setText] = useState("");
   const [draft, setDraft] = useState("");
   const [ready, setReady] = useState(false);
@@ -136,6 +140,11 @@ export function MembersRoomHome({ signupCountsLine }: Props) {
       {signupCountsLine ? (
         <p className="tiny muted" aria-label="가입 인원">
           {signupCountsLine}
+        </p>
+      ) : null}
+      {activeCountsLine ? (
+        <p className="tiny muted" aria-label="활동 인원">
+          {activeCountsLine}
         </p>
       ) : null}
       <p className="muted">
