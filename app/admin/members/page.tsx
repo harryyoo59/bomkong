@@ -10,7 +10,9 @@ import { MembersRoomHome } from "@/components/MembersRoomHome";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { requireMembersRoomSession } from "@/lib/members-room-auth";
 import {
+  fetchParentActiveCounts,
   fetchParentSignupCounts,
+  formatParentActiveCountsLine,
   formatParentSignupCountsLine,
 } from "@/lib/parent-signup-counts";
 
@@ -41,14 +43,20 @@ export default async function AdminMembersPage() {
     );
   }
 
-  const signupCountsLine = formatParentSignupCountsLine(
-    await fetchParentSignupCounts(),
-  );
+  const [signupCounts, activeCounts] = await Promise.all([
+    fetchParentSignupCounts(),
+    fetchParentActiveCounts(),
+  ]);
+  const signupCountsLine = formatParentSignupCountsLine(signupCounts);
+  const activeCountsLine = formatParentActiveCountsLine(activeCounts);
 
   return (
     <div className="study-room">
       <AdminRoomHeader roomKey="members" />
-      <MembersRoomHome signupCountsLine={signupCountsLine} />
+      <MembersRoomHome
+        signupCountsLine={signupCountsLine}
+        activeCountsLine={activeCountsLine}
+      />
       <div className="vault-nav-row">
         <form action={leaveMembersRoom}>
           <button type="submit" className="btn btn-soft">
