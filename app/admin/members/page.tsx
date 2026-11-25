@@ -10,6 +10,7 @@ import { MembersRoomHome } from "@/components/MembersRoomHome";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { requireMembersRoomSession } from "@/lib/members-room-auth";
 import {
+  MEMBERS_EXTRA_STAT_PLACEHOLDER_LINES,
   SUBSCRIBER_COUNTS_PLACEHOLDER_LINE,
   SUBSCRIBER_WATCH_AVG_PLACEHOLDER_LINE,
   fetchParentActiveCounts,
@@ -60,6 +61,7 @@ export default async function AdminMembersPage() {
         activeCountsLine={activeCountsLine}
         subscriberCountsLine={SUBSCRIBER_COUNTS_PLACEHOLDER_LINE}
         subscriberWatchAvgLine={SUBSCRIBER_WATCH_AVG_PLACEHOLDER_LINE}
+        extraStatLines={MEMBERS_EXTRA_STAT_PLACEHOLDER_LINES}
       />
       <div className="vault-nav-row">
         <form action={leaveMembersRoom}>

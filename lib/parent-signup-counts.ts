@@ -102,3 +102,16 @@ export const SUBSCRIBER_COUNTS_PLACEHOLDER_LINE =
 export const SUBSCRIBER_WATCH_AVG_PLACEHOLDER_LINE =
   "정기 구독 1일 평균 시청 :  전월 0분(0편) · 금월 0분(0편) · 전주 0분(0편) · 금주 0분(0편) · 오늘 0분(0편)";
 
+/**
+ * 나중에 기록 붙일 통계 자리. 필요 없으면 줄만 지우면 됨.
+ * 지금은 전부 0 / 자리 표시.
+ */
+export const MEMBERS_EXTRA_STAT_PLACEHOLDER_LINES: string[] = [
+  "이탈 회원(지난주 왔다가 이번주 안 옴) :  0명",
+  "새 가입 재방문율 :  전월 0% · 금월 0% · 전주 0% · 금주 0% · 오늘 0%",
+  "인기 편 TOP5 :  (자리)     덜 본 편 :  (자리)",
+  "기기 비율 :  폰 0% · 컴퓨터 0%",
+  "로그인 실패 :  전월 0 · 금월 0 · 전주 0 · 금주 0 · 오늘 0",
+  "손님 의견 :  전월 0 · 금월 0 · 전주 0 · 금주 0 · 오늘 0",
+];
+
