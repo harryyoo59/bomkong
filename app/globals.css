@@ -345,6 +345,12 @@ textarea {
   border: 1px solid var(--line);
 }
 
+.btn-soft.is-active {
+  border-color: var(--orange, #e67a2e);
+  box-shadow: inset 0 0 0 1px var(--orange, #e67a2e);
+  font-weight: 700;
+}
+
 .btn-wide {
   width: 100%;
 }
