@@ -23,6 +23,7 @@ as $$
       date_trunc('month', now() at time zone 'Australia/Sydney') as month_start
   )
   select json_build_object(
+    'total', (select count(*)::int from u),
     'lastMonth', (select count(*)::int from u, bounds b where u.created_local >= b.month_start - interval '1 month' and u.created_local < b.month_start),
     'thisMonth', (select count(*)::int from u, bounds b where u.created_local >= b.month_start and u.created_local < b.month_start + interval '1 month'),
     'lastWeek', (select count(*)::int from u, bounds b where u.created_local >= b.week_start - interval '1 week' and u.created_local < b.week_start),

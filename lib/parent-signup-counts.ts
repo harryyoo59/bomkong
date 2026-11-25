@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase-public";
 
 export type ParentSignupCounts = {
+  total: number;
   lastMonth: number;
   thisMonth: number;
   lastWeek: number;
@@ -9,6 +10,7 @@ export type ParentSignupCounts = {
 };
 
 const EMPTY: ParentSignupCounts = {
+  total: 0,
   lastMonth: 0,
   thisMonth: 0,
   lastWeek: 0,
@@ -34,6 +36,7 @@ export async function fetchParentSignupCounts(): Promise<ParentSignupCounts> {
       : (data as Record<string, unknown>);
 
   return {
+    total: asCount(row.total),
     lastMonth: asCount(row.lastMonth),
     thisMonth: asCount(row.thisMonth),
     lastWeek: asCount(row.lastWeek),
@@ -45,5 +48,5 @@ export async function fetchParentSignupCounts(): Promise<ParentSignupCounts> {
 export function formatParentSignupCountsLine(
   counts: ParentSignupCounts,
 ): string {
-  return `가입 전월 ${counts.lastMonth} · 금월 ${counts.thisMonth} · 전주 ${counts.lastWeek} · 금주 ${counts.thisWeek} · 오늘 ${counts.today}`;
+  return `전체/전월/금월/전주/금주/오늘  ${counts.total}/${counts.lastMonth}/${counts.thisMonth}/${counts.lastWeek}/${counts.thisWeek}/${counts.today}`;
 }
