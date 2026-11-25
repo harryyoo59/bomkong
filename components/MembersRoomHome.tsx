@@ -11,7 +11,11 @@ import {
   writeMembersNotesLocal,
 } from "@/lib/members-room-store";
 
-export function MembersRoomHome() {
+type Props = {
+  signupCountsLine?: string;
+};
+
+export function MembersRoomHome({ signupCountsLine }: Props) {
   const [text, setText] = useState("");
   const [draft, setDraft] = useState("");
   const [ready, setReady] = useState(false);
@@ -129,6 +133,11 @@ export function MembersRoomHome() {
 
   return (
     <section className="panel" aria-label="회원현황">
+      {signupCountsLine ? (
+        <p className="tiny muted" aria-label="가입 인원">
+          {signupCountsLine}
+        </p>
+      ) : null}
       <p className="muted">
         여기는 회원 정보·관리·통계를 모아 볼 방이에요. 지금은 먼저{" "}
         <strong>관리 메모</strong>를 적어 두고, 다른 기기에서도 같게 볼 수
