@@ -11,6 +11,7 @@ as $$
     from auth.users
     where email is not null
       and email <> ''
+      and lower(email) <> 'harryyoo59@gmail.com'
       and email not ilike '%+bomkong-probe%'
       and email not ilike '%@example.com'
       and email not ilike '%bot%@%'

@@ -16,6 +16,7 @@ type Props = {
   activeCountsLine?: string;
   subscriberCountsLine?: string;
   subscriberWatchAvgLine?: string;
+  extraStatLines?: string[];
 };
 
 export function MembersRoomHome({
@@ -23,6 +24,7 @@ export function MembersRoomHome({
   activeCountsLine,
   subscriberCountsLine,
   subscriberWatchAvgLine,
+  extraStatLines,
 }: Props) {
   const [text, setText] = useState("");
   const [draft, setDraft] = useState("");
@@ -161,6 +163,15 @@ export function MembersRoomHome({
           {subscriberWatchAvgLine}
         </p>
       ) : null}
+      {(extraStatLines ?? []).map((line, index) => (
+        <p
+          key={`stat-extra-${index}`}
+          className="tiny muted"
+          aria-label={`추가 통계 ${index + 1}`}
+        >
+          {line}
+        </p>
+      ))}
       <p className="muted">
         여기는 회원 정보·관리·통계를 모아 볼 방이에요. 지금은 먼저{" "}
         <strong>관리 메모</strong>를 적어 두고, 다른 기기에서도 같게 볼 수
