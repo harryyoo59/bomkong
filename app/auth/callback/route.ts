@@ -4,7 +4,8 @@ import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase-public";
 import { safeNextPath } from "@/lib/parent-auth";
 
 /**
- * 구글·애플·이메일 링크로 돌아온 뒤 부모 로그인 마무리.
+ * 이메일 로그인 링크로 돌아온 뒤 부모 로그인 마무리.
+ * (구글·애플은 당분간 안 씀. 나중에 같은 길로 이어질 수 있음.)
  */
 export async function GET(request: NextRequest) {
   const url = request.nextUrl;

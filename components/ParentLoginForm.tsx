@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createParentAuthBrowserClient } from "@/lib/parent-auth-browser";
 import { parentAuthCallbackUrl, safeNextPath } from "@/lib/parent-auth";
 
@@ -11,11 +12,14 @@ type Props = {
 
 /**
  * 당장 오픈용: 이메일 로그인만.
- * 구글·애플·전화는 나중에 켤 예정.
+ * 구글·애플은 당분간 안 켬.
  */
 export function ParentLoginForm({ nextPath = "/", initialError }: Props) {
+  const router = useRouter();
   const next = useMemo(() => safeNextPath(nextPath), [nextPath]);
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [awaitingCode, setAwaitingCode] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState(
     initialError === "login"
@@ -54,12 +58,52 @@ export function ParentLoginForm({ nextPath = "/", initialError }: Props) {
         setBusy(false);
         return;
       }
+      setAwaitingCode(true);
       setMessage(
-        "로그인 메일을 보냈어요. 메일함(스팸함도)에서 링크를 눌러 들어와 주세요.",
+        "로그인 메일을 보냈어요. 메일함(스팸함도)에서 링크를 누르거나, 숫자 6자리가 있으면 아래에 적어 주세요. 가능하면 메일 보낸 그 폰·컴퓨터에서 링크를 눌러 주세요.",
       );
       setBusy(false);
     } catch {
       setMessage("이메일을 보내지 못했어요. 다시 해 주세요.");
+      setBusy(false);
+    }
+  }
+
+  async function verifyEmailCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    const trimmedEmail = email.trim();
+    const trimmedCode = code.trim().replace(/\s+/g, "");
+    if (!trimmedEmail.includes("@")) {
+      setMessage("이메일 주소를 확인해 주세요.");
+      return;
+    }
+    if (trimmedCode.length < 6) {
+      setMessage("메일 안 숫자 6자리를 확인해 주세요.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const supabase = createParentAuthBrowserClient();
+      const { error } = await supabase.auth.verifyOtp({
+        email: trimmedEmail,
+        token: trimmedCode,
+        type: "email",
+      });
+      if (error) {
+        setMessage(
+          error.message ||
+            "숫자 확인에 실패했어요. 메일 링크를 눌러 보거나, 숫자를 다시 확인해 주세요.",
+        );
+        setBusy(false);
+        return;
+      }
+      setMessage("로그인됐어요. 거실로 이동해요.");
+      router.replace(next);
+      router.refresh();
+    } catch {
+      setMessage("숫자 확인에 실패했어요. 다시 해 주세요.");
       setBusy(false);
     }
   }
@@ -72,8 +116,8 @@ export function ParentLoginForm({ nextPath = "/", initialError }: Props) {
       </p>
 
       <p className="tiny muted">
-        지금은 <strong>이메일 로그인</strong>만 열려 있어요. 구글·애플은 곧
-        이어서 켤게요.
+        지금은 <strong>이메일 로그인</strong>만 열려 있어요. 구글·애플은
+        당분간 나중에 켤게요.
       </p>
 
       <form className="admin-form" onSubmit={(e) => void sendEmailLink(e)}>
@@ -93,9 +137,33 @@ export function ParentLoginForm({ nextPath = "/", initialError }: Props) {
           className="btn btn-primary btn-wide"
           disabled={busy}
         >
-          {busy ? "보내는 중…" : "이메일로 로그인 링크 받기"}
+          {busy && !awaitingCode ? "보내는 중…" : "이메일로 로그인 링크 받기"}
         </button>
       </form>
+
+      {awaitingCode ? (
+        <form className="admin-form" onSubmit={(e) => void verifyEmailCode(e)}>
+          <label>
+            메일 안 숫자 6자리 (있으면)
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(ev) => setCode(ev.target.value)}
+              placeholder="123456"
+              disabled={busy}
+            />
+          </label>
+          <button
+            type="submit"
+            className="btn btn-soft btn-wide"
+            disabled={busy}
+          >
+            {busy ? "확인 중…" : "숫자로 로그인"}
+          </button>
+        </form>
+      ) : null}
 
       {message ? (
         <p className="form-msg" role="status">
