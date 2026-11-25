@@ -1,5 +1,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase-public";
 
+/** 운영자(사장님) 계정 — 모든 회원 통계에서 제외 */
+export const MEMBERS_STATS_EXCLUDED_EMAILS = [
+  "harryyoo59@gmail.com",
+] as const;
+
 export type ParentSignupCounts = {
   total: number;
   lastMonth: number;
