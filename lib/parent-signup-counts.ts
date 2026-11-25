@@ -48,5 +48,5 @@ export async function fetchParentSignupCounts(): Promise<ParentSignupCounts> {
 export function formatParentSignupCountsLine(
   counts: ParentSignupCounts,
 ): string {
-  return `전체/전월/금월/전주/금주/오늘  ${counts.total}/${counts.lastMonth}/${counts.thisMonth}/${counts.lastWeek}/${counts.thisWeek}/${counts.today}`;
+  return `가입 회원 :  전체 ${counts.total}     전월 ${counts.lastMonth} · 금월 ${counts.thisMonth} · 전주 ${counts.lastWeek} · 금주 ${counts.thisWeek} · 오늘 ${counts.today}`;
 }
