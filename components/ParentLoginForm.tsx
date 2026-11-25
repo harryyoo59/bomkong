@@ -190,6 +190,12 @@ export function ParentLoginForm({ nextPath = "/", initialError }: Props) {
             />
           </label>
         ) : null}
+        {mode === "signup" ? (
+          <p className="tiny muted" style={{ margin: "0.25rem 0 0.5rem" }}>
+            가입하면 이용약관·개인정보 안내에 동의한 것으로 봅니다. 부모
+            계정으로 시청·구독·결제에 쓸 수 있어요.
+          </p>
+        ) : null}
         <button
           type="submit"
           className="btn btn-primary btn-wide"
