@@ -10,6 +10,7 @@ import { MembersRoomHome } from "@/components/MembersRoomHome";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { requireMembersRoomSession } from "@/lib/members-room-auth";
 import {
+  SUBSCRIBER_COUNTS_PLACEHOLDER_LINE,
   SUBSCRIBER_WATCH_AVG_PLACEHOLDER_LINE,
   fetchParentActiveCounts,
   fetchParentSignupCounts,
@@ -57,6 +58,7 @@ export default async function AdminMembersPage() {
       <MembersRoomHome
         signupCountsLine={signupCountsLine}
         activeCountsLine={activeCountsLine}
+        subscriberCountsLine={SUBSCRIBER_COUNTS_PLACEHOLDER_LINE}
         subscriberWatchAvgLine={SUBSCRIBER_WATCH_AVG_PLACEHOLDER_LINE}
       />
       <div className="vault-nav-row">
