@@ -24,7 +24,7 @@ export async function createParentAuthServerClient() {
 
 export async function getParentSession() {
   const supabase = await createParentAuthServerClient();
-  const { data, error } = await supabase.auth.getSession();
-  if (error) return null;
-  return data.session;
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data.user) return null;
+  return data.user;
 }

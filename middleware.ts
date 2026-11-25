@@ -1,10 +1,15 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/supabase-public";
 
 const ADMIN_COOKIE = "bomkong_admin_session";
 
 function toBase64Url(bytes: ArrayBuffer): string {
   const bin = String.fromCharCode(...new Uint8Array(bytes));
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+  return btoa(bin)
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
 }
 
 async function sign(payload: string, secret: string): Promise<string> {
@@ -48,15 +53,41 @@ async function isValidSession(
   return timingSafeEqualStr(sig, expected);
 }
 
+/**
+ * 부모 이메일 로그인 세션을 갱신하고,
+ * 관리자실 문은 기존처럼 비밀글로만 연다.
+ */
 export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
+
+  const supabase = createServerClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        for (const { name, value } of cookiesToSet) {
+          request.cookies.set(name, value);
+        }
+        response = NextResponse.next({
+          request: { headers: request.headers },
+        });
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, options);
+        }
+      },
+    },
+  });
+
+  // 부모 로그인 쿠키를 매번 확인해 오래 유지
+  await supabase.auth.getUser();
+
   const { pathname } = request.nextUrl;
 
-  if (!pathname.startsWith("/admin")) {
-    return NextResponse.next();
-  }
-
-  if (pathname === "/admin/login") {
-    return NextResponse.next();
+  if (!pathname.startsWith("/admin") || pathname === "/admin/login") {
+    return response;
   }
 
   const secret = process.env.BOMKONG_ADMIN_SECRET?.trim();
@@ -64,7 +95,11 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("need", "setup");
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie);
+    }
+    return redirect;
   }
 
   const token = request.cookies.get(ADMIN_COOKIE)?.value;
@@ -72,12 +107,18 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/admin/login";
     url.searchParams.set("next", pathname);
-    return NextResponse.redirect(url);
+    const redirect = NextResponse.redirect(url);
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie);
+    }
+    return redirect;
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
-  matcher: ["/admin", "/admin/:path*"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+  ],
 };
