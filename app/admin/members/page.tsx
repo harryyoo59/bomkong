@@ -9,6 +9,10 @@ import { MembersRoomGate } from "@/components/MembersRoomGate";
 import { MembersRoomHome } from "@/components/MembersRoomHome";
 import { requireAdminSession } from "@/lib/admin-auth";
 import { requireMembersRoomSession } from "@/lib/members-room-auth";
+import {
+  fetchParentSignupCounts,
+  formatParentSignupCountsLine,
+} from "@/lib/parent-signup-counts";
 
 export const dynamic = "force-dynamic";
 
@@ -37,10 +41,14 @@ export default async function AdminMembersPage() {
     );
   }
 
+  const signupCountsLine = formatParentSignupCountsLine(
+    await fetchParentSignupCounts(),
+  );
+
   return (
     <div className="study-room">
       <AdminRoomHeader roomKey="members" />
-      <MembersRoomHome />
+      <MembersRoomHome signupCountsLine={signupCountsLine} />
       <div className="vault-nav-row">
         <form action={leaveMembersRoom}>
           <button type="submit" className="btn btn-soft">
