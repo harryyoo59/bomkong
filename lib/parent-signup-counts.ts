@@ -93,3 +93,8 @@ export function formatParentActiveCountsLine(
 ): string {
   return `활동 회원 :  전월 ${counts.lastMonth} · 금월 ${counts.thisMonth} · 전주 ${counts.lastWeek} · 금주 ${counts.thisWeek} · 오늘 ${counts.today}`;
 }
+
+/** 정기 구독·시청 기록이 붙기 전 자리. 지금은 0. */
+export const SUBSCRIBER_WATCH_AVG_PLACEHOLDER_LINE =
+  "정기 구독 1일 평균 시청 :  전월 0분(0편) · 금월 0분(0편) · 전주 0분(0편) · 금주 0분(0편) · 오늘 0분(0편)";
+
