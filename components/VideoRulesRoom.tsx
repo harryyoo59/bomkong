@@ -10,19 +10,23 @@ import {
   DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
   DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT,
   DEFAULT_VIDEO_RULES_DOCUMENT,
+  DEFAULT_VIDEO_RULES_ENGLISH_DOCUMENT,
   clearVideoRulesAiDocument,
   clearVideoRulesChecklistDocument,
   clearVideoRulesCookieDocument,
   clearVideoRulesDocumentOverride,
+  clearVideoRulesEnglishDocument,
   parseVideoRulesDocument,
   readVideoRulesAiDocument,
   readVideoRulesChecklistDocument,
   readVideoRulesCookieDocument,
   readVideoRulesDocument,
+  readVideoRulesEnglishDocument,
   writeVideoRulesAiDocument,
   writeVideoRulesChecklistDocument,
   writeVideoRulesCookieDocument,
   writeVideoRulesDocument,
+  writeVideoRulesEnglishDocument,
   type VideoRulesAudience,
   type VideoRulesBlock,
 } from "@/lib/video-rules";
@@ -79,12 +83,14 @@ function remoteHasSharedContent(
   adminBody: string,
   aiBody: string,
   checklistBody: string,
+  englishBody: string,
   cookieBody: string,
 ): boolean {
   return Boolean(
     adminBody.trim() ||
       aiBody.trim() ||
       checklistBody.trim() ||
+      englishBody.trim() ||
       cookieBody.trim(),
   );
 }
@@ -93,6 +99,7 @@ type Docs = {
   admin: string;
   ai: string;
   checklist: string;
+  english: string;
   cookie: string;
 };
 
@@ -107,6 +114,12 @@ export function VideoRulesRoom() {
   );
   const [checklistDraft, setChecklistDraft] = useState(
     DEFAULT_VIDEO_RULES_CHECKLIST_DOCUMENT,
+  );
+  const [englishText, setEnglishText] = useState(
+    DEFAULT_VIDEO_RULES_ENGLISH_DOCUMENT,
+  );
+  const [englishDraft, setEnglishDraft] = useState(
+    DEFAULT_VIDEO_RULES_ENGLISH_DOCUMENT,
   );
   const [cookieText, setCookieText] = useState(
     DEFAULT_VIDEO_RULES_COOKIE_DOCUMENT,
@@ -129,6 +142,7 @@ export function VideoRulesRoom() {
       const localAdmin = readVideoRulesDocument();
       const localAi = readVideoRulesAiDocument();
       const localChecklist = readVideoRulesChecklistDocument();
+      const localEnglish = readVideoRulesEnglishDocument();
       const localCookie = readVideoRulesCookieDocument();
       if (!cancelled) {
         setAdminText(localAdmin);
@@ -137,6 +151,8 @@ export function VideoRulesRoom() {
         setAiDraft(localAi);
         setChecklistText(localChecklist);
         setChecklistDraft(localChecklist);
+        setEnglishText(localEnglish);
+        setEnglishDraft(localEnglish);
         setCookieText(localCookie);
         setCookieDraft(localCookie);
         setReady(true);
@@ -159,6 +175,7 @@ export function VideoRulesRoom() {
           store.adminBody,
           store.aiBody,
           store.checklistBody,
+          store.englishBody,
           store.cookieBody,
         )
       ) {
@@ -168,6 +185,7 @@ export function VideoRulesRoom() {
         writeVideoRulesDocument(nextAdmin);
         writeVideoRulesAiDocument(store.aiBody);
         writeVideoRulesChecklistDocument(store.checklistBody);
+        writeVideoRulesEnglishDocument(store.englishBody);
         writeVideoRulesCookieDocument(store.cookieBody);
         setAdminText(nextAdmin);
         setAdminDraft(nextAdmin);
@@ -175,6 +193,8 @@ export function VideoRulesRoom() {
         setAiDraft(store.aiBody);
         setChecklistText(store.checklistBody);
         setChecklistDraft(store.checklistBody);
+        setEnglishText(store.englishBody);
+        setEnglishDraft(store.englishBody);
         setCookieText(store.cookieBody);
         setCookieDraft(store.cookieBody);
         setSharedOk(true);
@@ -191,6 +211,7 @@ export function VideoRulesRoom() {
         adminBody: localAdmin,
         aiBody: localAi,
         checklistBody: localChecklist,
+        englishBody: localEnglish,
         cookieBody: localCookie,
       });
       if (cancelled) return;
@@ -223,8 +244,9 @@ export function VideoRulesRoom() {
   const isAdmin = audience === "admin";
   const isAi = audience === "ai";
   const isChecklist = audience === "checklist";
+  const isEnglish = audience === "english";
   const isCookie = audience === "cookie";
-  const isSideDoc = isAi || isChecklist || isCookie;
+  const isSideDoc = isAi || isChecklist || isEnglish || isCookie;
 
   const text = isAdmin
     ? adminText
@@ -232,21 +254,27 @@ export function VideoRulesRoom() {
       ? aiText
       : isChecklist
         ? checklistText
-        : cookieText;
+        : isEnglish
+          ? englishText
+          : cookieText;
   const draft = isAdmin
     ? adminDraft
     : isAi
       ? aiDraft
       : isChecklist
         ? checklistDraft
-        : cookieDraft;
+        : isEnglish
+          ? englishDraft
+          : cookieDraft;
   const setDraft = isAdmin
     ? setAdminDraft
     : isAi
       ? setAiDraft
       : isChecklist
         ? setChecklistDraft
-        : setCookieDraft;
+        : isEnglish
+          ? setEnglishDraft
+          : setCookieDraft;
   const blocks = useMemo(() => parseVideoRulesDocument(text), [text]);
 
   async function publishAll(docs: Docs) {
@@ -255,6 +283,7 @@ export function VideoRulesRoom() {
       adminBody: docs.admin,
       aiBody: docs.ai,
       checklistBody: docs.checklist,
+      englishBody: docs.english,
       cookieBody: docs.cookie,
     });
     setSyncBusy(false);
@@ -276,6 +305,7 @@ export function VideoRulesRoom() {
       admin: override.admin ?? adminText,
       ai: override.ai ?? aiText,
       checklist: override.checklist ?? checklistText,
+      english: override.english ?? englishText,
       cookie: override.cookie ?? cookieText,
     };
   }
@@ -309,6 +339,18 @@ export function VideoRulesRoom() {
       writeVideoRulesChecklistDocument(draft);
       setChecklistText(draft);
       const published = await publishAll(currentDocs({ checklist: draft }));
+      setEditing(false);
+      setSyncMessage(
+        published.ok
+          ? "저장했고, 다른 기기에도 자동으로 맞춰 두었어요."
+          : `이 기기에는 저장했어요. ${published.message} 「다시 맞추기」를 눌러 주세요.`,
+      );
+      return;
+    }
+    if (isEnglish) {
+      writeVideoRulesEnglishDocument(draft);
+      setEnglishText(draft);
+      const published = await publishAll(currentDocs({ english: draft }));
       setEditing(false);
       setSyncMessage(
         published.ok
@@ -401,6 +443,28 @@ export function VideoRulesRoom() {
       return;
     }
 
+    if (isEnglish) {
+      if (
+        typeof window !== "undefined" &&
+        !window.confirm("영어 버전 글을 비울까요?")
+      ) {
+        return;
+      }
+      clearVideoRulesEnglishDocument();
+      setEnglishText(DEFAULT_VIDEO_RULES_ENGLISH_DOCUMENT);
+      setEnglishDraft(DEFAULT_VIDEO_RULES_ENGLISH_DOCUMENT);
+      const published = await publishAll(
+        currentDocs({ english: DEFAULT_VIDEO_RULES_ENGLISH_DOCUMENT }),
+      );
+      setEditing(false);
+      setSyncMessage(
+        published.ok
+          ? "영어 버전 글을 비웠고, 다른 기기에도 맞춰 두었어요."
+          : `이 기기는 비웠어요. ${published.message}`,
+      );
+      return;
+    }
+
     if (
       typeof window !== "undefined" &&
       !window.confirm("쿠키영상 글을 비울까요?")
@@ -453,12 +517,16 @@ export function VideoRulesRoom() {
       ? "아직 AI용 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요."
       : isChecklist
         ? "아직 체크리스트 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요."
-        : "아직 쿠키영상 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요.";
+        : isEnglish
+          ? "아직 영어 버전 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요."
+          : "아직 쿠키영상 글이 없어요. 먼저 「글 고치기」로 붙여 넣어요.";
     const okMsg = isAi
       ? "AI용 규칙을 복사했어요. AI 채팅에 붙여 넣으면 돼요."
       : isChecklist
         ? "체크리스트를 복사했어요. 필요한 곳에 붙여 넣으면 돼요."
-        : "쿠키영상 글을 복사했어요. 필요한 곳에 붙여 넣으면 돼요.";
+        : isEnglish
+          ? "영어 버전 글을 복사했어요. 필요한 곳에 붙여 넣으면 돼요."
+          : "쿠키영상 글을 복사했어요. 필요한 곳에 붙여 넣으면 돼요.";
     if (!raw) {
       setCopyMessage(emptyMsg);
       return;
@@ -492,7 +560,9 @@ export function VideoRulesRoom() {
       ? "AI용 규칙 고치기"
       : isChecklist
         ? "체크리스트 고치기"
-        : "쿠키영상 고치기";
+        : isEnglish
+          ? "영어 버전 고치기"
+          : "쿠키영상 고치기";
 
   return (
     <section className="panel video-rules-panel" aria-label="영상제작 규칙">
@@ -538,6 +608,13 @@ export function VideoRulesRoom() {
           onClick={() => setAudience("checklist")}
         >
           체크리스트
+        </button>
+        <button
+          type="button"
+          className={`btn ${isEnglish ? "btn-primary" : "btn-soft"}`}
+          onClick={() => setAudience("english")}
+        >
+          영어 버전
         </button>
         <button
           type="button"

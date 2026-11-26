@@ -44,6 +44,7 @@ export async function publishVideoRulesAction(input: {
   adminBody: string;
   aiBody: string;
   checklistBody: string;
+  englishBody: string;
   cookieBody: string;
 }): Promise<
   | { ok: true; store: VideoRulesRemoteStore }
@@ -63,6 +64,8 @@ export async function publishVideoRulesAction(input: {
   const aiBody = typeof input?.aiBody === "string" ? input.aiBody : "";
   const checklistBody =
     typeof input?.checklistBody === "string" ? input.checklistBody : "";
+  const englishBody =
+    typeof input?.englishBody === "string" ? input.englishBody : "";
   const cookieBody =
     typeof input?.cookieBody === "string" ? input.cookieBody : "";
 
@@ -71,6 +74,7 @@ export async function publishVideoRulesAction(input: {
       adminBody,
       aiBody,
       checklistBody,
+      englishBody,
       cookieBody,
     });
     return { ok: true, store };
